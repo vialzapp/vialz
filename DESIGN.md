@@ -23,4 +23,4 @@ Radii: 6px small, 12px containers, pills for buttons and the address field. Bord
 Motion: vials fill once per report (520ms, 60ms stagger); the hero rack fills in sequence and the rug fills last.
 Buttons press to 0.97. Everything respects reduced motion.
 
-Copy: facts, not verdicts. No em dashes. Missing values read "n/a". Call it "the extension", not "the side panel".
+Copy: facts, not verdicts. No em dashes. Missing values read "n/a". Call it "the extension".

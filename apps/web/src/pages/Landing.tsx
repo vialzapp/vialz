@@ -40,7 +40,7 @@ const FAQ = [
   },
   {
     q: "Does it work on fomo, gmgn and X?",
-    a: "Yes. The extension opens next to any site. Paste the address, or press Check this page when the address is in the link of the tab you opened it on.",
+    a: "Yes. Click the Vialz icon on a token page and that token is read straight away. On any other page, paste an address or a link.",
   },
   {
     q: "Does it need my wallet?",
@@ -136,11 +136,11 @@ export function Landing() {
 
       <section className="band band-extension" id="extension">
         <div className="wrap extension">
-          <h2>Opens next to the chart.</h2>
+          <h2>One click from the toolbar.</h2>
           <div>
             <p>
-              On fomo, gmgn or X, open the extension, paste the address you are looking at or press Check this page, and the full report sits beside
-              the chart while you decide. Your recent checks stay on your device.
+              On a token page on gmgn, fomo or DexScreener, click the Vialz icon and the token is read straight away. Anywhere else, paste an address or a
+              link. Your recent checks stay on your device.
             </p>
             <Link className="text-link" href={CHROME_URL}>
               {CHROME_LABEL}

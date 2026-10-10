@@ -181,16 +181,16 @@ export function Docs() {
 
         <Section id="check" title="Check a token">
           <ol className="doc-steps">
-            <li>Click the Vialz icon. The extension opens next to the page you are on.</li>
+            <li>Click the Vialz icon in the toolbar. A small window opens under it.</li>
             <li>
               Paste a contract address, or any link that contains one: an X post, gmgn, fomo, Pons, DexScreener or an explorer page. Vialz pulls the
               address out of it.
             </li>
             <li>
-              If the tab you opened Vialz on has an address in its link, a <b>Check this page's token</b> button appears. Chrome only lets the
-              extension see the tab you opened it on, so on another tab, paste the address or reopen Vialz there.
+              If the page you are on has a token address in its link (gmgn, fomo, DexScreener, an explorer), Vialz reads that token straight away.
+              Chrome only shows the extension the link of the tab you clicked it on, nothing else.
             </li>
-            <li>The report arrives in 3 to 15 seconds. Earlier launches by the same creator open in the same view; the arrow takes you back.</li>
+            <li>The report arrives in 3 to 15 seconds. Earlier launches by the same creator open in the same window; the arrow takes you back.</li>
           </ol>
           <p>
             Your last checks stay in the extension, on your device. The same report is on the site at <code>/t/0x…</code>, a link you can
@@ -448,15 +448,14 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
         </Section>
 
         <Section id="permissions" title="Permissions and privacy">
-          <p>The extension asks for three permissions, and nothing else:</p>
+          <p>The extension asks for two permissions, and nothing else:</p>
           <dl className="doc-dl">
             <div>
-              <dt>sidePanel</dt>
-              <dd>To open next to the page you are on.</dd>
-            </div>
-            <div>
               <dt>activeTab</dt>
-              <dd>Only for the tab you open Vialz on, to read its link and offer to check an address found in it. Page content is never read.</dd>
+              <dd>
+                Only when you click the Vialz icon, and only for that tab: its link is read to find a token address. Page content, other tabs and
+                your history are never read.
+              </dd>
             </div>
             <div>
               <dt>storage</dt>

@@ -6,7 +6,7 @@ top holders, linked wallets, the creator's earlier launches and volume quality. 
 ```
 apps/api        Node + Fastify. GET /v1/token/:address builds the report on demand; also serves the site
 apps/web        the site (Vite + React): landing, /t/:address reports, /privacy
-apps/extension  Chrome MV3 side panel
+apps/extension  Chrome MV3 toolbar popup
 packages/shared report types, address parsing, formatting, the six readings
 packages/ui     shared React components and design tokens (site and extension use the same ones)
 ```
@@ -22,7 +22,7 @@ npm run dev:web        # http://localhost:5180, proxies /v1 to the API
 ```
 
 Extension: `cd apps/extension && npx vite build --mode development`, then in Chrome open `chrome://extensions`,
-switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the toolbar icon to open the side panel.
+switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the toolbar icon to open Vialz.
 
 ## Environment (API)
 

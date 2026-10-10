@@ -12,10 +12,7 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     sourcemap: mode === "development",
     rollupOptions: {
-      input: { sidepanel: "sidepanel.html", background: "src/background.ts" },
-      output: {
-        entryFileNames: (chunk) => (chunk.name === "background" ? "background.js" : "assets/[name]-[hash].js"),
-      },
+      input: { popup: "popup.html" },
     },
   },
 }));

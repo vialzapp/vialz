@@ -4,7 +4,7 @@ import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
 import "@fontsource-variable/archivo/standard.css";
 import "@fontsource-variable/martian-mono/standard.css";
 import "@vialz/ui";
-import "./panel.css";
+import "./popup.css";
 import { extractAddress, shortAddress } from "@vialz/shared";
 import { CheckInput, Mark, Report, ReportError, ReportSkeleton, useTokenReport } from "@vialz/ui";
 
@@ -48,8 +48,8 @@ async function saveRecent(item: Recent): Promise<Recent[]> {
   return list;
 }
 
-/** The address in the link of the tab the panel was opened on (gmgn, fomo, dexscreener and explorers put it there).
- *  activeTab grants that one tab when the icon is clicked; other tabs stay private, so there is no listener for them. */
+/** The address in the current tab's link (gmgn, fomo, dexscreener and explorers put it there). Clicking the toolbar
+ *  icon grants activeTab for that tab, which is exactly the tab the popup opens over. */
 function usePageAddress() {
   const [address, setAddress] = useState<string | null>(null);
   useEffect(() => {
@@ -64,7 +64,7 @@ function usePageAddress() {
   return address;
 }
 
-function Panel() {
+function Popup() {
   const [address, setAddress] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [recent, setRecent] = useState<Recent[]>([]);
@@ -74,6 +74,15 @@ function Panel() {
   useEffect(() => {
     void loadRecent().then(setRecent);
   }, []);
+
+  // opened over a token page (gmgn, fomo, dexscreener, an explorer): read that token straight away
+  const [autoChecked, setAutoChecked] = useState(false);
+  useEffect(() => {
+    if (pageAddress && !autoChecked && !address) {
+      setAutoChecked(true);
+      setAddress(pageAddress);
+    }
+  }, [pageAddress, autoChecked, address]);
 
   const readySymbol = state.status === "ready" ? state.report.symbol : null;
   useEffect(() => {
@@ -162,6 +171,6 @@ function Panel() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Panel />
+    <Popup />
   </StrictMode>,
 );

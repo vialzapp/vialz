@@ -22,14 +22,11 @@ export function Privacy() {
         </p>
 
         <h2>The Chrome extension</h2>
-        <p>The extension asks for three permissions:</p>
+        <p>The extension asks for two permissions:</p>
         <ul>
           <li>
-            <b>Side panel</b>, to show the report next to the page you are on.
-          </li>
-          <li>
-            <b>Active tab</b>, only for the tab you open Vialz on, to read its address bar and offer to check a contract address found in it. The
-            page's content is never read.
+            <b>Active tab</b>, only at the moment you click the Vialz icon and only for that tab: its address bar is read to find a contract address,
+            which never leaves your device unless you check that token. Page content, other tabs and your browsing history are never read.
           </li>
           <li>
             <b>Storage</b>, to keep your last checked tokens on your device. They never leave it.

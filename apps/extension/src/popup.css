@@ -1,20 +1,36 @@
-/* The side panel: one column, the field on top, the report below. */
+/* The toolbar popup: a fixed-width window under the icon (Chrome caps popups at 800 by 600, and scrolls past that).
+   A bar with the mark on top, the field, then the report. */
+
+html,
+body {
+  width: 400px;
+  max-height: 600px;
+}
 
 body {
-  min-width: 300px;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
 }
 
 .panel {
   display: grid;
   gap: 12px;
-  padding: 12px 12px 24px;
+  padding: 0 12px 16px;
 }
 
 .panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
+  height: 52px;
+  margin: 0 -12px;
+  padding: 0 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
 }
 
 .panel-name {
