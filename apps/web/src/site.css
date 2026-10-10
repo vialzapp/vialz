@@ -108,7 +108,7 @@ html {
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 24px;
   font-size: 15px;
 }
 
@@ -117,8 +117,22 @@ html {
   text-decoration: none;
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a[aria-current="page"] {
   color: var(--ink);
+}
+
+.nav-toggle {
+  display: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .nav-links .nav-install {
@@ -135,9 +149,33 @@ html {
   color: var(--act-ink) !important;
 }
 
-@media (max-width: 640px) {
-  .nav-links a:not(.nav-install):not(.btn) {
+/* narrow screens: the sections fold behind a Menu button and open as a list under the bar */
+@media (max-width: 960px) {
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+  }
+  .nav-links {
     display: none;
+  }
+  .nav-links.nav-open {
+    position: absolute;
+    top: 69px;
+    left: 0;
+    right: 0;
+    display: grid;
+    gap: 0;
+    padding: 8px 20px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--rule);
+    font-size: 17px;
+  }
+  .nav-links.nav-open a {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-links.nav-open a:last-child {
+    border-bottom: 0;
   }
 }
 
@@ -203,7 +241,64 @@ html {
   }
 }
 
+/* ---- section pages: each holds one band, starting under the bar ---- */
+.page {
+  min-height: calc(100svh - 69px - 120px);
+}
+
+.page .band-ranges,
+.page .band-faq,
+.page .band-extension {
+  padding-block: clamp(40px, 5vw, 72px) clamp(64px, 7vw, 104px);
+  background: none;
+}
+
+.page-report {
+  padding-block: clamp(40px, 5vw, 72px) clamp(64px, 7vw, 104px);
+}
+
+.report-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px clamp(32px, 6vw, 96px);
+  align-items: end;
+  margin-bottom: 28px;
+}
+
+.report-head h1 {
+  margin: 0;
+  font-size: clamp(36px, 4.4vw, 60px);
+  line-height: 0.98;
+}
+
+.report-head p {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--ink-2);
+}
+
+.page-report .check {
+  max-width: 640px;
+}
+
+.report-live-label {
+  margin: 36px 0 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.page-report {
+  --vz-sticky-top: 69px; /* under the site bar */
+}
+
+@media (max-width: 860px) {
+  .report-head {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- bands: no rules between them; rhythm comes from spacing that changes with the content ---- */
+.band h1,
 .band h2 {
   margin: 0 0 20px;
   font-size: clamp(36px, 4.4vw, 60px);
@@ -237,6 +332,7 @@ html {
   margin-bottom: 40px;
 }
 
+.ranges-head h1,
 .ranges-head h2,
 .ranges-head p {
   margin: 0;
@@ -346,6 +442,7 @@ html {
   align-items: start;
 }
 
+.extension h1,
 .extension h2 {
   margin: 0;
 }
@@ -373,6 +470,7 @@ html {
   max-width: 760px;
 }
 
+.faq h1,
 .faq h2 {
   margin-bottom: 28px;
 }

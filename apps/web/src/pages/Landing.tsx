@@ -98,10 +98,18 @@ export function Landing() {
         </div>
       </section>
 
+    </>
+  );
+}
+
+/** What each of the six vials reads, at each level. */
+export function HowItReads() {
+  return (
+    <div className="page">
       <section className="band band-ranges" id="vials">
         <div className="wrap">
           <div className="ranges-head">
-            <h2>What the six vials read.</h2>
+            <h1>What the six vials read.</h1>
             <p>
               Each vial fills with the colour of its reading, and the stronger the reading, the fuller it gets: a high reading fills it to the
               brim. They state what the chain shows, never a verdict.
@@ -139,10 +147,17 @@ export function Landing() {
           </p>
         </div>
       </section>
+    </div>
+  );
+}
 
+/** The extension: what it does and where to get it. */
+export function ExtensionPage() {
+  return (
+    <div className="page">
       <section className="band band-extension" id="extension">
         <div className="wrap extension">
-          <h2>One click from the toolbar.</h2>
+          <h1>One click from the toolbar.</h1>
           <div>
             <p>
               On a token page on gmgn, fomo or DexScreener, click the Vialz icon and the token is read straight away. Anywhere else, paste an address or a
@@ -154,10 +169,17 @@ export function Landing() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
 
+/** Short answers to what people ask first. */
+export function FaqPage() {
+  return (
+    <div className="page">
       <section className="band band-faq" id="faq">
         <div className="wrap faq">
-          <h2>Questions</h2>
+          <h1>Questions</h1>
           {FAQ.map((f) => (
             <details key={f.q}>
               <summary>{f.q}</summary>
@@ -166,7 +188,33 @@ export function Landing() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
 
-    </>
+/** The full report, straight away: paste an address, or read the busiest launch of the last hour in full. */
+export function FullReportPage() {
+  const live = useLiveExample();
+  const r = live.state.status === "ready" ? live.state.report : null;
+  return (
+    <div className="page page-report">
+      <div className="wrap">
+        <div className="report-head">
+          <h1>Full report.</h1>
+          <p>Every reading on one page: the vials and findings, market, launch, holders, linked wallets and the creator's record.</p>
+        </div>
+        <CheckInput size="l" onCheck={(a) => navigate(`/t/${a}`)} label="Contract address or link" />
+        <p className="report-live-label" role="status">
+          {r ? `Read just now: $${r.symbol}, the busiest Pons launch of the last hour` : "Reading the busiest Pons launch of the last hour"}
+        </p>
+        {r ? (
+          <Report report={r} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} />
+        ) : live.failed || live.state.status === "error" ? (
+          <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address above."} />
+        ) : (
+          <ReportSkeleton />
+        )}
+      </div>
+    </div>
   );
 }

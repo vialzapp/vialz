@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowUpRightIcon, CheckIcon, CopyIcon, GlobeIcon, TelegramLogoIcon, XLogoIcon } from "@phosphor-icons/react";
 import {
   explorerAddress,
@@ -31,53 +31,10 @@ interface Props {
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
-type Tab = "overview" | "market" | "holders" | "creator" | "all";
-const TABS: [Tab, string][] = [
-  ["overview", "Overview"],
-  ["market", "Market"],
-  ["holders", "Holders"],
-  ["creator", "Creator"],
-  ["all", "Full report"],
-];
-const TAB_KEY = "vialz.tab";
-
-/** Opens on the overview, or on the full report for someone who chose it before (kept on this device only). */
-function useTab(): [Tab, (t: Tab) => void] {
-  const [tab, setTab] = useState<Tab>(() => {
-    try {
-      return localStorage.getItem(TAB_KEY) === "all" ? "all" : "overview";
-    } catch {
-      return "overview";
-    }
-  });
-  const choose = (t: Tab) => {
-    setTab(t);
-    try {
-      localStorage.setItem(TAB_KEY, t);
-    } catch {
-      // remembering the tab is a convenience
-    }
-  };
-  return [tab, choose];
-}
-
 export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl, openFull, headingLevel = 2 }: Props & { headingLevel?: 1 | 2 }) {
   const Title = headingLevel === 1 ? "h1" : "h2";
   const age = r.createdAt != null ? nowSec() - r.createdAt : null;
   const onCurve = r.launch != null && r.launch.graduatedBlock == null && r.launch.phase === "curve";
-  const [tab, setTab] = useTab();
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const id = useId();
-
-  const choose = (t: Tab) => {
-    setTab(t);
-    // switching from far down a long tab: bring the new tab's start into view under the sticky bar
-    const el = tabsRef.current;
-    if (el) {
-      const top = el.getBoundingClientRect().top + window.scrollY - (parseFloat(getComputedStyle(el).top) || 0);
-      if (window.scrollY > top) window.scrollTo({ top });
-    }
-  };
 
   const overview = (
     <>
@@ -152,56 +109,14 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
         </>
       ) : (
         <>
-          <div
-            className="vz-tabs"
-            role="tablist"
-            aria-label="Report sections"
-            ref={tabsRef}
-            onKeyDown={(e) => {
-              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-              const i = TABS.findIndex(([t]) => t === tab);
-              const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length]![0];
-              choose(next);
-              document.getElementById(`${id}-${next}`)?.focus();
-            }}
-          >
-            {TABS.map(([t, label]) => (
-              <button
-                key={t}
-                id={`${id}-${t}`}
-                type="button"
-                role="tab"
-                aria-selected={tab === t}
-                aria-controls={`${id}-panel`}
-                tabIndex={tab === t ? 0 : -1}
-                className="vz-tab"
-                onClick={() => choose(t)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-${tab}`} className={`vz-panel vz-panel-${tab}`}>
-            {tab === "overview" && (
-              <>
-                <div className="vz-col vz-col-a">{overview}</div>
-                <div className="vz-col vz-col-b vz-wide-only">{market}</div>
-              </>
-            )}
-            {tab === "market" && market}
-            {tab === "holders" && holders}
-            {tab === "creator" && creator}
-            {tab === "all" && (
-              <>
-                <div className="vz-col vz-col-a">{overview}</div>
-                <div className="vz-col vz-col-b">
-                  {market}
-                  {holders}
-                  {creator}
-                </div>
-              </>
-            )}
+          {/* the whole report on one sheet: vials and findings on the left, the detail on the right on wide pages */}
+          <div className="vz-panel vz-panel-all">
+            <div className="vz-col vz-col-a">{overview}</div>
+            <div className="vz-col vz-col-b">
+              {market}
+              {holders}
+              {creator}
+            </div>
           </div>
 
           <footer className="vz-footer">

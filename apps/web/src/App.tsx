@@ -1,7 +1,7 @@
-import { useEffect, useState, type AnchorHTMLAttributes } from "react";
+import { useEffect, useState, type AnchorHTMLAttributes, type ReactElement } from "react";
 import { extractAddress } from "@vialz/shared";
 import { Mark } from "@vialz/ui";
-import { Landing } from "./pages/Landing";
+import { ExtensionPage, FaqPage, FullReportPage, HowItReads, Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
 import { Docs } from "./pages/Docs";
@@ -50,9 +50,36 @@ function usePath() {
   return path;
 }
 
+// the site's sections, each its own page
+const PAGES: Record<string, () => ReactElement> = {
+  "/how": HowItReads,
+  "/report": FullReportPage,
+  "/extension": ExtensionPage,
+  "/faq": FaqPage,
+  "/docs": Docs,
+  "/privacy": Privacy,
+};
+const MENU: [string, string][] = [
+  ["/how", "How it reads"],
+  ["/report", "Full report"],
+  ["/extension", "Extension"],
+  ["/faq", "FAQ"],
+  ["/docs", "Docs"],
+];
+
 export function App() {
   const path = usePath();
   const token = path.startsWith("/t/") ? extractAddress(path.slice(3)) : null;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const Page = PAGES[path] ?? Landing;
+
+  // links from before the split pointed at sections of the home page
+  useEffect(() => {
+    const old: Record<string, string> = { "#vials": "/how", "#faq": "/faq", "#extension": "/extension" };
+    if (path === "/" && old[location.hash]) history.replaceState(null, "", old[location.hash]);
+    if (path === "/" && old[location.hash]) window.dispatchEvent(new PopStateEvent("popstate"));
+  }, [path]);
+  useEffect(() => setMenuOpen(false), [path]);
 
   return (
     <>
@@ -65,19 +92,31 @@ export function App() {
             <Mark size={18} />
             Vialz
           </Link>
-          <nav className="nav-links" aria-label="Main">
-            <Link href="/#vials">How it reads</Link>
-            <Link href="/docs">Docs</Link>
+          <nav className={menuOpen ? "nav-links nav-open" : "nav-links"} id="menu" aria-label="Main">
+            {MENU.map(([href, label]) => (
+              <Link key={href} href={href} aria-current={path === href ? "page" : undefined}>
+                {label}
+              </Link>
+            ))}
             <Out href={REPO_URL}>GitHub</Out>
             <Out href={X_URL}>X</Out>
             <Link className={IN_STORE ? "btn btn-act nav-cta" : "nav-install"} href={CHROME_URL}>
               {IN_STORE ? CHROME_LABEL : "Install beta"}
             </Link>
           </nav>
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-expanded={menuOpen}
+            aria-controls="menu"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? "Close" : "Menu"}
+          </button>
         </div>
       </header>
       <main id="main">
-        {token ? <TokenPage address={token} /> : path === "/privacy" ? <Privacy /> : path === "/docs" ? <Docs /> : <Landing />}
+        {token ? <TokenPage address={token} /> : <Page />}
       </main>
       <footer className="footer">
         <div className="wrap footer-row">

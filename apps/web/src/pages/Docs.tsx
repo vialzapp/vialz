@@ -249,10 +249,6 @@ export function Docs() {
         </Section>
 
         <Section id="sections" title="Report sections">
-          <p>
-            The name, market cap, liquidity, holders, age and curve progress stay at the top. Under them the report has tabs: Overview (the vials
-            and findings), Market, Holders and Creator. Full report shows everything on one page, and the extension remembers if you chose it.
-          </p>
           <dl className="doc-dl">
             <div>
               <dt>Market</dt>

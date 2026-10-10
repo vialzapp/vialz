@@ -12,7 +12,6 @@
 
 /* everything that runs edge to edge inside the sheet keeps the same gutter */
 .vz-top,
-.vz-tabs,
 .vz-tally,
 .strip,
 .vz-findings-section,
@@ -22,98 +21,18 @@
   padding-inline: 16px;
 }
 
-/* ---- tabs: the overview first, the detail one tab away, or everything under Full report ---- */
-.vz-tabs {
-  position: sticky;
-  top: var(--vz-sticky-top, 0px);
-  z-index: 1;
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-block: 1px solid var(--rule);
-  background: var(--vz-tabs-bg, var(--sheet));
-}
-
-.vz-tab {
-  flex: none;
-  position: relative;
-  height: 42px;
-  padding: 0 10px;
-  border: 0;
-  background: none;
-  color: var(--ink-3);
-  font-size: 13.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: color 140ms ease;
-}
-
-.vz-tab:first-child {
-  margin-left: -10px;
-}
-
-.vz-tab:hover {
-  color: var(--ink-2);
-}
-
-.vz-tab[aria-selected="true"] {
-  color: var(--ink);
-}
-
-/* the current tab: a short rule under its label */
-.vz-tab[aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  inset-inline: 10px;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--ink);
-}
-
-.vz-tab:focus-visible {
-  outline-offset: -4px;
-}
-
-/* the overview's market column only appears where there is room beside it */
-.vz-wide-only {
-  display: none;
-}
-
-/* sections inside a tab start flush with the tab bar */
-.vz-panel > .vz-col-a > .vz-tally:first-child,
-.vz-panel > .vz-section:first-child {
-  border-top: 0;
-}
-
 /* wide pages: two columns. The vials and findings stay in view on the left while the detail scrolls on the right;
    they stick inside the panel only, so they can never ride over the footer. */
 @container (min-width: 980px) {
-  .vz-wide-only {
-    display: block;
-  }
-  .vz-panel-overview,
-  .vz-panel-all,
-  .vz-panel-market,
-  .vz-panel-holders {
+  .vz-panel-all {
     display: grid;
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
     align-items: start;
   }
-  .vz-panel-overview > .vz-col-a,
   .vz-panel-all > .vz-col-a {
     position: sticky;
-    top: calc(var(--vz-sticky-top, 0px) + 44px);
+    top: calc(var(--vz-sticky-top, 0px) + 16px);
     border-right: 1px solid var(--rule);
-  }
-  .vz-panel-market > .vz-section:first-child,
-  .vz-panel-holders > .vz-section:first-child {
-    border-right: 1px solid var(--rule);
-  }
-  .vz-panel-holders {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   }
   .vz-report:not(.vz-compact) .finding {
     font-size: 16px;
@@ -812,7 +731,6 @@
 
 @container (min-width: 620px) {
   .vz-top,
-  .vz-tabs,
   .vz-tally,
   .strip,
   .vz-findings-section,
@@ -820,9 +738,6 @@
   .vz-section,
   .vz-footer {
     padding-inline: 24px;
-  }
-  .vz-tab:first-child {
-    margin-left: -10px;
   }
   .vz-report .vz-name {
     font-size: 22px;
@@ -949,9 +864,6 @@
   }
   .vz-findings {
     gap: 5px;
-  }
-  .vz-tab {
-    height: 38px;
   }
 }
 
