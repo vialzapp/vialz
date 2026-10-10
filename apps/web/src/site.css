@@ -550,7 +550,7 @@ html {
 /* ---- token page ---- */
 .token-page {
   --vz-sticky-top: 69px; /* under the site bar */
-  padding-block: clamp(40px, 5vw, 72px) 88px;
+  padding-block: 40px 88px;
 }
 
 .token-wrap {
