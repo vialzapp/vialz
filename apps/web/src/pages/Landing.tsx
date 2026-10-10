@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate, Out } from "../App";
-import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
+import { API_BASE, REPO_URL } from "../brand";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
 function useLiveExample() {
@@ -173,28 +173,6 @@ export function HowItReads() {
   );
 }
 
-/** The extension: what it does and where to get it. */
-export function ExtensionPage() {
-  return (
-    <div className="page">
-      <section className="band band-extension" id="extension">
-        <div className="wrap extension">
-          <h1>One click from the toolbar.</h1>
-          <div>
-            <p>
-              On a token page on gmgn, fomo or DexScreener, click the Vialz icon and the token is read straight away. Anywhere else, paste an address or a
-              link. Your recent checks stay on your device.
-            </p>
-            <Link className="text-link" href={CHROME_URL}>
-              {CHROME_LABEL}
-            </Link>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 /** Short answers to what people ask first. */
 export function FaqPage() {
   return (
@@ -203,10 +181,10 @@ export function FaqPage() {
         <div className="wrap faq">
           <h1>Questions</h1>
           {FAQ.map((f) => (
-            <details key={f.q}>
-              <summary>{f.q}</summary>
+            <section key={f.q} className="faq-item">
+              <h2>{f.q}</h2>
               <p>{f.a}</p>
-            </details>
+            </section>
           ))}
         </div>
       </section>

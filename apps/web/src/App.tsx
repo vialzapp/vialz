@@ -1,7 +1,7 @@
 import { useEffect, useState, type AnchorHTMLAttributes, type ReactElement } from "react";
 import { extractAddress } from "@vialz/shared";
 import { Mark } from "@vialz/ui";
-import { ExtensionPage, FaqPage, FullReportPage, HowItReads, Landing } from "./pages/Landing";
+import { FaqPage, FullReportPage, HowItReads, Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
 import { Docs } from "./pages/Docs";
@@ -54,7 +54,6 @@ function usePath() {
 const PAGES: Record<string, () => ReactElement> = {
   "/how": HowItReads,
   "/report": FullReportPage,
-  "/extension": ExtensionPage,
   "/faq": FaqPage,
   "/docs": Docs,
   "/privacy": Privacy,
@@ -62,7 +61,6 @@ const PAGES: Record<string, () => ReactElement> = {
 const MENU: [string, string][] = [
   ["/how", "How it reads"],
   ["/report", "Full report"],
-  ["/extension", "Extension"],
   ["/faq", "FAQ"],
   ["/docs", "Docs"],
 ];
@@ -75,9 +73,14 @@ export function App() {
 
   // links from before the split pointed at sections of the home page
   useEffect(() => {
-    const old: Record<string, string> = { "#vials": "/how", "#faq": "/faq", "#extension": "/extension" };
-    if (path === "/" && old[location.hash]) history.replaceState(null, "", old[location.hash]);
-    if (path === "/" && old[location.hash]) window.dispatchEvent(new PopStateEvent("popstate"));
+    const old: Record<string, string> = { "#vials": "/how", "#faq": "/faq", "#extension": CHROME_URL };
+    const to = path === "/" ? old[location.hash] : path === "/extension" ? CHROME_URL : undefined;
+    if (!to) return;
+    if (!to.startsWith("/")) return void location.replace(to); // the store listing, once it exists
+    history.replaceState(null, "", to);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    const id = to.split("#")[1];
+    if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 30);
   }, [path]);
   useEffect(() => setMenuOpen(false), [path]);
 

@@ -498,43 +498,32 @@ html {
   margin-bottom: 28px;
 }
 
-.faq details {
-  border-bottom: 1px solid var(--rule);
-}
-
-.faq details:first-of-type {
+/* every answer open: the question in white over its answer in grey, a rule between pairs */
+.faq-item {
+  padding: 22px 0 24px;
   border-top: 1px solid var(--rule);
 }
 
-.faq summary {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px 0;
-  font-weight: 600;
-  font-size: 18px;
-  cursor: pointer;
-  list-style: none;
+.faq-item:last-child {
+  border-bottom: 1px solid var(--rule);
 }
 
-.faq summary::-webkit-details-marker {
-  display: none;
+.band .faq-item h2 {
+  margin: 0 0 8px;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 650;
+  font-stretch: 100%;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
-.faq summary::after {
-  content: "+";
-  font-family: var(--font-data);
-  color: var(--ink-3);
-  transition: transform 200ms var(--ease-out);
-}
-
-.faq details[open] summary::after {
-  transform: rotate(45deg);
-}
-
-.faq details p {
-  margin: 0 0 22px;
+.faq-item p {
+  margin: 0;
   max-width: 68ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
 }
 
 /* ---- token page ---- */
