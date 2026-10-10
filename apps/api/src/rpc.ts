@@ -38,43 +38,39 @@ const deadlineOf = (explicit: number) => Math.min(explicit, requestDeadline.getS
 
 let nextId = 1;
 export const rpcStats = { requests: 0, retries: 0 };
-let active = 0;
-let activeBackground = 0;
-const queue: (() => void)[] = [];
-const backgroundQueue: (() => void)[] = [];
 const MAX_QUEUE = Number(process.env.RH_RPC_MAX_QUEUE ?? 200);
-// background reads (a creator's whole history) may hold at most this many slots, so a report never waits behind them
-const BACKGROUND_SLOTS = Math.max(1, CONCURRENCY - 2);
+// Two lanes to the node. Reports get CONCURRENCY slots; background reads (a creator's whole history) get their own
+// two. Neither waits on the other: a report never queues behind a long search, and a search is never starved by
+// reports.
+const BACKGROUND_SLOTS = 2;
 const background = new AsyncLocalStorage<true>();
 
-/** Runs `fn` with its RPC requests marked as background: they yield to the reads a report is waiting on. */
+/** Runs `fn` with its RPC requests in the background lane. */
 export const inBackground = <T>(fn: () => Promise<T>): Promise<T> => background.run(true, fn);
 
-function release() {
-  // the next request in line: reports first, background only while it stays within its share
-  const next = queue.shift() ?? (activeBackground < BACKGROUND_SLOTS ? backgroundQueue.shift() : undefined);
-  next?.();
+interface Lane {
+  active: number;
+  max: number;
+  queue: (() => void)[];
 }
+const lanes = { report: { active: 0, max: CONCURRENCY, queue: [] } as Lane, background: { active: 0, max: BACKGROUND_SLOTS, queue: [] } as Lane };
 
 async function slot<T>(fn: () => Promise<T>): Promise<T> {
-  const bg = background.getStore() === true;
-  if (active >= CONCURRENCY || (bg && (activeBackground >= BACKGROUND_SLOTS || queue.length > 0))) {
-    const line = bg ? backgroundQueue : queue;
-    if (line.length >= MAX_QUEUE) throw new RpcError("rpc queue full");
-    await new Promise<void>((r) => line.push(r));
+  const lane = background.getStore() === true ? lanes.background : lanes.report;
+  if (lane.active >= lane.max) {
+    if (lane.queue.length >= MAX_QUEUE) throw new RpcError("rpc queue full");
+    await new Promise<void>((r) => lane.queue.push(r));
   }
-  active++;
-  if (bg) activeBackground++;
+  lane.active++;
   try {
     return await fn();
   } finally {
-    active--;
-    if (bg) activeBackground--;
-    release();
+    lane.active--;
+    lane.queue.shift()?.();
   }
 }
 
-const agent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY });
+const agent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY + BACKGROUND_SLOTS });
 
 function postOnce(body: string): Promise<unknown> {
   return new Promise((resolve, reject) => {

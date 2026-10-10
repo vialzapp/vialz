@@ -408,7 +408,8 @@ interface CreatorLaunch {
   creatorSold: boolean | null;
 }
 
-const creatorCache = new Map<string, { at: number; value: Promise<CreatorLaunches> }>();
+// `done` is the settled value, readable without waiting: undefined while the search runs, null if it failed
+const creatorCache = new Map<string, { at: number; value: Promise<CreatorLaunches>; done?: CreatorLaunches | null }>();
 const CREATOR_TTL_MS = 5 * 60_000;
 type CreatorLaunches = CreatorLaunch[];
 
@@ -426,11 +427,20 @@ function creatorLaunches(creator: string, h: number, self: SelfLaunch): Promise<
   const hit = creatorCache.get(creator);
   if (hit && Date.now() - hit.at < CREATOR_TTL_MS) return hit.value;
   const value = loadCreatorLaunches(creator, h, self);
-  const entry = { at: Date.now(), value };
+  const entry: { at: number; value: Promise<CreatorLaunches>; done?: CreatorLaunches | null } = { at: Date.now(), value };
   creatorCache.set(creator, entry);
-  value.catch(() => {
-    if (creatorCache.get(creator) === entry) creatorCache.delete(creator);
-  });
+  value.then(
+    (v) => {
+      entry.done = v;
+    },
+    () => {
+      entry.done = null;
+      // forget a failed search shortly after, so the next read tries again
+      setTimeout(() => {
+        if (creatorCache.get(creator) === entry) creatorCache.delete(creator);
+      }, 30_000);
+    },
+  );
   if (creatorCache.size > 5_000) creatorCache.delete(creatorCache.keys().next().value!);
   return value;
 }
@@ -512,6 +522,36 @@ function ipfsCid(v: string | null | undefined): string | null {
 const fmt = (v: number) => (v >= 10 ? v.toFixed(0) : v.toFixed(1));
 
 /** Facts, not verdicts: each line says what the chain shows. */
+const FLAG_ORDER = { danger: 0, warn: 1, info: 2, good: 3 } as const;
+
+function devFlags(dev: TokenReport["dev"]): Flag[] {
+  const f: Flag[] = [];
+  if (!dev) return f;
+  if (dev.checked >= 3 && dev.sold / dev.checked >= 0.5) f.push({ level: "danger", text: `Creator sold in ${dev.sold} of their last ${dev.checked} launches` });
+  if (dev.launches >= 50) f.push({ level: "danger", text: `Creator has launched ${dev.launches} tokens: a launch farm` });
+  else if (dev.launches >= 10) f.push({ level: "warn", text: `Creator has launched ${dev.launches} tokens` });
+  else if (dev.launches === 1) f.push({ level: "info", text: "First launch from this wallet" });
+  return f;
+}
+
+/** A report that went out while the creator's record was still being read, completed from the cache once that read
+ *  is done: no second read of the token. Null while it is still running. */
+export function withCreator(r: TokenReport): TokenReport | null {
+  if (r.devStatus !== "pending" || !r.creator) return null;
+  const entry = creatorCache.get(r.creator);
+  const found = entry?.done;
+  if (entry && found === undefined) return null; // still searching
+  if (!found) return { ...r, devStatus: "off" }; // the search failed: say so instead of waiting
+  const tsHead = r.generatedAt;
+  const tsOf = (b: number) =>
+    r.createdAt == null || r.createdBlock == null || r.head === r.createdBlock
+      ? tsHead
+      : r.createdAt + ((b - r.createdBlock) * (tsHead - r.createdAt)) / (r.head - r.createdBlock);
+  const dev = devSummary(found, r.address, tsOf, tsHead);
+  const flags = [...r.flags, ...devFlags(dev)].sort((a, b) => FLAG_ORDER[a.level] - FLAG_ORDER[b.level]);
+  return { ...r, dev, devStatus: "done", flags };
+}
+
 function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
   const f: Flag[] = [];
   const quote = r.launch?.quote.symbol ?? "ETH";
@@ -548,19 +588,12 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
   if (r.holders.top10Pct >= 50) f.push({ level: "danger", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });
   else if (r.holders.top10Pct >= 30) f.push({ level: "warn", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });
 
-  if (r.dev) {
-    if (r.dev.checked >= 3 && r.dev.sold / r.dev.checked >= 0.5)
-      f.push({ level: "danger", text: `Creator sold in ${r.dev.sold} of their last ${r.dev.checked} launches` });
-    if (r.dev.launches >= 50) f.push({ level: "danger", text: `Creator has launched ${r.dev.launches} tokens: a launch farm` });
-    else if (r.dev.launches >= 10) f.push({ level: "warn", text: `Creator has launched ${r.dev.launches} tokens` });
-    else if (r.dev.launches === 1) f.push({ level: "info", text: "First launch from this wallet" });
-  }
+  f.push(...devFlags(r.dev));
   if (r.volume && r.volume.trades >= 30 && r.volume.top5SharePct >= 60)
     f.push({ level: "warn", text: `5 wallets made ${fmt(r.volume.top5SharePct)}% of volume` });
   if (r.volume && r.volume.trades >= 30 && r.volume.roundTripWallets >= 5)
     f.push({ level: "warn", text: `${r.volume.roundTripWallets} wallets bought and sold it again and again` });
   if (!r.links.x && !r.links.website && !r.links.telegram) f.push({ level: "info", text: "No socials set" });
 
-  const order = { danger: 0, warn: 1, info: 2, good: 3 } as const;
-  return f.sort((a, b) => order[a.level] - order[b.level]);
+  return f.sort((a, b) => FLAG_ORDER[a.level] - FLAG_ORDER[b.level]);
 }

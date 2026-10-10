@@ -7,14 +7,14 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { extractAddress, isPending, type TokenReport } from "@vialz/shared";
-import { analyzeToken, NotFound } from "./analyze.js";
+import { analyzeToken, NotFound, withCreator } from "./analyze.js";
 import { requestDeadline } from "./rpc.js";
 import { busiestLaunch } from "./latest.js";
 import { CID_RE, ImagesBusy, ipfsImage } from "./images.js";
 import { clientIp, refreshCloudflareRanges } from "./clientip.js";
 
 const TTL_MS = 15_000;
-const cache = new Map<string, { at: number; report: Promise<TokenReport> }>();
+const cache = new Map<string, { at: number; report: Promise<TokenReport>; value?: TokenReport }>();
 
 // Fresh reads of the chain are the expensive part. A few run at once, a short queue waits, the rest are told to retry:
 // one busy client can slow the service down but cannot pile up unbounded work or memory.
@@ -40,19 +40,53 @@ async function gated<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
+/** True when a request for this address is answered from memory (a fresh report, or a read already running). */
+const cached = (address: string) => {
+  const hit = cache.get(address);
+  return hit != null && Date.now() - hit.at < TTL_MS;
+};
+
+// Reads that go to the chain are limited per client; answers from memory (repeat checks, the polls that wait for the
+// creator's record) only count against the much looser route limit.
+const READS_PER_MINUTE = Number(process.env.TOKEN_PER_MINUTE ?? 15);
+const reads = new Map<string, number[]>();
+function allowRead(ip: string): number {
+  const now = Date.now();
+  const recent = (reads.get(ip) ?? []).filter((t) => now - t < 60_000);
+  if (recent.length >= READS_PER_MINUTE) {
+    reads.set(ip, recent);
+    return Math.ceil((recent[0]! + 60_000 - now) / 1000); // seconds until a slot frees
+  }
+  recent.push(now);
+  reads.set(ip, recent);
+  if (reads.size > 20_000) reads.delete(reads.keys().next().value!);
+  return 0;
+}
+
 function report(address: string): Promise<TokenReport> {
   const hit = cache.get(address);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.report;
+  if (hit && Date.now() - hit.at < TTL_MS) {
+    // a report waiting only on the creator's record is completed in place once that record is in; polling for it
+    // never reads the token again
+    const done = hit.value && withCreator(hit.value);
+    if (done) {
+      hit.value = done;
+      hit.report = Promise.resolve(done);
+    }
+    return hit.report;
+  }
   const p = gated(() => requestDeadline.run(Date.now() + REPORT_BUDGET_MS, () => analyzeToken(address as `0x${string}`)));
-  const entry = { at: Date.now(), report: p };
+  const entry: { at: number; report: Promise<TokenReport>; value?: TokenReport } = { at: Date.now(), report: p };
   cache.set(address, entry);
   // the entry may have been replaced by a newer read while this one ran; only ever update our own
   const mine = () => cache.get(address) === entry;
   p.then(
     (r) => {
       if (!mine()) return;
-      // fresh for TTL from when the read finished; a report still waiting on funding is kept short so polls pick it up
-      entry.at = isPending(r) ? Date.now() - TTL_MS + 2_000 : Date.now();
+      entry.value = r;
+      // fresh for TTL from when the read finished; a report still waiting on funding is kept short so polls pick it
+      // up (the creator's record needs no new read: see above)
+      entry.at = r.fundingStatus === "pending" ? Date.now() - TTL_MS + 2_000 : Date.now();
     },
     (e) => {
       if (!mine()) return;
@@ -142,9 +176,17 @@ app.get("/v1/latest", perMinute(30), async (_req, reply) => {
   return { token };
 });
 
-app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(Number(process.env.TOKEN_PER_MINUTE ?? 15)), async (req, reply) => {
+app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(120), async (req, reply) => {
   const address = extractAddress(req.params.address);
   if (!address) return reply.code(400).send({ error: "bad_address", message: "Paste a contract address (0x… 40 hex characters)." });
+  if (!cached(address)) {
+    const wait = allowRead(clientIp(req, CLIENT_IP_HEADER));
+    if (wait > 0)
+      return reply
+        .code(429)
+        .header("retry-after", String(wait))
+        .send({ error: "rate_limited", message: `Too many checks. Try again in ${wait} seconds.` });
+  }
   try {
     const r = await report(address);
     reply.header("cache-control", isPending(r) ? "no-store" : "public, max-age=10");
