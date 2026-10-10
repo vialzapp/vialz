@@ -14,7 +14,7 @@ const TOC: { group: string; items: [string, string][] }[] = [
   { group: "Trust", items: [["permissions", "Permissions and privacy"], ["official", "Official links"], ["security", "Report a vulnerability"]] },
 ];
 
-function Code({ children }: { children: string }) {
+export function Code({ children }: { children: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="doc-code">
@@ -202,10 +202,10 @@ export function Docs() {
           </p>
           <div className="doc-legend">
             {[
-              ["good", 0.5, "Clear", "nothing of concern in this check"],
-              ["info", 0.62, "Note", "worth knowing, not a warning"],
-              ["warn", 0.78, "Watch", "look closer before you buy"],
-              ["danger", 0.95, "High", "a pattern often seen before a rug"],
+              ["good", 0.62, "Clear", "nothing of concern in this check"],
+              ["info", 0.72, "Note", "worth knowing, not a warning"],
+              ["warn", 0.84, "Watch", "look closer before you buy"],
+              ["danger", 0.96, "High", "a pattern often seen before a rug"],
             ].map(([level, fill, name, text]) => (
               <div key={name as string} className={`pad-${level}`}>
                 <Vessel level={fill as number} fill="var(--pad)" glass="var(--ink-3)" className="doc-legend-vial" />

@@ -18,13 +18,15 @@ interface Props {
   report: TokenReport;
   /** where the API lives; token images are proxied through it */
   apiBase?: string;
+  /** head, vials and findings only, with a link to the full report */
+  compact?: { href: string };
   /** open another token's report inside the same surface (creator's earlier launches) */
   onOpenToken?: (address: string) => void;
 }
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
-export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
+export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props) {
   const age = r.createdAt != null ? nowSec() - r.createdAt : null;
   const quote = r.launch?.quote.symbol ?? "ETH";
 
@@ -56,7 +58,16 @@ export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
         </ul>
       </Section>
 
-      {r.market && (
+      {compact && (
+        <footer className="vz-footer vz-compact-foot">
+          <a href={compact.href}>Open the full report</a>
+          <span>
+            Block <span className="num">{r.head.toLocaleString("en-US")}</span>
+          </span>
+        </footer>
+      )}
+
+      {!compact && r.market && (
         <Section title="Market" note={r.market.source === "curve" ? "From curve trades on chain" : "Pool data from DexScreener"}>
           <dl className="vz-values">
             <Value label="Price" value={r.market.priceUsd != null ? `$${formatSmall(r.market.priceUsd)}` : "n/a"} />
@@ -73,7 +84,7 @@ export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
         </Section>
       )}
 
-      {r.launch && (
+      {!compact && r.launch && (
         <Section title="Launch" note="Pons">
           <div className="vz-progress" role="img" aria-label={`Curve ${Math.round(r.launch.progressPct)}% to graduation`}>
             <div className="vz-progress-bar">
@@ -97,9 +108,10 @@ export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
         </Section>
       )}
 
+      {!compact && (
       <Section title="Holders" note={`${r.holders.count.toLocaleString("en-US")} wallets`}>
         <ol className="vz-holders">
-          {r.holders.top.slice(0, 10).map((h, i, top) => (
+          {r.holders.top.filter((h) => h.pct >= 0.01 || h.labels.length > 0).slice(0, 10).map((h, i, top) => (
             <li key={h.address}>
               <span className="num vz-rank">{i + 1}</span>
               <a className="num" href={explorerAddress(h.address)} target="_blank" rel="noreferrer">
@@ -125,7 +137,9 @@ export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
           Top 10 wallets hold <b className="num">{formatPct(r.holders.top10Pct)}</b>, not counting the curve, pools and burn address.
         </p>
       </Section>
+      )}
 
+      {!compact && (
       <Section title="Linked wallets">
         {r.clusters.length === 0 ? (
           <p className="vz-empty">
@@ -150,8 +164,9 @@ export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
           </ul>
         )}
       </Section>
+      )}
 
-      {r.creator && (
+      {!compact && r.creator && (
         <Section title="Creator" note={shortAddress(r.creator)}>
           {r.dev ? (
             <>
@@ -191,12 +206,14 @@ export function Report({ report: r, onOpenToken, apiBase = "" }: Props) {
         </Section>
       )}
 
+      {!compact && (
       <footer className="vz-footer">
         <span>
           Read from block <span className="num">{r.head.toLocaleString("en-US")}</span> in {(r.tookMs / 1000).toFixed(1)}s.
         </span>
         <span>Facts from the chain, not advice.</span>
       </footer>
+      )}
     </article>
   );
 }

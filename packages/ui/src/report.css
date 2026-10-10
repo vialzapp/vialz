@@ -553,3 +553,12 @@
     animation: none;
   }
 }
+
+.vz-compact-foot {
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+}
+
+.vz-compact-foot a {
+  font-weight: 600;
+}

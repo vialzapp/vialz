@@ -5,7 +5,7 @@ import { Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
 import { Docs } from "./pages/Docs";
-import { CHROME_URL, REPO_URL } from "./brand";
+import { CHROME_LABEL, CHROME_URL, REPO_URL } from "./brand";
 
 // A three-route site does not need a router library: the path is state, links push to history.
 export function navigate(to: string) {
@@ -55,12 +55,12 @@ export function App() {
             Vialz
           </Link>
           <nav className="nav-links" aria-label="Main">
-            <a href="/#reads">What it reads</a>
+            <a href="/#vials">How it reads</a>
             <Link href="/docs">Docs</Link>
             <a href={REPO_URL}>GitHub</a>
-            <a className="btn btn-act nav-cta" href={CHROME_URL}>
-              Add to Chrome
-            </a>
+            <Link className="btn btn-act nav-cta" href={CHROME_URL}>
+              {CHROME_LABEL}
+            </Link>
           </nav>
         </div>
       </header>

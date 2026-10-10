@@ -4,7 +4,8 @@ import { Vessel } from "./Vessel";
 
 const READ: Record<Pad["level"], string> = { danger: "high", warn: "watch", info: "note", good: "clear", none: "no data" };
 // how far each vial fills: the stronger the reading, the fuller the vial
-const LEVEL: Record<Pad["level"], number> = { good: 0.5, info: 0.62, warn: 0.78, danger: 0.95, none: 0 };
+// a V holds little at the bottom (volume grows with the square of the level), so even "clear" fills past half
+const LEVEL: Record<Pad["level"], number> = { good: 0.62, info: 0.72, warn: 0.84, danger: 0.96, none: 0 };
 
 /** Six vials, one per check. Each fills with the colour and level of its reading. */
 export function Strip({ pads, size = "m" }: { pads: Pad[]; size?: "m" | "l" }) {

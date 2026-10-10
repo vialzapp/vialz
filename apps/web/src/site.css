@@ -99,19 +99,19 @@ h2 {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
   gap: clamp(40px, 5vw, 80px);
   align-items: center;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(36px, 4.3vw, 62px);
-  line-height: 1.03;
+  font-size: clamp(40px, 4.7vw, 70px);
+  line-height: 1;
   font-weight: 800;
   font-stretch: 112%;
   letter-spacing: -0.04em;
-  max-width: 21ch;
+  max-width: 20ch;
 }
 
 .lede {
@@ -126,47 +126,53 @@ h2 {
   max-width: 560px;
 }
 
-/* the rack: five samples, one is the rug. The one directed moment on the page: they fill, the rug fills last. */
-.hero-rack {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: clamp(8px, 1.2vw, 18px);
-  align-items: start;
-  padding-block: 24px;
+.hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--ink-3);
 }
 
-.rack-vial {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 276 / 204;
-  overflow: visible;
+.hero-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.rack-vial .vessel-liquid {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  animation: rack-fill 900ms var(--ease-author) both;
-  animation-delay: calc(240ms + var(--i) * 110ms);
+.hero-facts li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--good-pad);
 }
 
-.rack-rug .vessel-liquid {
-  animation-duration: 1100ms;
-  animation-delay: 900ms;
+.hero-facts a {
+  color: var(--ink-2);
 }
 
-@keyframes rack-fill {
-  from {
-    transform: scaleY(0);
-  }
+/* the live report: the product itself is the hero image */
+.hero-live {
+  min-width: 0;
+}
+
+.hero-live-label {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.hero-live .vz-report {
+  background: var(--sheet);
 }
 
 @media (max-width: 960px) {
   .hero-grid {
     grid-template-columns: 1fr;
-  }
-  .hero-rack {
-    order: -1;
-    max-width: 420px;
   }
 }
 
@@ -470,9 +476,221 @@ h2 {
   color: var(--ink-2);
 }
 
+/* six vials: a grid where each cell is the real vial at a real reading */
+.vials-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px clamp(32px, 6vw, 96px);
+  align-items: end;
+  margin-bottom: 48px;
+}
+
+.vials-head h2 {
+  margin: 0;
+}
+
+.vials-head p {
+  margin: 0;
+}
+
+.vials-head .legend {
+  grid-column: 2;
+}
+
+.vial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+
+.vial-cell {
+  padding: 32px 28px 36px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  transition: background-color 200ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vial-cell:hover {
+    background: var(--sheet);
+  }
+}
+
+.vial-big {
+  display: block;
+  width: 96px;
+  height: auto;
+  aspect-ratio: 276 / 204;
+  margin-bottom: 28px;
+  overflow: visible;
+}
+
+.vial-cell h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  font-stretch: 108%;
+  letter-spacing: -0.015em;
+}
+
+.vial-cell p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.vial-cell .vial-high {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* the vials fill once the grid scrolls in; without JS they are simply full */
+.vial-grid.armed .vessel-liquid {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+  transition: transform 900ms var(--ease-author);
+  transition-delay: calc(var(--i) * 90ms);
+}
+
+.vial-grid.in-view .vessel-liquid {
+  transform: scaleY(1);
+}
+
+.vials-more {
+  margin: 24px 0 0;
+  font-size: 14px;
+  color: var(--ink-3) !important;
+}
+
+@media (max-width: 900px) {
+  .vials-head {
+    grid-template-columns: 1fr;
+  }
+  .vials-head .legend {
+    grid-column: 1;
+  }
+  .vial-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .vial-grid {
+    grid-template-columns: 1fr;
+  }
+  .vial-cell {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    column-gap: 20px;
+    padding: 24px 20px;
+  }
+  .vial-big {
+    grid-row: span 3;
+    width: 72px;
+    margin: 4px 0 0;
+  }
+}
+
+/* open source: a raised band, copy and the commands side by side */
+.band-sheet {
+  background: var(--sheet);
+}
+
+.open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: center;
+}
+
+/* grid children may shrink below their content, so a long command scrolls inside its block instead of widening the page */
+.open > *,
+.doc-code {
+  min-width: 0;
+}
+
+.open-links {
+  display: grid;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+
+.open .doc-code pre {
+  background: var(--bg);
+}
+
+@media (max-width: 860px) {
+  .open {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* principles: three columns, set like a spec sheet */
+.chain-title {
+  margin-bottom: 40px !important;
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid var(--ink-3);
+}
+
+.principles div {
+  padding: 24px 32px 0 0;
+}
+
+.principles dt {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.principles dd {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+  max-width: 34ch;
+}
+
+@media (max-width: 760px) {
+  .principles {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* the closing check */
+.final-inner {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  max-width: 640px;
+}
+
+.final-mark {
+  width: 64px;
+  height: auto;
+  aspect-ratio: 276 / 204;
+  color: var(--ink);
+  margin-bottom: 28px;
+}
+
+.final .check {
+  width: 100%;
+  text-align: left;
+  margin-top: 16px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rack-vial .vessel-liquid {
-    animation: none;
+  .vial-grid.armed .vessel-liquid {
+    transform: none;
+    transition: none;
   }
 }
 
