@@ -412,7 +412,7 @@ const creatorCache = new Map<string, { at: number; value: Promise<CreatorLaunche
 const CREATOR_TTL_MS = 5 * 60_000;
 type CreatorLaunches = CreatorLaunch[];
 
-const CREATOR_WAIT_MS = 700;
+const CREATOR_WAIT_MS = 200; // enough for a cached record or the one-transaction shortcut; a real search takes seconds
 
 interface SelfLaunch {
   token: string;
