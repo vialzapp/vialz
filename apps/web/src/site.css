@@ -235,6 +235,29 @@ html {
   color: var(--ink-2);
 }
 
+.hero-live-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.hero-live-back {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.hero-live-back:hover {
+  color: var(--ink);
+}
+
 @media (max-width: 960px) {
   .hero-grid {
     grid-template-columns: 1fr;

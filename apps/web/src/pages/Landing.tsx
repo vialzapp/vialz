@@ -63,6 +63,9 @@ const FAQ = [
 export function Landing() {
   const live = useLiveExample();
   const r = live.state.status === "ready" ? live.state.report : null;
+  // a token checked from the field reads right here, in place of the live example; the full page is one link away
+  const [checked, setChecked] = useState<string | null>(null);
+  const mine = useTokenReport(API_BASE, checked);
 
   return (
     <>
@@ -73,7 +76,7 @@ export function Landing() {
             <p className="lede">
               Paste a Robinhood Chain contract address. Vialz reads the token's whole history on chain and shows who really holds it.
             </p>
-            <CheckInput size="l" onCheck={(a) => navigate(`/t/${a}`)} />
+            <CheckInput size="l" onCheck={(a) => (a === checked ? mine.retry() : setChecked(a))} busy={mine.status === "loading"} />
             <ul className="hero-facts">
               <li>Free</li>
               <li>No wallet</li>
@@ -83,21 +86,40 @@ export function Landing() {
             </ul>
           </div>
 
-          <div className="hero-live">
-            <p className="hero-live-label" role="status">
-              {r ? `Read just now: $${r.symbol}, the busiest Pons launch of the last hour` : "Reading the busiest Pons launch of the last hour"}
-            </p>
-            {r ? (
-              <Report report={r} compact={{ href: `/t/${r.address}` }} apiBase={API_BASE} />
-            ) : live.failed || live.state.status === "error" ? (
-              <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address on the left."} />
+          <div className="hero-live" aria-live="polite">
+            {checked ? (
+              <>
+                <p className="hero-live-label">
+                  {mine.status === "ready" ? `Your check: $${mine.report.symbol}` : "Reading your token from the chain"}
+                  <button type="button" className="hero-live-back" onClick={() => setChecked(null)}>
+                    Show the live launch
+                  </button>
+                </p>
+                {mine.status === "ready" ? (
+                  <Report report={mine.report} compact={{ href: `/t/${mine.report.address}` }} apiBase={API_BASE} />
+                ) : mine.status === "error" ? (
+                  <ReportError message={mine.message} onRetry={mine.retry} quiet={mine.notFound} />
+                ) : (
+                  <ReportSkeleton />
+                )}
+              </>
             ) : (
-              <ReportSkeleton note="Reading it from the chain." />
+              <>
+                <p className="hero-live-label" role="status">
+                  {r ? `Read just now: $${r.symbol}, the busiest Pons launch of the last hour` : "Reading the busiest Pons launch of the last hour"}
+                </p>
+                {r ? (
+                  <Report report={r} compact={{ href: `/t/${r.address}` }} apiBase={API_BASE} />
+                ) : live.failed || live.state.status === "error" ? (
+                  <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address on the left."} />
+                ) : (
+                  <ReportSkeleton note="Reading it from the chain." />
+                )}
+              </>
             )}
           </div>
         </div>
       </section>
-
     </>
   );
 }
