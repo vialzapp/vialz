@@ -32,7 +32,7 @@ switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the t
 | `RH_RPC` | official Robinhood Chain RPC | must allow address-filtered `eth_getLogs` over wide ranges |
 | `ETHERSCAN_API_KEY` | none | turns on funding clusters (who sent top holders their first ETH) |
 | `ETHERSCAN_DAILY_BUDGET` | 80000 | Etherscan calls per day before funding switches off until tomorrow |
-| `CLIENT_IP_HEADER` | none | header the hosting edge sets to the client's IP (`x-real-ip` on Railway); rate limits key on it |
+| `CLIENT_IP_HEADER` | none | header the hosting edge sets to the connecting IP (`x-real-ip` on Railway). Behind the Cloudflare proxy the visitor's `CF-Connecting-IP` is used, only for connections from Cloudflare's ranges |
 | `TRUST_PROXY_HOPS` | 0 | trusted proxies in X-Forwarded-For, for hosts whose edge rewrites that header |
 | `TOKEN_PER_MINUTE` | 15 | token reports per client IP per minute |
 | `MAX_RUNNING` / `MAX_WAITING` | 3 / 24 | fresh chain reads at once, and how many may wait before clients get 503 |

@@ -11,6 +11,7 @@ import { analyzeToken, NotFound } from "./analyze.js";
 import { requestDeadline } from "./rpc.js";
 import { busiestLaunch } from "./latest.js";
 import { CID_RE, ImagesBusy, ipfsImage } from "./images.js";
+import { clientIp, refreshCloudflareRanges } from "./clientip.js";
 
 const TTL_MS = 15_000;
 const cache = new Map<string, { at: number; report: Promise<TokenReport> }>();
@@ -98,16 +99,13 @@ app.addHook("onSend", async (req, reply) => {
   }
 });
 await app.register(cors, { origin: true, methods: ["GET"] });
-// Railway's edge puts the client address in X-Real-IP (docs: networking specs) and passes X-Forwarded-For through as
-// the client sent it, so a forwarded chain cannot be trusted there. CLIENT_IP_HEADER names the header the edge sets.
+// Railway's edge puts the connecting address in X-Real-IP and passes X-Forwarded-For through as the client sent it.
+// CLIENT_IP_HEADER names the edge's header; clientIp() also unwraps Cloudflare's proxy (see clientip.ts).
 const CLIENT_IP_HEADER = process.env.CLIENT_IP_HEADER?.toLowerCase();
-const clientIp = (req: { ip: string; headers: Record<string, string | string[] | undefined> }) => {
-  const v = CLIENT_IP_HEADER ? req.headers[CLIENT_IP_HEADER] : undefined;
-  return (Array.isArray(v) ? v[0] : v)?.trim() || req.ip;
-};
+void refreshCloudflareRanges();
 await app.register(rateLimit, {
   global: false,
-  keyGenerator: clientIp,
+  keyGenerator: (req) => clientIp(req, CLIENT_IP_HEADER),
   errorResponseBuilder: (_req, ctx) => ({
     statusCode: 429,
     error: "rate_limited",
