@@ -28,6 +28,38 @@ h2 {
   text-wrap: balance;
 }
 
+/* ---- the night sky: a sparse field of fixed stars behind everything, one per tile per layer. Tile sizes are primes
+   so the pattern never visibly repeats; no motion, no glow. ---- */
+body {
+  background: transparent;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 165px 77px, oklch(0.97 0.01 250 / 0.23) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 48px 187px, oklch(0.97 0.01 250 / 0.47) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 109px 19px, oklch(0.97 0.01 250 / 0.6) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 123px 46px, oklch(0.97 0.01 250 / 0.24) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 289px 63px, oklch(0.97 0.01 250 / 0.4) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 298px 31px, oklch(0.97 0.01 250 / 0.33) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 113px 23px, oklch(0.97 0.01 250 / 0.26) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 214px 73px, oklch(0.97 0.01 250 / 0.38) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 573px 185px, oklch(0.97 0.01 250 / 0.65) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 192px 381px, oklch(0.97 0.01 250 / 0.7) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 577px 61px, oklch(0.97 0.01 250 / 0.36) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 544px 437px, oklch(0.97 0.01 250 / 0.35) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 464px 370px, oklch(0.97 0.01 250 / 0.44) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 715px 249px, oklch(0.97 0.01 250 / 0.56) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 506px 351px, oklch(0.97 0.01 250 / 0.3) 0 0.7px, transparent 1.3px),
+    radial-gradient(circle at 74px 120px, oklch(0.97 0.01 250 / 0.27) 0 0.7px, transparent 1.3px);
+  background-size: 263px 263px, 263px 263px, 331px 331px, 331px 331px, 409px 409px, 409px 409px, 487px 487px, 487px 487px, 577px 577px, 577px 577px, 661px 661px, 661px 661px, 743px 743px, 743px 743px, 853px 853px, 853px 853px;
+}
+
 /* ---- nav ---- */
 .nav {
   position: sticky;
@@ -188,11 +220,7 @@ h2 {
 }
 
 .band-faq {
-  padding-block: clamp(80px, 9vw, 128px) clamp(48px, 6vw, 80px);
-}
-
-.band-final {
-  padding-block: clamp(48px, 6vw, 80px) clamp(96px, 11vw, 152px);
+  padding-block: clamp(80px, 9vw, 128px) clamp(96px, 11vw, 152px);
 }
 
 /* reference ranges, set like the ranges column of a lab sheet */
@@ -215,8 +243,8 @@ h2 {
 
 .ranges-row {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1.5fr) minmax(0, 0.8fr);
-  gap: 32px;
+  grid-template-columns: 120px minmax(0, 1.6fr) repeat(4, minmax(0, 0.62fr));
+  gap: 24px;
   align-items: center;
   padding: 18px 0;
   border-bottom: 1px solid var(--rule);
@@ -225,42 +253,49 @@ h2 {
 }
 
 .ranges-th {
-  padding: 12px 0;
+  align-items: end;
+  padding: 16px 0 14px;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
-.ranges-name {
+.ranges-level {
   display: grid;
-  grid-template-columns: 44px auto;
-  column-gap: 16px;
-  align-items: center;
+  justify-items: start;
+  gap: 10px;
+  color: var(--ink-2);
 }
 
 .ranges-vial {
-  grid-row: span 2;
-  width: 44px;
-  height: auto;
-  aspect-ratio: 276 / 204;
+  width: 52px;
+  height: 38px;
   overflow: visible;
 }
 
-.ranges-name b {
+.ranges-name {
   font-size: 17px;
   font-weight: 650;
   color: var(--ink);
 }
 
-.ranges-reading {
-  font-size: 12px;
-  color: var(--ink-3);
+.ranges-cell {
+  font-size: 14px;
+  color: var(--ink);
 }
 
-.ranges-high {
-  font-size: 14px;
+.ranges-cell.pad-warn {
+  color: var(--warn);
+}
+
+.ranges-cell.pad-danger {
   color: var(--danger);
+}
+
+.ranges-cell-empty {
+  color: var(--ink-3) !important;
 }
 
 .ranges-more {
@@ -272,12 +307,29 @@ h2 {
   .ranges-head {
     grid-template-columns: 1fr;
   }
-  .ranges-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
   .ranges-th {
     display: none;
+  }
+  .ranges-cell::before {
+    content: attr(data-level);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .ranges-row:not(.ranges-th) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px 12px;
+  }
+  .ranges-name,
+  .ranges-reads {
+    grid-column: 1 / -1;
+  }
+  .ranges-cell {
+    font-size: 13px;
   }
 }
 
@@ -357,24 +409,6 @@ h2 {
 .faq details p {
   margin: 0 0 22px;
   max-width: 68ch;
-}
-
-/* the closing check: heading and field on one line, left aligned like the rest of the page */
-.final {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px clamp(32px, 6vw, 96px);
-  align-items: end;
-}
-
-.final h2 {
-  margin: 0;
-}
-
-@media (max-width: 860px) {
-  .final {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ---- token page ---- */

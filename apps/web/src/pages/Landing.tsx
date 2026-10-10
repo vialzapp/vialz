@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { padsFor, type Pad } from "@vialz/shared";
 import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate } from "../App";
 import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
@@ -17,15 +16,22 @@ function useLiveExample() {
   return { token, failed, state: useTokenReport(API_BASE, token) };
 }
 
-// the reference ranges, as on a lab sheet: what each check reads and when it reads high
-const CHECKS: { key: Pad["key"]; name: string; reads: string; high: string }[] = [
-  { key: "snipers", name: "Snipers", reads: "Buys in the launch block and the two after it, by anyone but the creator and the bundle.", high: "hold 10% or more" },
-  { key: "bundle", name: "Bundle", reads: "Wallets the creator declared exempt from the opening tax.", high: "hold 5% or more" },
-  { key: "holders", name: "Top 10", reads: "Supply in the ten largest wallets. The curve, pools and burn address are left out.", high: "50% or more" },
-  { key: "linked", name: "Linked", reads: "Holders fed the token by one sender, or their first ETH by one funder.", high: "one group holds 10% or more" },
-  { key: "creator", name: "Creator", reads: "Every earlier Pons launch from the same wallet, and whether the creator sold early.", high: "50+ launches, or sold early in half" },
-  { key: "volume", name: "Volume", reads: "Curve volume made by the five busiest wallets, and wallets that keep flipping.", high: "5 wallets make 60% (watch)" },
+// the reference ranges, as on a lab sheet: what each check reads, and the reading at each level
+type Scale = [clear: string | null, note: string | null, watch: string | null, high: string | null];
+const CHECKS: { key: string; name: string; reads: string; scale: Scale }[] = [
+  { key: "snipers", name: "Snipers", reads: "Buys in the launch block and the two after it, by anyone but the creator and the bundle.", scale: ["none", "hold under 3%", "hold 3%+", "hold 10%+"] },
+  { key: "bundle", name: "Bundle", reads: "Wallets the creator declared exempt from the opening tax.", scale: ["none", "hold under 1%", "hold 1%+", "hold 5%+"] },
+  { key: "holders", name: "Top 10", reads: "Supply in the ten largest wallets. The curve, pools and burn address are left out.", scale: ["under 15%", "15%+", "30%+", "50%+"] },
+  { key: "linked", name: "Linked", reads: "Holders fed the token by one sender, or their first ETH by one funder.", scale: ["none", "a group under 3%", "a group 3%+", "a group 10%+"] },
+  { key: "creator", name: "Creator", reads: "Every earlier Pons launch from the same wallet, and whether the creator sold early.", scale: ["under 10 launches", null, "10+ launches", "50+, or sold early"] },
+  { key: "volume", name: "Volume", reads: "Curve volume made by the five busiest wallets, and wallets that keep flipping.", scale: ["spread out", "under 30 trades", "5 wallets make 60%+", null] },
 ];
+const LEVELS = [
+  ["good", "Clear"],
+  ["info", "Note"],
+  ["warn", "Watch"],
+  ["danger", "High"],
+] as const;
 
 const FAQ = [
   {
@@ -57,7 +63,6 @@ const FAQ = [
 export function Landing() {
   const live = useLiveExample();
   const r = live.state.status === "ready" ? live.state.report : null;
-  const pads = r ? padsFor(r) : null;
 
   return (
     <>
@@ -98,33 +103,36 @@ export function Landing() {
           <div className="ranges-head">
             <h2>What the six vials read.</h2>
             <p>
-              Each vial fills with the colour of its reading: clear, note, watch or high. They state what the chain shows, never a verdict.
-              {r && ` The vials below are $${r.symbol}, read a moment ago.`}
+              Each vial fills with the colour of its reading, and the stronger the reading, the fuller it gets: a high reading fills it to the
+              brim. They state what the chain shows, never a verdict.
             </p>
           </div>
-          <div className="ranges" role="table" aria-label="Reference ranges">
+          <div className="ranges" role="table" aria-label="What each vial reads at each level">
             <div className="ranges-row ranges-th" role="row">
               <span role="columnheader">Vial</span>
               <span role="columnheader">Reads</span>
-              <span role="columnheader">High when</span>
+              {LEVELS.map(([level, name]) => (
+                <span role="columnheader" key={level} className={`ranges-level pad-${level}`}>
+                  <Vessel level={FILL[level]} fill="var(--pad)" glass="var(--glass)" surface="var(--surface)" stroke={18} className="ranges-vial" />
+                  {name}
+                </span>
+              ))}
             </div>
-            {CHECKS.map((c) => {
-              const pad = pads?.find((p) => p.key === c.key);
-              const level = pad?.level ?? "none";
-              return (
-                <div role="row" key={c.key} className={`ranges-row pad-${level}`}>
-                  <span role="rowheader" className="ranges-name">
-                    <Vessel level={FILL[level]} fill="var(--pad)" glass="var(--ink-3)" className="ranges-vial" />
-                    <b>{c.name}</b>
-                    {pad && <span className="ranges-reading">{pad.reading}</span>}
+            {CHECKS.map((c) => (
+              <div role="row" key={c.key} className="ranges-row">
+                <span role="rowheader" className="ranges-name">
+                  {c.name}
+                </span>
+                <span role="cell" className="ranges-reads">
+                  {c.reads}
+                </span>
+                {c.scale.map((v, i) => (
+                  <span role="cell" key={i} className={`ranges-cell pad-${LEVELS[i]![0]}${v ? "" : " ranges-cell-empty"}`} data-level={LEVELS[i]![1]}>
+                    {v ?? "n/a"}
                   </span>
-                  <span role="cell">{c.reads}</span>
-                  <span role="cell" className="num ranges-high">
-                    {c.high}
-                  </span>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            ))}
           </div>
           <p className="ranges-more">
             Exact rules for every reading are in the <Link href="/docs#method">docs</Link>.
@@ -159,12 +167,6 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="band band-final">
-        <div className="wrap final">
-          <h2>Check it before you ape in.</h2>
-          <CheckInput size="l" label="Contract address or link" onCheck={(a) => navigate(`/t/${a}`)} />
-        </div>
-      </section>
     </>
   );
 }

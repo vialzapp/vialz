@@ -1,6 +1,6 @@
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ArrowLeftIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import "@fontsource-variable/archivo/standard.css";
 import "@fontsource-variable/martian-mono/standard.css";
 import "@vialz/ui";
@@ -44,7 +44,14 @@ async function loadRecent(): Promise<Recent[]> {
 }
 
 async function saveRecent(item: Recent): Promise<Recent[]> {
-  const list = [item, ...(await loadRecent()).filter((r) => r.address !== item.address)].slice(0, RECENT_MAX);
+  return storeRecent([item, ...(await loadRecent()).filter((r) => r.address !== item.address)].slice(0, RECENT_MAX));
+}
+
+async function forgetRecent(address: string | null): Promise<Recent[]> {
+  return storeRecent(address ? (await loadRecent()).filter((r) => r.address !== address) : []);
+}
+
+async function storeRecent(list: Recent[]): Promise<Recent[]> {
   try {
     if (inExtension) await chrome.storage.local.set({ [RECENT_KEY]: list });
     else localStorage.setItem(RECENT_KEY, JSON.stringify(list));
@@ -164,11 +171,16 @@ function Popup() {
 
       {!address && recent.length > 0 && (
         <section className="panel-recent" aria-label="Recent checks">
-          <h2>Recent</h2>
+          <div className="panel-recent-head">
+            <h2>Recent</h2>
+            <button type="button" className="panel-clear" onClick={() => void forgetRecent(null).then(setRecent)}>
+              Clear all
+            </button>
+          </div>
           <ul>
             {recent.map((r) => (
               <li key={r.address}>
-                <button type="button" onClick={() => open(r.address)}>
+                <button type="button" className="panel-recent-open" onClick={() => open(r.address)}>
                   <span className="panel-rack" aria-hidden>
                     {r.levels.map((l, i) => (
                       <Vessel key={i} className={`pad-${l}`} level={FILL[l]} fill="var(--pad)" glass="var(--glass)" stroke={22} />
@@ -176,6 +188,15 @@ function Popup() {
                   </span>
                   <b>${r.symbol}</b>
                   <span className="panel-when">{formatAge(Math.floor((Date.now() - r.at) / 1000))} ago</span>
+                </button>
+                <button
+                  type="button"
+                  className="panel-forget"
+                  onClick={() => void forgetRecent(r.address).then(setRecent)}
+                  aria-label={`Remove $${r.symbol} from recent`}
+                  title="Remove"
+                >
+                  <XIcon size={12} weight="bold" />
                 </button>
               </li>
             ))}

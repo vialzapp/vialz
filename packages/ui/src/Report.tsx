@@ -131,7 +131,11 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
 
       {!compact && (
       <Section title="Holders" note={`${r.holders.count.toLocaleString("en-US")} ${r.holders.count === 1 ? "holder" : "holders"}`}>
-        {!r.holders.partial && <Distribution report={r} />}
+        {r.holders.partial ? (
+          <p className="vz-empty vz-dist-note">Too many transfers to split the supply in one read. The list below is the biggest balances seen.</p>
+        ) : (
+          <Distribution report={r} />
+        )}
         <ol className="vz-holders">
           {r.holders.top.filter((h) => h.pct >= 0.01 || h.labels.length > 0).slice(0, 10).map((h, i, top) => (
             <li key={h.address}>

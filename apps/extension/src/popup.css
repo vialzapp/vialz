@@ -191,14 +191,36 @@ body {
   border-bottom: 0;
 }
 
-/* recent checks: each with the six vials it read */
-.panel-recent h2 {
+/* recent checks: each with the six vials it read, and a quiet way to forget it */
+.panel-recent-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   margin: 4px 2px 6px;
+}
+
+.panel-recent h2 {
+  margin: 0;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);
+}
+
+.panel-clear {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.panel-clear:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .panel-recent ul {
@@ -209,14 +231,18 @@ body {
   gap: 2px;
 }
 
-.panel-recent button {
+.panel-recent li {
+  position: relative;
+}
+
+.panel-recent-open {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 12px;
   width: 100%;
   min-height: 42px;
-  padding: 0 10px;
+  padding: 0 40px 0 10px;
   border: 0;
   border-radius: var(--r-s);
   background: transparent;
@@ -226,7 +252,8 @@ body {
   text-align: left;
 }
 
-.panel-recent button:hover {
+.panel-recent-open:hover,
+.panel-recent li:hover .panel-recent-open {
   background: var(--sheet);
 }
 
@@ -235,6 +262,42 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* the cross shows on hover or focus; it stays reachable by keyboard */
+.panel-forget {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.panel-recent li:hover .panel-forget,
+.panel-forget:focus-visible {
+  opacity: 1;
+}
+
+.panel-forget:hover {
+  background: var(--raise);
+  color: var(--ink);
+}
+
+@media (hover: none) {
+  .panel-forget {
+    opacity: 1;
+  }
 }
 
 .panel-rack {

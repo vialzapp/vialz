@@ -1,26 +1,26 @@
-/* Vialz design tokens. One dark theme, designed as such: warm graphite surfaces, white for actions, and reading
-   colours that only ever mean a reading. Signal red-orange is the brand's single accent and belongs to the rug.
-   No glows. The neutrals lean warm (hue 70) so the readings and the signal look chosen, not dropped on slate. */
+/* Vialz design tokens. One dark theme, designed as such: near-black surfaces with the faintest cool tint, white for
+   actions, and reading colours that only ever mean a reading. Signal red-orange is the brand's single accent and
+   belongs to the rug. No glows. */
 
 :root {
   color-scheme: dark;
 
-  --bg: oklch(0.16 0.006 70);
-  --sheet: oklch(0.19 0.007 70);
-  --well: oklch(0.225 0.008 70);
-  --raise: oklch(0.255 0.009 70);
-  --ink: oklch(0.955 0.008 85);
-  --ink-2: oklch(0.77 0.01 80);
-  --ink-3: oklch(0.64 0.01 80);
-  --rule: oklch(0.285 0.008 70);
-  --rule-strong: oklch(0.36 0.01 70);
-  --glass: oklch(0.5 0.008 80);
+  --bg: oklch(0.135 0.004 265);
+  --sheet: oklch(0.172 0.005 265);
+  --well: oklch(0.205 0.006 265);
+  --raise: oklch(0.24 0.007 265);
+  --ink: oklch(0.96 0.003 265);
+  --ink-2: oklch(0.76 0.006 265);
+  --ink-3: oklch(0.62 0.006 265);
+  --rule: oklch(0.265 0.006 265);
+  --rule-strong: oklch(0.345 0.008 265);
+  --glass: oklch(0.5 0.006 265);
 
   /* actions are white: the quietest way to be the loudest thing on a dark page */
-  --act: oklch(0.96 0.01 85);
+  --act: oklch(0.965 0.003 265);
   --act-hover: oklch(1 0 0);
-  --act-ink: oklch(0.18 0.006 70);
-  --focus: oklch(0.86 0.01 80);
+  --act-ink: oklch(0.15 0.004 265);
+  --focus: oklch(0.86 0.005 265);
   --signal: oklch(0.68 0.2 36);
 
   /* readings */
@@ -36,7 +36,7 @@
   --danger: oklch(0.76 0.15 32);
   --danger-pad: oklch(0.66 0.21 34);
   --danger-wash: oklch(0.29 0.07 32);
-  --none-pad: oklch(0.34 0.008 70);
+  --none-pad: oklch(0.33 0.006 265);
 
   --font-ui: "Archivo Variable", "Archivo", system-ui, sans-serif;
   --font-data: "Martian Mono Variable", "Martian Mono", ui-monospace, monospace;
@@ -74,7 +74,7 @@ body {
 }
 
 ::selection {
-  background: oklch(0.955 0.008 85 / 0.22);
+  background: oklch(0.96 0.003 265 / 0.22);
   color: var(--ink);
 }
 

@@ -49,13 +49,13 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: oklch(0.3 0.045 var(--hue, 70));
+  background: oklch(0.3 0.045 var(--hue, 265));
   display: grid;
   place-items: center;
   overflow: hidden;
   font-size: 18px;
   font-weight: 700;
-  color: oklch(0.86 0.07 var(--hue, 70));
+  color: oklch(0.86 0.07 var(--hue, 265));
 }
 
 .vz-image img {
@@ -469,6 +469,10 @@
 }
 
 /* where the supply sits */
+.vz-dist-note {
+  margin-bottom: 12px;
+}
+
 .vz-dist {
   margin: 0 0 14px;
 }

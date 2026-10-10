@@ -193,7 +193,7 @@ export function Docs() {
             <li>The report arrives in 3 to 15 seconds. Earlier launches by the same creator open in the same window; the arrow takes you back.</li>
           </ol>
           <p>
-            Your last checks stay in the extension, on your device. The same report is on the site at <code>/t/0x…</code>, a link you can
+            Your last checks stay in the extension, on your device. Remove one with its cross, or all of them with Clear all. The same report is on the site at <code>/t/0x…</code>, a link you can
             share.
           </p>
         </Section>
