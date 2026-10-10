@@ -117,9 +117,26 @@ html {
   text-decoration: none;
 }
 
-.nav-links a:hover,
-.nav-links a[aria-current="page"] {
+.nav-links a:hover {
   color: var(--ink);
+}
+
+/* the section you are in: bright, heavier, and a short bar sitting on the bar's bottom edge */
+.nav-links a[aria-current="page"] {
+  position: relative;
+  color: var(--act-hover);
+  font-weight: 650;
+}
+
+.nav-links a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -24px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ink);
 }
 
 .nav-toggle {
@@ -176,6 +193,10 @@ html {
   }
   .nav-links.nav-open a:last-child {
     border-bottom: 0;
+  }
+  /* in the open list the current section is marked by its weight alone */
+  .nav-links.nav-open a[aria-current="page"]::after {
+    display: none;
   }
 }
 
@@ -529,7 +550,7 @@ html {
 /* ---- token page ---- */
 .token-page {
   --vz-sticky-top: 69px; /* under the site bar */
-  padding-block: 40px 88px;
+  padding-block: clamp(40px, 5vw, 72px) 88px;
 }
 
 .token-wrap {

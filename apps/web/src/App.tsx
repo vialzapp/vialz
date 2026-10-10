@@ -97,7 +97,7 @@ export function App() {
           </Link>
           <nav className={menuOpen ? "nav-links nav-open" : "nav-links"} id="menu" aria-label="Main">
             {MENU.map(([href, label]) => (
-              <Link key={href} href={href} aria-current={path === href ? "page" : undefined}>
+              <Link key={href} href={href} aria-current={path === href || (href === "/report" && token) ? "page" : undefined}>
                 {label}
               </Link>
             ))}

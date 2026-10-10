@@ -15,19 +15,24 @@ export function TokenPage({ address }: { address: string }) {
   return (
     <section className="token-page">
       <div className="wrap token-wrap">
+        {/* a token's page is the Full report section: same heading, so it is clear where you are */}
+        <div className="report-head">
+          <h1>Full report.</h1>
+          <p>Every reading on one page: the vials and findings, market, launch, holders, linked wallets and the creator's record.</p>
+        </div>
         <div className="token-tools">
           <CheckInput
             initial={address}
             onCheck={(a) => (a === address ? state.retry() : navigate(`/t/${a}`))}
             busy={state.status === "loading"}
-            label="Check another token"
+            label="Contract address or link"
           />
         </div>
         {state.status === "loading" && <ReportSkeleton />}
         {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} quiet={state.notFound} />}
         {state.status === "ready" && (
           <>
-            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} />
+            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} />
             <div className="token-share">
               <button
                 type="button"
