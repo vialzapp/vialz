@@ -4,7 +4,8 @@ import { Mark } from "@vialz/ui";
 import { Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
-import { CHROME_URL } from "./brand";
+import { Docs } from "./pages/Docs";
+import { CHROME_URL, REPO_URL } from "./brand";
 
 // A three-route site does not need a router library: the path is state, links push to history.
 export function navigate(to: string) {
@@ -55,19 +56,24 @@ export function App() {
           </Link>
           <nav className="nav-links" aria-label="Main">
             <a href="/#reads">What it reads</a>
-            <a href="/#faq">FAQ</a>
+            <Link href="/docs">Docs</Link>
+            <a href={REPO_URL}>GitHub</a>
             <a className="btn btn-act nav-cta" href={CHROME_URL}>
               Add to Chrome
             </a>
           </nav>
         </div>
       </header>
-      <main id="main">{token ? <TokenPage address={token} /> : path === "/privacy" ? <Privacy /> : <Landing />}</main>
+      <main id="main">
+        {token ? <TokenPage address={token} /> : path === "/privacy" ? <Privacy /> : path === "/docs" ? <Docs /> : <Landing />}
+      </main>
       <footer className="footer">
         <div className="wrap footer-row">
           <span className="wordmark wordmark-s">Vialz</span>
           <p>Reads Robinhood Chain. Not affiliated with Robinhood. Nothing here is financial advice.</p>
           <nav aria-label="Footer">
+            <Link href="/docs">Docs</Link>
+            <a href={REPO_URL}>GitHub</a>
             <Link href="/privacy">Privacy</Link>
           </nav>
         </div>
