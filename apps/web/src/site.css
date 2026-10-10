@@ -106,14 +106,14 @@ h2 {
 
 /* ---- hero: the thesis on the left, the product reading a live token on the right ---- */
 .hero {
-  padding-block: clamp(56px, 8vw, 112px) clamp(72px, 9vw, 128px);
+  padding-block: clamp(28px, 3.5vw, 56px) clamp(72px, 9vw, 128px);
 }
 
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr);
   gap: clamp(40px, 5vw, 80px);
-  align-items: center;
+  align-items: start;
 }
 
 .hero h1 {
