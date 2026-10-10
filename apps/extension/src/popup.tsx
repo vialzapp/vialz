@@ -100,7 +100,7 @@ function Popup() {
   const ready = state.status === "ready" ? state.report : null;
   useEffect(() => {
     if (ready) void saveRecent({ address: ready.address, symbol: ready.symbol, at: Date.now(), levels: padsFor(ready).map((p) => p.level) }).then(setRecent);
-  }, [ready?.address, ready?.symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready?.address, ready?.symbol, ready?.devStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = useCallback(
     (a: string) => {

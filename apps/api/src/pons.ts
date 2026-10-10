@@ -3,6 +3,8 @@
 import { decodeAbiParameters, encodeFunctionData, parseAbi, toFunctionSelector, type Hex } from "viem";
 
 export const FACTORY = "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e";
+// the factory's first log: nothing launched through Pons before this block, so no search needs to go further back
+export const FACTORY_START = 26_841_846;
 export const ROUTER = "0xe33e9e479df8802cb0866d5d05258bec4cf62948";
 export const HOOK = "0xe5e702641ea86f4ae6cc3cdaed2b886f976be044";
 export const LOCKER = "0x267444d099b10fb5ed7c3cc7b7c767adca574952";

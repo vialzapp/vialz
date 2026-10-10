@@ -86,6 +86,7 @@ export interface TokenReport {
   bundle: { wallets: number; holdPct: number } | null;
   clusters: Cluster[];
   fundingStatus: "off" | "pending" | "done"; // funding clusters need an Etherscan key; "pending" while wallets are looked up
+  devStatus: "off" | "pending" | "done"; // the creator's record; "pending" while it is still being read
 
   volume: null | {
     trades: number;
@@ -106,6 +107,9 @@ export interface TokenReport {
   generatedAt: number;
   tookMs: number;
 }
+
+/** Parts of the report are still being read: read it again shortly. */
+export const isPending = (r: TokenReport) => r.fundingStatus === "pending" || r.devStatus === "pending";
 
 export interface ApiError {
   error: string;
@@ -226,7 +230,9 @@ export function padsFor(r: TokenReport): Pad[] {
       };
 
   const d = r.dev;
-  const creator: Pad = !d
+  const creator: Pad = r.devStatus === "pending"
+    ? { key: "creator", label: "Creator", level: "none", reading: "still reading", short: "…" }
+    : !d
     ? {
         key: "creator",
         label: "Creator",

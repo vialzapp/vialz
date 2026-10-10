@@ -6,7 +6,7 @@ import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { extractAddress, type TokenReport } from "@vialz/shared";
+import { extractAddress, isPending, type TokenReport } from "@vialz/shared";
 import { analyzeToken, NotFound } from "./analyze.js";
 import { requestDeadline } from "./rpc.js";
 import { busiestLaunch } from "./latest.js";
@@ -52,7 +52,7 @@ function report(address: string): Promise<TokenReport> {
     (r) => {
       if (!mine()) return;
       // fresh for TTL from when the read finished; a report still waiting on funding is kept short so polls pick it up
-      entry.at = r.fundingStatus === "pending" ? Date.now() - TTL_MS + 3_000 : Date.now();
+      entry.at = isPending(r) ? Date.now() - TTL_MS + 2_000 : Date.now();
     },
     (e) => {
       if (!mine()) return;
@@ -147,7 +147,7 @@ app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(Number(
   if (!address) return reply.code(400).send({ error: "bad_address", message: "Paste a contract address (0x… 40 hex characters)." });
   try {
     const r = await report(address);
-    reply.header("cache-control", r.fundingStatus === "pending" ? "no-store" : "public, max-age=10");
+    reply.header("cache-control", isPending(r) ? "no-store" : "public, max-age=10");
     return r;
   } catch (e) {
     if (e instanceof NotFound) return reply.code(404).send({ error: "not_found", message: e.message });

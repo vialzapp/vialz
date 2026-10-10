@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ApiError, TokenReport } from "@vialz/shared";
+import { isPending, type ApiError, type TokenReport } from "@vialz/shared";
 
 export type ReportState =
   | { status: "idle" }
@@ -32,6 +32,13 @@ export async function fetchReport(apiBase: string, address: string, signal?: Abo
   return (await res.json()) as TokenReport;
 }
 
+/** A report that will not be read again: whatever is still pending is shown as not available. */
+const settled = (r: TokenReport): TokenReport => ({
+  ...r,
+  fundingStatus: r.fundingStatus === "pending" ? "off" : r.fundingStatus,
+  devStatus: r.devStatus === "pending" ? "off" : r.devStatus,
+});
+
 /** Loads a report for `address` and re-reads it while funding lookups are still pending. `retry` reads it again. */
 export function useTokenReport(apiBase: string, address: string | null): ReportState & { retry: () => void } {
   const [state, setState] = useState<ReportState>({ status: "idle" });
@@ -52,15 +59,16 @@ export function useTokenReport(apiBase: string, address: string | null): ReportS
       try {
         const report = await fetchReport(apiBase, address, ctrl.signal);
         setState({ status: "ready", address, report, refreshing: false });
-        if (report.fundingStatus === "pending") {
-          if (polls++ < 8) timer.current = setTimeout(() => void load(true), 4_000);
+        if (isPending(report)) {
+          // the creator's record lands within seconds, funding within a minute: poll fast first, then slower
+          if (polls < 14) timer.current = setTimeout(() => void load(true), polls++ < 4 ? 2_000 : 4_000);
           // out of polls: show what we have and stop promising more
-          else setState({ status: "ready", address, report: { ...report, fundingStatus: "off" }, refreshing: false });
+          else setState({ status: "ready", address, report: settled(report), refreshing: false });
         }
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
         // a failed re-read keeps the report but stops promising funding results that will not come
-        if (refresh) setState((s) => (s.status === "ready" ? { ...s, refreshing: false, report: { ...s.report, fundingStatus: "off" } } : s));
+        if (refresh) setState((s) => (s.status === "ready" ? { ...s, refreshing: false, report: settled(s.report) } : s));
         else setState({ status: "error", address, message: (e as Error).message, notFound: e instanceof ReportFailure && e.code === "not_found" });
       }
     };

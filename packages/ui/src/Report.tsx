@@ -194,7 +194,9 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
 
       {!compact && r.creator && (
         <Section title="Creator" note={shortAddress(r.creator)}>
-          {r.dev ? (
+          {r.devStatus === "pending" ? (
+            <p className="vz-empty">Reading this wallet's earlier Pons launches. This fills in within a few seconds.</p>
+          ) : r.dev ? (
             <>
               <dl className="vz-values">
                 <Value label="Pons launches" value={r.dev.launches.toLocaleString("en-US")} />

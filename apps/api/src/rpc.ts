@@ -189,16 +189,18 @@ async function logsSpan(filter: LogFilter, from: number, to: number, deadline: n
   }
 }
 
-/** Walks back from `to` one span at a time; stops once `done` says the logs seen so far are enough. Oldest first. */
+/** Walks back from `to` one span at a time; stops once `done` says the logs seen so far are enough, or at `floor`.
+ *  Oldest first. */
 export async function getLogsBackward(
   filter: LogFilter,
   to: number,
   done: (newestFirstSpans: Log[][]) => boolean,
   deadline = Infinity,
+  floor = 0,
 ): Promise<Log[]> {
   const spans: Log[][] = [];
-  for (let b = to; b >= 0; b -= MAX_SPAN) {
-    spans.push(await logsSpan(filter, Math.max(0, b - MAX_SPAN + 1), b, deadline));
+  for (let b = to; b >= floor; b -= MAX_SPAN) {
+    spans.push(await logsSpan(filter, Math.max(floor, b - MAX_SPAN + 1), b, deadline));
     if (done(spans)) break;
   }
   return spans.reverse().flat();
