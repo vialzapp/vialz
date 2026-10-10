@@ -1,3 +1,4 @@
+import { Link, Out } from "../App";
 import { useEffect, useState, type ReactNode } from "react";
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { FILL, Vessel } from "@vialz/ui";
@@ -142,7 +143,7 @@ export function Docs() {
           <h1>Docs</h1>
           <p>
             How to use Vialz, how every reading is computed, and how to run and check it yourself. The code is open:{" "}
-            <a href={REPO_URL}>github.com/vialzapp/vialz</a>.
+            <Out href={REPO_URL}>github.com/vialzapp/vialz</Out>.
           </p>
         </header>
 
@@ -372,7 +373,7 @@ export function Docs() {
         <Section id="code" title="The code">
           <p>
             Everything is open source under the MIT license: the API that reads the chain, the site and the extension.{" "}
-            <a href={REPO_URL}>github.com/vialzapp/vialz</a>
+            <Out href={REPO_URL}>github.com/vialzapp/vialz</Out>
           </p>
           <Code>{`apps/api          # reads the chain and builds a report on request
 apps/web          # this site
@@ -466,17 +467,17 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
           </dl>
           <p>
             When you check a token, only its address is sent to the API. No wallet, no history, no identifiers. The full policy is on the{" "}
-            <a href="/privacy">privacy page</a>.
+            <Link href="/privacy">privacy page</Link>.
           </p>
         </Section>
 
         <Section id="official" title="Official links">
           <ul className="doc-list">
             <li>
-              X: <a href={X_URL}>@vialzapp</a>
+              X: <Out href={X_URL}>@vialzapp</Out>
             </li>
             <li>
-              Code: <a href={REPO_URL}>github.com/vialzapp/vialz</a>
+              Code: <Out href={REPO_URL}>github.com/vialzapp/vialz</Out>
             </li>
           </ul>
           <p className="doc-note">

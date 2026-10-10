@@ -60,6 +60,11 @@ body::before {
   background-size: 263px 263px, 263px 263px, 331px 331px, 331px 331px, 409px 409px, 409px 409px, 487px 487px, 487px 487px, 577px 577px, 577px 577px, 661px 661px, 661px 661px, 743px 743px, 743px 743px, 853px 853px, 853px 853px;
 }
 
+/* anchors land below the sticky bar */
+html {
+  scroll-padding-top: 76px;
+}
+
 /* ---- nav ---- */
 .nav {
   position: sticky;

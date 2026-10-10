@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
-import { Link, navigate } from "../App";
+import { Link, navigate, Out } from "../App";
 import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
@@ -78,7 +78,7 @@ export function Landing() {
               <li>Free</li>
               <li>No wallet</li>
               <li>
-                <a href={REPO_URL}>Open source</a>
+                <Out href={REPO_URL}>Open source</Out>
               </li>
             </ul>
           </div>

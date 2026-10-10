@@ -5,16 +5,25 @@ import { Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
 import { Docs } from "./pages/Docs";
-import { CHROME_LABEL, CHROME_URL, REPO_URL } from "./brand";
+import { CHROME_LABEL, CHROME_URL, REPO_URL, X_URL } from "./brand";
 
 const IN_STORE = Boolean(import.meta.env.VITE_CHROME_URL);
 
 // A three-route site does not need a router library: the path is state, links push to history.
 export function navigate(to: string) {
-  if (to === location.pathname + location.hash) return;
-  history.pushState(null, "", to);
-  window.dispatchEvent(new PopStateEvent("popstate"));
-  if (!to.includes("#")) window.scrollTo({ top: 0 });
+  if (to !== location.pathname + location.hash) {
+    history.pushState(null, "", to);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+  const id = to.split("#")[1];
+  if (!id) return window.scrollTo({ top: 0 });
+  // the target may belong to the page that is about to render: wait a frame for it
+  setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 30);
+}
+
+/** A link off the site: always a new tab, so Vialz stays open behind it. */
+export function Out({ href, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+  return <a href={href} target="_blank" rel="noopener noreferrer" {...rest} />;
 }
 
 export function Link({ href = "/", ...rest }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
@@ -23,7 +32,7 @@ export function Link({ href = "/", ...rest }: AnchorHTMLAttributes<HTMLAnchorEle
       href={href}
       {...rest}
       onClick={(e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || !href.startsWith("/") || href.startsWith("/#")) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || !href.startsWith("/")) return;
         e.preventDefault();
         navigate(href);
       }}
@@ -57,9 +66,10 @@ export function App() {
             Vialz
           </Link>
           <nav className="nav-links" aria-label="Main">
-            <a href="/#vials">How it reads</a>
+            <Link href="/#vials">How it reads</Link>
             <Link href="/docs">Docs</Link>
-            <a href={REPO_URL}>GitHub</a>
+            <Out href={REPO_URL}>GitHub</Out>
+            <Out href={X_URL}>X</Out>
             <Link className={IN_STORE ? "btn btn-act nav-cta" : "nav-install"} href={CHROME_URL}>
               {IN_STORE ? CHROME_LABEL : "Install beta"}
             </Link>
@@ -75,7 +85,8 @@ export function App() {
           <p>Reads Robinhood Chain. Not affiliated with Robinhood. Open source, MIT. Nothing here is financial advice.</p>
           <nav aria-label="Footer">
             <Link href="/docs">Docs</Link>
-            <a href={REPO_URL}>GitHub</a>
+            <Out href={REPO_URL}>GitHub</Out>
+            <Out href={X_URL}>X @vialzapp</Out>
             <Link href="/privacy">Privacy</Link>
           </nav>
         </div>
