@@ -686,6 +686,12 @@
 .vz-pos-bar .pos-held {
   background: var(--ink);
 }
+.vz-pos-bar .pos-burned {
+  background: var(--ink-3);
+}
+.vz-pos-bar .pos-locked {
+  background: var(--info-pad);
+}
 
 .vz-pos-values dd small {
   font-size: 12.5px;
@@ -696,6 +702,8 @@
 /* the label's dot ties each figure to its colour in the bar */
 .vz-pos-values .pos-sold dt::before,
 .vz-pos-values .pos-moved dt::before,
+.vz-pos-values .pos-burned dt::before,
+.vz-pos-values .pos-locked dt::before,
 .vz-pos-values .pos-held dt::before {
   content: "";
   display: inline-block;
@@ -713,6 +721,12 @@
 }
 .vz-pos-values .pos-held dt::before {
   background: var(--ink);
+}
+.vz-pos-values .pos-burned dt::before {
+  background: var(--ink-3);
+}
+.vz-pos-values .pos-locked dt::before {
+  background: var(--info-pad);
 }
 
 .pos-up {

@@ -250,6 +250,8 @@ function CreatorPosition({ r }: { r: TokenReport }) {
   const parts = [
     { key: "sold", label: "Sold", v: p.soldPct },
     { key: "moved", label: "Moved out", v: p.sentPct },
+    { key: "burned", label: "Burned", v: p.burnedPct },
+    { key: "locked", label: "Locked", v: p.lockedPct },
     { key: "held", label: "Holds", v: p.holdPct },
   ].filter((x) => x.v > 0);
   return (
@@ -291,6 +293,24 @@ function CreatorPosition({ r }: { r: TokenReport }) {
             {p.sentPct > 0 && <small> of it, {formatPct(p.sentPct)} of supply</small>}
           </dd>
         </div>
+        {p.burnedPct > 0 && (
+          <div className="pos-burned">
+            <dt>Burned</dt>
+            <dd>
+              {pctOf(p.burnedPct)}
+              <small> of it, {formatPct(p.burnedPct)} of supply</small>
+            </dd>
+          </div>
+        )}
+        {p.lockedPct > 0 && (
+          <div className="pos-locked">
+            <dt>Locked</dt>
+            <dd>
+              {pctOf(p.lockedPct)}
+              <small> of it, in the Pons locker</small>
+            </dd>
+          </div>
+        )}
         <div className="pos-held">
           <dt>Holds now</dt>
           <dd>

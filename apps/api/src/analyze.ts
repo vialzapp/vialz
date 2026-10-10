@@ -304,10 +304,11 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   // to other wallets (a common way to make the creator look clean).
   let creatorPosition: TokenReport["creatorPosition"] = null;
   if (creator && !partial && transfers.length > 0) {
-    let bought = 0n, received = 0n, sold = 0n, sent = 0n, poolSell = false;
+    let bought = 0n, received = 0n, sold = 0n, sent = 0n, burned = 0n, locked = 0n, poolSell = false;
+    // where a transfer went decides what it was: a sale (curve, pool, router), a burn, a lock, or a hand-off
     const market = (a: string) => {
       const l = systemLabel(a);
-      return l === "curve" || l === "pool" || l === "launchpad";
+      return l === "curve" || l === "pool" || a === ROUTER || a === FOMO_ROUTER || a === FACTORY;
     };
     for (const l of transfers) {
       if (l.data.length < 66) continue;
@@ -319,7 +320,9 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
         if (market(from)) bought += v;
         else received += v;
       } else if (from === creator) {
-        if (market(to)) {
+        if (to === DEAD || to === ZERO) burned += v;
+        else if (to === LOCKER) locked += v;
+        else if (market(to)) {
           sold += v;
           if (systemLabel(to) === "pool") poolSell = true;
         } else sent += v;
@@ -332,6 +335,8 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
         receivedPct: pct(received),
         soldPct: pct(sold),
         sentPct: pct(sent),
+        burnedPct: pct(burned),
+        lockedPct: pct(locked),
         holdPct: balancePct(creator),
         spent: trades ? mine("buy") : null,
         got: trades ? mine("sell") : null,
@@ -632,6 +637,8 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     const forWhat = cp.got && cp.got > 0 ? ` for ${trimQuote(cp.got)} ${quote}` : "";
     f.push({ level: share >= 50 ? "warn" : "info", text: `Creator sold ${Math.round(share)}% of their tokens${forWhat}` });
   } else if (!cp && creatorSold > 0) f.push({ level: "warn", text: `Creator sold ${creatorSold.toFixed(3)} ${quote} worth` });
+  if (cp && took > 0 && cp.burnedPct >= 0.1)
+    f.push({ level: "info", text: `Creator burned ${Math.round(Math.min(100, (cp.burnedPct / took) * 100))}% of their tokens (${fmt(cp.burnedPct)}% of supply)` });
   if (cp && took > 0 && cp.sentPct >= 0.1) {
     const share = Math.min(100, (cp.sentPct / took) * 100);
     f.push({

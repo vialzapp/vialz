@@ -99,7 +99,9 @@ export interface TokenReport {
     boughtPct: number; // bought from the curve or a pool, the dev buy included
     receivedPct: number; // came in from other wallets
     soldPct: number; // went back into the curve or a pool
-    sentPct: number; // went out to other wallets
+    sentPct: number; // went out to other wallets (not burned, not locked)
+    burnedPct: number; // sent to the dead or zero address
+    lockedPct: number; // sent to the Pons locker
     holdPct: number; // in the wallet now
     spent: number | null; // quote paid on the curve (ETH)
     got: number | null; // quote received for curve sells
