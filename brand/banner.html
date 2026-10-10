@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Vialz banner</title>
+<style>
+@font-face { font-family: "Archivo"; src: url("../node_modules/@fontsource-variable/archivo/files/archivo-latin-standard-normal.woff2") format("woff2-variations"); font-weight: 100 900; font-stretch: 62% 125%; }
+@font-face { font-family: "Martian Mono"; src: url("../node_modules/@fontsource-variable/martian-mono/files/martian-mono-latin-standard-normal.woff2") format("woff2-variations"); font-weight: 100 800; }
+* { margin: 0; box-sizing: border-box; }
+html, body { width: 1500px; height: 500px; overflow: hidden; background: #2348ce; color: #f5f7fb; font-family: "Archivo", sans-serif; -webkit-font-smoothing: antialiased; }
+.b { position: relative; width: 1500px; height: 500px; }
+/* X lays the avatar over the bottom-left corner: copy stays in the top-left */
+.brand { position: absolute; left: 100px; top: 84px; display: flex; align-items: center; gap: 2px; }
+.brand svg { width: 112px; height: 112px; margin: -14px 0 -14px -14px; }
+.brand span { font-size: 80px; font-weight: 800; font-stretch: 125%; letter-spacing: -0.035em; line-height: 1; }
+.line { position: absolute; left: 104px; top: 194px; font-size: 32px; line-height: 1.22; font-weight: 500; color: rgb(245 247 251 / 0.84); letter-spacing: -0.012em; }
+.rack { position: absolute; right: 100px; top: 168px; }
+.url { position: absolute; right: 104px; bottom: 46px; font-family: "Martian Mono", monospace; font-size: 17px; color: rgb(245 247 251 / 0.72); }
+</style></head>
+<body><div class="b">
+  <div class="brand"><span>Vialz</span></div>
+  <p class="line">Check any Robinhood Chain token<br>before you buy.</p>
+  <div class="rack"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 732 114" width="732" height="114"><path d="M46.5,52.7 H101.5 L74.0,100.0 Z" fill="#f5f7fb"/><path d="M14.0,14.0 H24.0 L74.0,100.0 L124.0,14.0 H134.0" fill="none" stroke="#f5f7fb" stroke-width="14.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M205.0,74.2 H235.0 L220.0,100.0 Z" fill="#f5f7fb"/><path d="M160.0,14.0 H170.0 L220.0,100.0 L270.0,14.0 H280.0" fill="none" stroke="#f5f7fb" stroke-width="14.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M331.0,39.8 H401.0 L366.0,100.0 Z" fill="#f5f7fb"/><path d="M306.0,14.0 H316.0 L366.0,100.0 L416.0,14.0 H426.0" fill="none" stroke="#f5f7fb" stroke-width="14.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M489.5,61.3 H534.5 L512.0,100.0 Z" fill="#ff5a36"/><path d="M452.0,14.0 H462.0 L512.0,100.0 L562.0,14.0 H572.0" fill="none" stroke="#ff5a36" stroke-width="14.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M627.0,46.7 H689.0 L658.0,100.0 Z" fill="#f5f7fb"/><path d="M598.0,14.0 H608.0 L658.0,100.0 L708.0,14.0 H718.0" fill="none" stroke="#f5f7fb" stroke-width="14.0" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <span class="url">vialz.app</span>
+</div></body></html>

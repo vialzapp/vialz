@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+# reference engine (gradgate, MIT), kept only to cross-check numbers
+engine/
+
+# internal notes, not for the public repo
+research/
+brand/palettes/*.html
+brand/palettes/
+brand/*.png
+brand/shot.html

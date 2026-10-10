@@ -1,0 +1,13 @@
+{
+  "name": "vialz",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w @vialz/api",
+    "dev:web": "npm run dev -w @vialz/web",
+    "build": "npm run build -w @vialz/web && npm run build -w @vialz/extension && npm run build -w @vialz/api",
+    "start": "npm run start -w @vialz/api",
+    "typecheck": "tsc -p apps/api && tsc -p apps/web && tsc -p apps/extension"
+  },
+  "engines": { "node": ">=22" }
+}

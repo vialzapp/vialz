@@ -1,0 +1,21 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig(({ mode }) => ({
+  plugins: [react()],
+  base: "",
+  define: {
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL ?? (mode === "development" ? "http://localhost:8787" : "https://vialz-api.up.railway.app")),
+  },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    sourcemap: mode === "development",
+    rollupOptions: {
+      input: { sidepanel: "sidepanel.html", background: "src/background.ts" },
+      output: {
+        entryFileNames: (chunk) => (chunk.name === "background" ? "background.js" : "assets/[name]-[hash].js"),
+      },
+    },
+  },
+}));

@@ -1,0 +1,74 @@
+.check {
+  display: grid;
+  gap: 6px;
+}
+
+.check-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.check-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.check-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+.check input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px 0 38px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-m);
+  background: var(--sheet);
+  color: var(--ink);
+  font-family: var(--font-data);
+  font-size: 16px; /* 16px keeps iOS from zooming */
+  letter-spacing: -0.02em;
+  transition: border-color 160ms ease;
+}
+
+.check input::placeholder {
+  color: var(--ink-3);
+}
+
+.check input:hover {
+  border-color: var(--ink-3);
+}
+
+.check input:focus-visible {
+  outline: none;
+  border-color: var(--act);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--act) 22%, transparent);
+}
+
+.check input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.check-l input,
+.check-l .btn {
+  height: 52px;
+}
+
+.check-l input {
+  font-size: 17px;
+}
+
+.check-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}

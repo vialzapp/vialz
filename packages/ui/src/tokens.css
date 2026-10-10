@@ -1,0 +1,212 @@
+/* Vialz design tokens. The world is a lab assay sheet: cool paper, ink, one ultramarine for actions,
+   and result colours that only ever mean a result. The dark theme is designed separately, not inverted. */
+
+:root {
+  color-scheme: light;
+
+  --paper: oklch(0.975 0.004 255);
+  --sheet: oklch(0.993 0.002 255);
+  --well: oklch(0.955 0.006 255);
+  --ink: oklch(0.2 0.018 262);
+  --ink-2: oklch(0.45 0.02 262);
+  --ink-3: oklch(0.58 0.016 262);
+  --rule: oklch(0.89 0.008 262);
+  --rule-strong: oklch(0.8 0.012 262);
+
+  --act: oklch(0.47 0.21 266);
+  --act-hover: oklch(0.41 0.21 266);
+  --act-ink: oklch(0.99 0.004 266);
+  --focus: oklch(0.6 0.2 266);
+
+  /* readings */
+  --good: oklch(0.52 0.13 155);
+  --good-pad: oklch(0.72 0.14 155);
+  --good-wash: oklch(0.95 0.035 155);
+  --info: oklch(0.5 0.03 262);
+  --info-pad: oklch(0.8 0.06 245);
+  --info-wash: oklch(0.95 0.01 262);
+  --warn: oklch(0.52 0.12 70);
+  --warn-pad: oklch(0.82 0.15 80);
+  --warn-wash: oklch(0.96 0.045 85);
+  --danger: oklch(0.52 0.19 27);
+  --danger-pad: oklch(0.63 0.2 27);
+  --danger-wash: oklch(0.95 0.03 27);
+  --none-pad: oklch(0.93 0.004 262);
+
+  --font-ui: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  --font-data: "Martian Mono Variable", "Martian Mono", ui-monospace, monospace;
+
+  --r-s: 4px;
+  --r-m: 8px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-author: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: oklch(0.17 0.01 262);
+    --sheet: oklch(0.205 0.012 262);
+    --well: oklch(0.235 0.013 262);
+    --ink: oklch(0.94 0.008 262);
+    --ink-2: oklch(0.74 0.014 262);
+    --ink-3: oklch(0.6 0.014 262);
+    --rule: oklch(0.3 0.012 262);
+    --rule-strong: oklch(0.38 0.014 262);
+    --act: oklch(0.72 0.14 268);
+    --act-hover: oklch(0.78 0.12 268);
+    --act-ink: oklch(0.18 0.03 268);
+    --focus: oklch(0.75 0.14 268);
+    --good: oklch(0.78 0.13 155);
+    --good-pad: oklch(0.66 0.14 155);
+    --good-wash: oklch(0.27 0.04 155);
+    --info: oklch(0.76 0.02 262);
+    --info-pad: oklch(0.58 0.08 245);
+    --info-wash: oklch(0.25 0.012 262);
+    --warn: oklch(0.83 0.13 80);
+    --warn-pad: oklch(0.76 0.14 78);
+    --warn-wash: oklch(0.29 0.05 75);
+    --danger: oklch(0.75 0.15 27);
+    --danger-pad: oklch(0.62 0.19 27);
+    --danger-wash: oklch(0.28 0.06 27);
+    --none-pad: oklch(0.3 0.01 262);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: oklch(0.17 0.01 262);
+  --sheet: oklch(0.205 0.012 262);
+  --well: oklch(0.235 0.013 262);
+  --ink: oklch(0.94 0.008 262);
+  --ink-2: oklch(0.74 0.014 262);
+  --ink-3: oklch(0.6 0.014 262);
+  --rule: oklch(0.3 0.012 262);
+  --rule-strong: oklch(0.38 0.014 262);
+  --act: oklch(0.72 0.14 268);
+  --act-hover: oklch(0.78 0.12 268);
+  --act-ink: oklch(0.18 0.03 268);
+  --focus: oklch(0.75 0.14 268);
+  --good: oklch(0.78 0.13 155);
+  --good-pad: oklch(0.66 0.14 155);
+  --good-wash: oklch(0.27 0.04 155);
+  --info: oklch(0.76 0.02 262);
+  --info-pad: oklch(0.58 0.08 245);
+  --info-wash: oklch(0.25 0.012 262);
+  --warn: oklch(0.83 0.13 80);
+  --warn-pad: oklch(0.76 0.14 78);
+  --warn-wash: oklch(0.29 0.05 75);
+  --danger: oklch(0.75 0.15 27);
+  --danger-pad: oklch(0.62 0.19 27);
+  --danger-wash: oklch(0.28 0.06 27);
+  --none-pad: oklch(0.3 0.01 262);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: color-mix(in oklch, var(--act) 22%, transparent);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--act);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+a:hover {
+  color: var(--act-hover);
+}
+
+.num {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+button {
+  font: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--r-m);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-act {
+  background: var(--act);
+  color: var(--act-ink);
+}
+
+.btn-act:hover {
+  background: var(--act-hover);
+  color: var(--act-ink);
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule-strong);
+}
+
+.btn-quiet:hover {
+  background: var(--well);
+  color: var(--ink);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active {
+    transform: none;
+  }
+}
