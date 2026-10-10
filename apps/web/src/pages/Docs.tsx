@@ -278,8 +278,10 @@ export function Docs() {
             <div>
               <dt>Creator</dt>
               <dd>
-                The creator's Pons launches, how many graduated, how often they sold early, and their ten most recent tokens. Each one opens its
-                own report.
+                First, what the creator's own wallet did with this token, read from its transfers: how much of the supply it bought (the dev
+                buy included) and for how much ETH, what share of that it sold back and for how much, what share it moved to other wallets (a
+                common way to look like the creator holds nothing), and what it holds now. Then their Pons launches, how many graduated, how
+                often they sold early, and their ten most recent tokens. Each one opens its own report.
               </dd>
             </div>
           </dl>

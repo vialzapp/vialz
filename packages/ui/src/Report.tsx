@@ -238,10 +238,84 @@ function LinkedSection({ r }: { r: TokenReport }) {
   );
 }
 
+/** What the creator's own wallet did with the token: bought, sold, moved to other wallets, still holds. */
+function CreatorPosition({ r }: { r: TokenReport }) {
+  const p = r.creatorPosition!;
+  const quote = r.launch?.quote.symbol ?? "ETH";
+  const took = p.boughtPct + p.receivedPct;
+  const share = (v: number) => (took > 0 ? Math.min(100, (v / took) * 100) : 0);
+  const pctOf = (v: number) => `${Math.round(share(v))}%`;
+  const q = (v: number | null) => (v == null ? null : `${trim(v)} ${quote}`);
+  const result = p.spent != null && p.got != null && !p.poolSells && p.got > 0 ? p.got - p.spent : null;
+  const parts = [
+    { key: "sold", label: "Sold", v: p.soldPct },
+    { key: "moved", label: "Moved out", v: p.sentPct },
+    { key: "held", label: "Holds", v: p.holdPct },
+  ].filter((x) => x.v > 0);
+  return (
+    <div className="vz-pos">
+      <p className="vz-pos-title">Their own tokens</p>
+      {parts.length > 0 && (
+        <div className="vz-pos-bar" aria-hidden>
+          {parts.map((x) => (
+            <span key={x.key} className={`pos-${x.key}`} style={{ flexGrow: x.v }} />
+          ))}
+        </div>
+      )}
+      <dl className="vz-values vz-pos-values">
+        <div>
+          <dt>Bought</dt>
+          <dd>
+            {formatPct(p.boughtPct)} <small>of supply{p.spent ? `, for ${q(p.spent)}` : ""}</small>
+          </dd>
+        </div>
+        {p.receivedPct > 0 && (
+          <div>
+            <dt>Received</dt>
+            <dd>
+              {formatPct(p.receivedPct)} <small>from other wallets</small>
+            </dd>
+          </div>
+        )}
+        <div className="pos-sold">
+          <dt>Sold</dt>
+          <dd>
+            {p.soldPct > 0 ? pctOf(p.soldPct) : "none"}
+            {p.soldPct > 0 && <small> of it{p.got ? `, got ${q(p.got)}` : ""}{p.poolSells ? " plus pool sells" : ""}</small>}
+          </dd>
+        </div>
+        <div className="pos-moved">
+          <dt>Moved to other wallets</dt>
+          <dd>
+            {p.sentPct > 0 ? pctOf(p.sentPct) : "none"}
+            {p.sentPct > 0 && <small> of it, {formatPct(p.sentPct)} of supply</small>}
+          </dd>
+        </div>
+        <div className="pos-held">
+          <dt>Holds now</dt>
+          <dd>
+            {p.holdPct === 0 ? "0%" : formatPct(p.holdPct)} <small>of supply</small>
+          </dd>
+        </div>
+        {result != null && (
+          <div>
+            <dt>Result on the curve</dt>
+            <dd className={result > 0 ? "pos-up" : undefined}>
+              {result >= 0 ? "+" : "-"}
+              {trim(Math.abs(result))} {quote}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  );
+}
+
 function CreatorSection({ r, onOpenToken }: { r: TokenReport; onOpenToken?: (address: string) => void }) {
   if (!r.creator) return <Section title="Creator"><p className="vz-empty">The wallet that created this token is not known.</p></Section>;
   return (
     <Section title="Creator" note={shortAddress(r.creator)}>
+      {r.creatorPosition && <CreatorPosition r={r} />}
       {r.devStatus === "pending" ? (
         <p className="vz-empty">Reading this wallet's earlier Pons launches. This fills in within a few seconds.</p>
       ) : r.dev ? (
@@ -250,7 +324,7 @@ function CreatorSection({ r, onOpenToken }: { r: TokenReport; onOpenToken?: (add
             <Value label="Pons launches" value={r.dev.launches.toLocaleString("en-US")} />
             <Value label="Graduated" value={`${r.dev.graduated}`} />
             <Value label="Sold early" value={r.dev.checked ? `${r.dev.sold} of last ${r.dev.checked}` : r.dev.launches === 1 ? "n/a, first launch" : "n/a"} />
-            <Value label="Holds now" value={r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />
+            {!r.creatorPosition && <Value label="Holds now" value={r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />}
           </dl>
           {r.dev.recent.length > 0 && (
             <ul className="vz-prior">

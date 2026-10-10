@@ -94,6 +94,18 @@ export interface TokenReport {
     roundTripWallets: number; // wallets that bought and sold at least twice each
   };
 
+  /** What the creator's own wallet did with the token, all as a share of total supply. */
+  creatorPosition: null | {
+    boughtPct: number; // bought from the curve or a pool, the dev buy included
+    receivedPct: number; // came in from other wallets
+    soldPct: number; // went back into the curve or a pool
+    sentPct: number; // went out to other wallets
+    holdPct: number; // in the wallet now
+    spent: number | null; // quote paid on the curve (ETH)
+    got: number | null; // quote received for curve sells
+    poolSells: boolean; // some sells went into a pool, whose proceeds are not in `got`
+  };
+
   dev: null | {
     launches: number; // all pons launches by this creator, this one included
     graduated: number;

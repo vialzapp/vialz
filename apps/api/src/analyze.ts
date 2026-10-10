@@ -299,6 +299,47 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const dev = devRaw ? devSummary(devRaw, token, tsOf, tsHead) : null;
   const creatorSold = tradesQ.filter((t) => t.side === "sell" && t.wallet === creator).reduce((s, t) => s + t.quote, 0);
 
+  // ---- the creator's position: what their own wallet bought, sold, passed on and still holds --------------------
+  // Read from the transfers, so it covers the dev buy, later buys, sells into the curve or a pool, and tokens moved
+  // to other wallets (a common way to make the creator look clean).
+  let creatorPosition: TokenReport["creatorPosition"] = null;
+  if (creator && !partial && transfers.length > 0) {
+    let bought = 0n, received = 0n, sold = 0n, sent = 0n, poolSell = false;
+    const market = (a: string) => {
+      const l = systemLabel(a);
+      return l === "curve" || l === "pool" || l === "launchpad";
+    };
+    for (const l of transfers) {
+      if (l.data.length < 66) continue;
+      const from = addressFromTopic(l.topics[1]!);
+      const to = addressFromTopic(l.topics[2]!);
+      if (from === to) continue;
+      const v = BigInt(l.data.slice(0, 66));
+      if (to === creator) {
+        if (market(from)) bought += v;
+        else received += v;
+      } else if (from === creator) {
+        if (market(to)) {
+          sold += v;
+          if (systemLabel(to) === "pool") poolSell = true;
+        } else sent += v;
+      }
+    }
+    if (bought + received > 0n) {
+      const mine = (side: Trade["side"]) => tradesQ.filter((t) => t.side === side && t.wallet === creator).reduce((s, t) => s + t.quote, 0);
+      creatorPosition = {
+        boughtPct: pct(bought),
+        receivedPct: pct(received),
+        soldPct: pct(sold),
+        sentPct: pct(sent),
+        holdPct: balancePct(creator),
+        spent: trades ? mine("buy") : null,
+        got: trades ? mine("sell") : null,
+        poolSells: poolSell,
+      };
+    }
+  }
+
   const report: TokenReport = {
     address: token,
     chainId: CHAIN_ID,
@@ -321,6 +362,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     fundingStatus,
     devStatus,
     volume,
+    creatorPosition,
     dev,
     flags: [],
     head: h,
@@ -523,6 +565,7 @@ const fmt = (v: number) => (v >= 10 ? v.toFixed(0) : v.toFixed(1));
 
 /** Facts, not verdicts: each line says what the chain shows. */
 const FLAG_ORDER = { danger: 0, warn: 1, info: 2, good: 3 } as const;
+const trimQuote = (v: number) => (v >= 1 ? v.toFixed(2) : v.toPrecision(2));
 
 function devFlags(dev: TokenReport["dev"]): Flag[] {
   const f: Flag[] = [];
@@ -582,7 +625,20 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     if (r.launch.creatorTaxBps) f.push({ level: r.launch.creatorTaxBps >= 500 ? "warn" : "info", text: `Creator tax ${(r.launch.creatorTaxBps / 100).toFixed(1)}%` });
     if (r.launch.graduatedBlock != null) f.push({ level: "good", text: "Graduated to Uniswap" });
   }
-  if (creatorSold > 0) f.push({ level: "warn", text: `Creator sold ${creatorSold.toFixed(3)} ${quote} worth` });
+  const cp = r.creatorPosition;
+  const took = cp ? cp.boughtPct + cp.receivedPct : 0;
+  if (cp && took > 0 && cp.soldPct > 0) {
+    const share = Math.min(100, (cp.soldPct / took) * 100);
+    const forWhat = cp.got && cp.got > 0 ? ` for ${trimQuote(cp.got)} ${quote}` : "";
+    f.push({ level: share >= 50 ? "warn" : "info", text: `Creator sold ${Math.round(share)}% of their tokens${forWhat}` });
+  } else if (!cp && creatorSold > 0) f.push({ level: "warn", text: `Creator sold ${creatorSold.toFixed(3)} ${quote} worth` });
+  if (cp && took > 0 && cp.sentPct >= 0.1) {
+    const share = Math.min(100, (cp.sentPct / took) * 100);
+    f.push({
+      level: share >= 50 || cp.sentPct >= 3 ? "warn" : "info",
+      text: `Creator moved ${Math.round(share)}% of their tokens (${fmt(cp.sentPct)}% of supply) to other wallets`,
+    });
+  }
   if (r.holders.partial) f.push({ level: "info", text: "Too many transfers to read holders in one pass" });
   if (r.holders.creatorPct >= 5) f.push({ level: "warn", text: `Creator holds ${fmt(r.holders.creatorPct)}%` });
   if (r.holders.top10Pct >= 50) f.push({ level: "danger", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });

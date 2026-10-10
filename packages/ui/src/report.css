@@ -649,6 +649,76 @@
   margin: 0;
 }
 
+/* the creator's own tokens: where what they bought went */
+.vz-pos {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.vz-pos-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.vz-pos-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  margin-bottom: 12px;
+}
+
+.vz-pos-bar span {
+  min-width: 3px;
+  border-radius: 2px;
+}
+
+.vz-pos-bar .pos-sold {
+  background: var(--danger-pad);
+}
+.vz-pos-bar .pos-moved {
+  background: var(--warn-pad);
+}
+.vz-pos-bar .pos-held {
+  background: var(--ink);
+}
+
+.vz-pos-values dd small {
+  font-size: 12.5px;
+  font-weight: 450;
+  color: var(--ink-2);
+}
+
+/* the label's dot ties each figure to its colour in the bar */
+.vz-pos-values .pos-sold dt::before,
+.vz-pos-values .pos-moved dt::before,
+.vz-pos-values .pos-held dt::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: 1px;
+}
+.vz-pos-values .pos-sold dt::before {
+  background: var(--danger-pad);
+}
+.vz-pos-values .pos-moved dt::before {
+  background: var(--warn-pad);
+}
+.vz-pos-values .pos-held dt::before {
+  background: var(--ink);
+}
+
+.pos-up {
+  color: var(--warn);
+}
+
 /* clusters */
 .vz-clusters {
   list-style: none;
