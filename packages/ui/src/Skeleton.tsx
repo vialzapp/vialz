@@ -1,7 +1,7 @@
 /** Placeholder in the shape of the report while the chain is read (5 to 15 seconds). */
 export function ReportSkeleton({ note }: { note?: string }) {
   return (
-    <div className="vz-skeleton" aria-busy="true" aria-live="polite">
+    <div className="vz-skeleton" aria-busy="true">
       <div style={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 12, alignItems: "center" }}>
         <div className="sk" style={{ width: 44, height: 44 }} />
         <div style={{ display: "grid", gap: 8 }}>
@@ -17,16 +17,23 @@ export function ReportSkeleton({ note }: { note?: string }) {
       {[90, 70, 80].map((w, i) => (
         <div key={i} className="sk" style={{ height: 12, width: `${w}%` }} />
       ))}
-      <p className="vz-loading-note">{note ?? "Reading the token's whole history from the chain. This takes a few seconds."}</p>
+      <p className="vz-loading-note" role="status">
+        {note ?? "Reading the token's whole history from the chain. This takes a few seconds."}
+      </p>
     </div>
   );
 }
 
-export function ReportError({ message }: { message: string }) {
+export function ReportError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="vz-error" role="alert">
       <b>Couldn't read this token</b>
-      {message}
+      <span>{message}</span>
+      {onRetry && (
+        <button type="button" className="btn btn-quiet vz-retry" onClick={onRetry}>
+          Try again
+        </button>
+      )}
     </div>
   );
 }

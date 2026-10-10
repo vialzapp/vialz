@@ -16,22 +16,30 @@ export function TokenPage({ address }: { address: string }) {
     <section className="token-page">
       <div className="wrap token-wrap">
         <div className="token-tools">
-          <CheckInput initial={address} onCheck={(a) => navigate(`/t/${a}`)} busy={state.status === "loading"} label="Check another token" />
+          <CheckInput
+            initial={address}
+            onCheck={(a) => (a === address ? state.retry() : navigate(`/t/${a}`))}
+            busy={state.status === "loading"}
+            label="Check another token"
+          />
         </div>
         {state.status === "loading" && <ReportSkeleton />}
-        {state.status === "error" && <ReportError message={state.message} />}
+        {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} />}
         {state.status === "ready" && (
           <>
-            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} />
+            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} />
             <div className="token-share">
               <button
                 type="button"
                 className="btn btn-quiet"
                 onClick={() => {
-                  void navigator.clipboard.writeText(location.href).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1400);
-                  });
+                  navigator.clipboard
+                    .writeText(location.href)
+                    .then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1400);
+                    })
+                    .catch(() => {});
                 }}
               >
                 {copied ? <CheckIcon size={16} weight="bold" /> : <LinkSimpleIcon size={16} />}

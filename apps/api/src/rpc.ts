@@ -133,11 +133,15 @@ function batchOnce(calls: [string, unknown[]][]): Promise<unknown[]> {
     if (Date.now() > deadlineOf(Infinity)) throw new DeadlineError("request ran out of time");
     const base = nextId;
     nextId += calls.length;
-    const j = (await post(calls.map(([method, params], i) => ({ jsonrpc: "2.0", id: base + i, method, params })))) as {
-      id: number;
-      result?: unknown;
-    }[];
-    const byId = new Map(j.map((r) => [r.id, r.result ?? null]));
+    const j = (await post(calls.map(([method, params], i) => ({ jsonrpc: "2.0", id: base + i, method, params })))) as unknown;
+    if (!Array.isArray(j)) throw new RpcError(`batch: ${JSON.stringify(j).slice(0, 80)}`);
+    // a reverted call means "this contract has no such function" and comes back as null; any other error (rate limit,
+    // node trouble) fails the batch, so it is never mistaken for "not a token"
+    const byId = new Map<number, unknown>();
+    for (const r of j as { id: number; result?: unknown; error?: { message?: string } }[]) {
+      if (r.error && !/revert|execution|invalid opcode/i.test(r.error.message ?? "")) throw new RpcError(`batch call: ${r.error.message}`);
+      byId.set(r.id, r.result ?? null);
+    }
     return calls.map((_, i) => byId.get(base + i) ?? null);
   });
 }
@@ -176,7 +180,9 @@ async function logsSpan(filter: LogFilter, from: number, to: number, deadline: n
       logIndex: Number(l.logIndex),
     }));
   } catch (e) {
-    if (e instanceof DeadlineError || to - from < 2_000) throw e;
+    // only "too many results / range too wide" is solved by splitting; an outage or a full queue is not
+    const tooBig = e instanceof RpcError && /more than|too many|limit|range|size|exceed|timeout/i.test(e.message) && !/queue full|unreachable/.test(e.message);
+    if (e instanceof DeadlineError || !tooBig || to - from < 2_000) throw e;
     const mid = from + Math.floor((to - from) / 2);
     const [a, b] = await Promise.all([logsSpan(filter, from, mid, deadline), logsSpan(filter, mid + 1, to, deadline)]);
     return a.concat(b);

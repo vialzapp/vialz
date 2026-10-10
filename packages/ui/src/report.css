@@ -10,8 +10,37 @@
   color: var(--ink);
 }
 
-.vz-report > * {
+.vz-col > *,
+.vz-body > footer {
   padding-inline: 16px;
+}
+
+/* wide pages: the vials and findings stay in view on the left while the detail scrolls on the right */
+@container (min-width: 980px) {
+  .vz-report:not(.vz-compact) .vz-body {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    align-items: start;
+  }
+  .vz-report:not(.vz-compact) .vz-col-a {
+    position: sticky;
+    top: 84px;
+    border-right: 1px solid var(--rule);
+  }
+  .vz-report:not(.vz-compact) .vz-body > footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--rule);
+  }
+  .vz-report:not(.vz-compact) .vz-col-a .strip {
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 20px;
+  }
+  .vz-report:not(.vz-compact) .strip-vial {
+    max-width: 72px;
+  }
+  .vz-report:not(.vz-compact) .finding {
+    font-size: 16px;
+  }
 }
 
 /* ---- head ---- */
@@ -45,7 +74,7 @@
   min-width: 0;
 }
 
-.vz-report .vz-title h2 {
+.vz-report .vz-name {
   margin: 0;
   font-size: 18px;
   line-height: 1.25;
@@ -79,7 +108,7 @@
   border: 0;
   background: none;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -110,6 +139,7 @@
 .strip {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
+  align-items: start;
   gap: 8px;
   padding-block: 18px 16px;
   border-block: 1px solid var(--rule);
@@ -180,7 +210,7 @@
 }
 
 .strip-reading {
-  font-size: 10.5px;
+  font-size: 12px;
   line-height: 1.35;
   color: var(--ink-2);
   overflow: hidden;
@@ -191,10 +221,11 @@
   overflow-wrap: anywhere;
 }
 
-@container (max-width: 380px) {
+/* six columns only where the readings fit on one line; the panel and phones get 3 by 2 */
+@container (max-width: 560px) {
   .strip {
     grid-template-columns: repeat(3, 1fr);
-    row-gap: 14px;
+    row-gap: 16px;
   }
 }
 
@@ -244,7 +275,8 @@
 
 .finding-mark {
   font-family: var(--font-data);
-  font-size: 10.5px;
+  font-stretch: 87.5%;
+  font-size: 11.5px;
   font-weight: 600;
   text-align: center;
   padding: 2px 0;
@@ -289,7 +321,7 @@
 
 .vz-values dd {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 
@@ -330,13 +362,13 @@
   grid-template-columns: 18px auto 1fr minmax(84px, 120px);
   gap: 8px;
   align-items: center;
-  min-height: 26px;
-  font-size: 12px;
+  min-height: 28px;
+  font-size: 13px;
 }
 
 .vz-rank {
   color: var(--ink-3);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .vz-holders a {
@@ -358,7 +390,8 @@
 
 .vz-label {
   font-family: var(--font-data);
-  font-size: 10px;
+  font-stretch: 87.5%;
+  font-size: 11.5px;
   line-height: 1;
   padding: 3px 5px;
   border-radius: 3px;
@@ -446,8 +479,8 @@
   grid-template-columns: minmax(0, 1.2fr) 0.8fr 1fr 1fr;
   gap: 8px;
   align-items: center;
-  min-height: 28px;
-  font-size: 12px;
+  min-height: 30px;
+  font-size: 13px;
   color: var(--ink-2);
 }
 
@@ -469,7 +502,7 @@
   padding: 0;
   background: none;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .vz-linkish:hover {
@@ -486,7 +519,7 @@
   justify-content: space-between;
   gap: 4px 16px;
   padding-block: 12px 14px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink-3);
 }
 
@@ -494,7 +527,7 @@
   .vz-report > * {
     padding-inline: 24px;
   }
-  .vz-report .vz-title h2 {
+  .vz-report .vz-name {
     font-size: 22px;
   }
 }
@@ -536,6 +569,18 @@
   background: var(--danger-wash);
   border-radius: var(--r-m);
   color: var(--ink);
+  font-size: 14px;
+}
+
+.vz-error {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.vz-retry {
+  margin-top: 10px;
+  height: 36px;
   font-size: 14px;
 }
 

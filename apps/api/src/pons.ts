@@ -17,7 +17,6 @@ export const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55
 
 export const ZERO = "0x0000000000000000000000000000000000000000";
 export const DEAD = "0x000000000000000000000000000000000000dead";
-export const PONS_SYSTEM = new Set([FACTORY, ROUTER, HOOK, LOCKER, POOL_MANAGER, FOMO_ROUTER]);
 
 export const PHASES = ["curve", "swept", "pool", "rescued"] as const;
 

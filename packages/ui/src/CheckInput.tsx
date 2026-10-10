@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { extractAddress } from "@vialz/shared";
 
@@ -16,7 +16,6 @@ export function CheckInput({ onCheck, initial = "", autoFocus, busy, size = "m",
   const [value, setValue] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const id = useId();
-  const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => setValue(initial), [initial]);
 
@@ -47,7 +46,6 @@ export function CheckInput({ onCheck, initial = "", autoFocus, busy, size = "m",
         <MagnifyingGlassIcon className="check-icon" size={18} aria-hidden />
         <input
           id={id}
-          ref={input}
           value={value}
           autoFocus={autoFocus}
           spellCheck={false}

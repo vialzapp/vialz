@@ -7,6 +7,8 @@ import { Privacy } from "./pages/Privacy";
 import { Docs } from "./pages/Docs";
 import { CHROME_LABEL, CHROME_URL, REPO_URL } from "./brand";
 
+const IN_STORE = Boolean(import.meta.env.VITE_CHROME_URL);
+
 // A three-route site does not need a router library: the path is state, links push to history.
 export function navigate(to: string) {
   if (to === location.pathname + location.hash) return;
@@ -58,8 +60,8 @@ export function App() {
             <a href="/#vials">How it reads</a>
             <Link href="/docs">Docs</Link>
             <a href={REPO_URL}>GitHub</a>
-            <Link className="btn btn-act nav-cta" href={CHROME_URL}>
-              {CHROME_LABEL}
+            <Link className={IN_STORE ? "btn btn-act nav-cta" : "nav-install"} href={CHROME_URL}>
+              {IN_STORE ? CHROME_LABEL : "Install beta"}
             </Link>
           </nav>
         </div>
@@ -70,7 +72,7 @@ export function App() {
       <footer className="footer">
         <div className="wrap footer-row">
           <span className="wordmark wordmark-s">Vialz</span>
-          <p>Reads Robinhood Chain. Not affiliated with Robinhood. Nothing here is financial advice.</p>
+          <p>Reads Robinhood Chain. Not affiliated with Robinhood. Open source, MIT. Nothing here is financial advice.</p>
           <nav aria-label="Footer">
             <Link href="/docs">Docs</Link>
             <a href={REPO_URL}>GitHub</a>

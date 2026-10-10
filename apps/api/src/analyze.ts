@@ -92,15 +92,21 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     launchLog ? rpc<{ input: string } | null>("eth_getTransactionByHash", [launchLog.transactionHash]) : null,
     !creator && firstMint ? rpc<{ from: string } | null>("eth_getTransactionByHash", [firstMint.transactionHash]) : null,
     curve && launchBlock != null && !partial ? readCurveTrades(curve, launchBlock, h, started + 2 * HISTORY_BUDGET_MS).catch(() => null) : Promise.resolve(null),
-    launchLog ? getLogs({ address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h) : [],
-    launchLog && creator ? creatorLaunches(creator, h) : null,
+    // secondary reads: if one fails the report goes out without that part instead of failing whole
+    launchLog ? getLogs({ address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[]) : [],
+    launchLog && creator ? creatorLaunches(creator, h).catch(() => null) : null,
     quoteAddr ? batch([call(quoteAddr, callData.symbol()), call(quoteAddr, callData.decimals())]) : null,
-    createdBlock != null ? blockTimestamp(createdBlock) : null,
+    createdBlock != null ? blockTimestamp(createdBlock).catch(() => null) : null,
     blockTimestamp(h),
     dexPairs(token),
     launchLog ? quoteUsd(quoteAddr) : Promise.resolve(null),
     // what the curve actually holds: the reserve that graduation is measured against
-    curve ? (quoteAddr ? rpc<string>("eth_call", [{ to: quoteAddr, data: "0x70a08231" + topicAddress(curve).slice(2) }, "latest"]) : rpc<string>("eth_getBalance", [curve, "latest"])) : null,
+    curve
+      ? (quoteAddr
+          ? rpc<string>("eth_call", [{ to: quoteAddr, data: "0x70a08231" + topicAddress(curve).slice(2) }, "latest"])
+          : rpc<string>("eth_getBalance", [curve, "latest"])
+        ).catch(() => null)
+      : null,
   ]);
   if (!creator && mintTx) creator = mintTx.from.toLowerCase();
 
@@ -111,13 +117,14 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const quoteSymbol = quoteMeta ? decodeString(quoteMeta[0]) || "?" : "ETH";
   const launchCall = decodeLaunchAndBuy(launchTx?.input);
   const bundle = launchCall?.exempt.filter((a) => a !== creator) ?? [];
-  const tradesQ = trades?.map((t) => ({ ...t, quote: t.quote / 10 ** quoteDecimals, tokens: t.tokens / 1e18 })) ?? [];
+  const tradesQ = trades?.map((t) => ({ ...t, quote: t.quote / 10 ** quoteDecimals, tokens: t.tokens / unit })) ?? [];
 
   // ---- holders -------------------------------------------------------------------------------------------------
   const balances = new Map<string, bigint>();
   for (const l of transfers) {
     const from = addressFromTopic(l.topics[1]!);
     const to = addressFromTopic(l.topics[2]!);
+    if (l.data.length < 66) continue; // no amount in data: not an ERC-20 transfer
     const v = BigInt(l.data.slice(0, 66));
     if (from !== ZERO) balances.set(from, (balances.get(from) ?? 0n) - v);
     balances.set(to, (balances.get(to) ?? 0n) + v);
@@ -126,7 +133,9 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const balancePct = (a: string) => pct(balances.get(a) ?? 0n);
 
   const snipeWallets = new Set(
-    tradesQ.filter((t) => t.side === "buy" && launchBlock != null && t.block <= launchBlock + SNIPE_BLOCKS && t.wallet !== creator).map((t) => t.wallet),
+    tradesQ
+      .filter((t) => t.side === "buy" && launchBlock != null && t.block <= launchBlock + SNIPE_BLOCKS && t.wallet !== creator && !bundle.includes(t.wallet))
+      .map((t) => t.wallet),
   );
   const pairAddresses = new Set(pairs.map((p) => p.pairAddress.toLowerCase()));
   const systemLabel = (a: string): HolderLabel | null => {
@@ -162,7 +171,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   clusters.sort((a, b) => b.pct - a.pct);
 
   // ---- market ---------------------------------------------------------------------------------------------------
-  const reserve = reserveRaw ? Number(BigInt(reserveRaw.slice(0, 66))) / 10 ** quoteDecimals : 0;
+  const reserve = reserveRaw && reserveRaw.length > 2 ? Number(BigInt(reserveRaw.slice(0, 66))) / 10 ** quoteDecimals : 0;
   const graduatedBlock = gradLogs[0]?.blockNumber ?? null;
   const pair: DexPair | undefined = pairs[0];
   let market: TokenReport["market"] = null;
@@ -180,7 +189,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
       sellers: null,
       lastTradeAt: null,
     };
-  } else if (tradesQ.length > 0) {
+  } else if (tradesQ.length > 0 && graduatedBlock == null) {
     const last = tradesQ[tradesQ.length - 1]!;
     const price = last.tokens > 0 ? last.quote / last.tokens : null;
     const usd = (q: number | null) => (q != null && quotePrice != null ? q * quotePrice : null);
@@ -189,7 +198,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
       source: "curve",
       priceUsd: usd(price),
       mcapUsd: usd(price != null ? price * supply : null),
-      liquidityUsd: graduatedBlock == null ? usd(reserve) : null,
+      liquidityUsd: usd(reserve),
       volumeUsd: { m5: vol(300), h1: vol(3600), h24: vol(86400) },
       buys: tradesQ.filter((t) => t.side === "buy").length,
       sells: tradesQ.filter((t) => t.side === "sell").length,
@@ -207,7 +216,8 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
           curve: curve as Address,
           quote: { address: quoteAddr as Address | null, symbol: quoteSymbol, decimals: quoteDecimals, usd: quotePrice },
           phase: record?.phase ?? "unknown",
-          progressPct: graduatedBlock != null ? 100 : threshold > 0 ? Math.min(100, (reserve / threshold) * 100) : 0,
+          progressPct:
+            graduatedBlock != null || record?.phase === "swept" || record?.phase === "pool" ? 100 : threshold > 0 ? Math.min(100, (reserve / threshold) * 100) : 0,
           threshold,
           graduatedBlock,
           creatorTaxBps: record?.creatorTaxBps ?? null,
@@ -217,14 +227,18 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
         }
       : null;
 
-  const snipers = launch
-    ? {
-        wallets: snipeWallets.size,
-        boughtPct: (tradesQ.filter((t) => t.side === "buy" && snipeWallets.has(t.wallet)).reduce((s, t) => s + t.tokens, 0) / supply) * 100,
-        holdPct: [...snipeWallets].reduce((s, a) => s + balancePct(a), 0),
-      }
-    : null;
-  const bundleInfo = launch ? { wallets: bundle.length, holdPct: bundle.reduce((s, a) => s + balancePct(a), 0) } : null;
+  // Unknown must never read as clear: without the trades there is no sniper reading, without the launch call or the
+  // holders there is no bundle reading.
+  const snipers =
+    launch && trades != null && !partial && supply > 0
+      ? {
+          wallets: snipeWallets.size,
+          boughtPct: (tradesQ.filter((t) => t.side === "buy" && snipeWallets.has(t.wallet)).reduce((s, t) => s + t.tokens, 0) / supply) * 100,
+          holdPct: [...snipeWallets].reduce((s, a) => s + balancePct(a), 0),
+        }
+      : null;
+  const bundleInfo =
+    launch && launchCall != null && !partial ? { wallets: bundle.length, holdPct: bundle.reduce((s, a) => s + balancePct(a), 0) } : null;
 
   // ---- volume quality -------------------------------------------------------------------------------------------
   let volume: TokenReport["volume"] = null;
@@ -265,7 +279,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     links: { x: safeUrl(info?.x), telegram: safeUrl(info?.telegram), website: safeUrl(info?.website), image: ipfsCid(info?.image) },
     launch,
     market,
-    holders: { count: held.length, top10Pct, top, creatorPct: creator ? balancePct(creator) : 0, partial },
+    holders: { count: held.length, top10Pct, top, creatorPct: creator && !partial ? balancePct(creator) : 0, partial },
     snipers,
     bundle: bundleInfo,
     clusters,
@@ -342,6 +356,7 @@ function fundingClusters(holders: string[], balances: Map<string, bigint>, pct: 
   for (const [source, members] of groups) {
     if (members.length < 3) continue;
     const raw = members.reduce((s, a) => s + (balances.get(a) ?? 0n), 0n);
+    if (pct(raw) < 0.5) continue; // same floor as distribution groups: three dust holders funded by an exchange are not a signal
     clusters.push({ kind: "funding", source: source as Address, wallets: members.length, pct: pct(raw), members: members as Address[] });
   }
   return { status: "done", clusters };
@@ -365,8 +380,11 @@ function creatorLaunches(creator: string, h: number): Promise<CreatorLaunches> {
   const hit = creatorCache.get(creator);
   if (hit && Date.now() - hit.at < CREATOR_TTL_MS) return hit.value;
   const value = loadCreatorLaunches(creator, h);
-  creatorCache.set(creator, { at: Date.now(), value });
-  value.catch(() => creatorCache.delete(creator));
+  const entry = { at: Date.now(), value };
+  creatorCache.set(creator, entry);
+  value.catch(() => {
+    if (creatorCache.get(creator) === entry) creatorCache.delete(creator);
+  });
   if (creatorCache.size > 5_000) creatorCache.delete(creatorCache.keys().next().value!);
   return value;
 }
@@ -443,10 +461,9 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
   const f: Flag[] = [];
   const quote = r.launch?.quote.symbol ?? "ETH";
   const biggest = r.clusters[0];
-  if (biggest && biggest.pct >= 10)
-    f.push({ level: "danger", text: `${biggest.wallets + 1} linked wallets hold ${fmt(biggest.pct)}% of supply` });
-  else if (biggest && biggest.pct >= 3)
-    f.push({ level: "warn", text: `${biggest.wallets + 1} linked wallets hold ${fmt(biggest.pct)}% of supply` });
+  const linkedCount = biggest ? (biggest.kind === "distribution" ? biggest.wallets + 1 : biggest.wallets) : 0;
+  if (biggest && biggest.pct >= 10) f.push({ level: "danger", text: `${linkedCount} linked wallets hold ${fmt(biggest.pct)}% of supply` });
+  else if (biggest && biggest.pct >= 3) f.push({ level: "warn", text: `${linkedCount} linked wallets hold ${fmt(biggest.pct)}% of supply` });
 
   if (r.snipers) {
     const s = r.snipers;
@@ -465,8 +482,8 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     });
   }
   if (r.launch) {
-    if (!r.launch.devBuy) f.push({ level: "good", text: "No dev buy at launch" });
-    else f.push({ level: "info", text: `Dev bought ${r.launch.devBuy.toFixed(3)} ${quote} at launch` });
+    if (r.launch.devBuy === 0) f.push({ level: "good", text: "No dev buy at launch" });
+    else if (r.launch.devBuy != null) f.push({ level: "info", text: `Dev bought ${r.launch.devBuy.toFixed(3)} ${quote} at launch` });
     if (r.launch.creatorTaxBps) f.push({ level: r.launch.creatorTaxBps >= 500 ? "warn" : "info", text: `Creator tax ${(r.launch.creatorTaxBps / 100).toFixed(1)}%` });
     if (r.launch.graduatedBlock != null) f.push({ level: "good", text: "Graduated to Uniswap" });
   }
@@ -485,7 +502,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
   }
   if (r.volume && r.volume.trades >= 30 && r.volume.top5SharePct >= 60)
     f.push({ level: "warn", text: `5 wallets made ${fmt(r.volume.top5SharePct)}% of volume` });
-  if (r.volume && r.volume.roundTripWallets >= 5)
+  if (r.volume && r.volume.trades >= 30 && r.volume.roundTripWallets >= 5)
     f.push({ level: "warn", text: `${r.volume.roundTripWallets} wallets keep buying and selling` });
   if (r.createdAt != null && now - r.createdAt < 3600) f.push({ level: "info", text: `Launched ${Math.max(1, Math.floor((now - r.createdAt) / 60))}m ago` });
   if (!r.links.x && !r.links.website && !r.links.telegram) f.push({ level: "info", text: "No socials set" });

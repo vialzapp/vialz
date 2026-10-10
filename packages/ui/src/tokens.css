@@ -9,8 +9,8 @@
   --well: oklch(0.225 0.015 262);
   --raise: oklch(0.255 0.016 262);
   --ink: oklch(0.955 0.006 262);
-  --ink-2: oklch(0.74 0.014 262);
-  --ink-3: oklch(0.58 0.014 262);
+  --ink-2: oklch(0.77 0.014 262);
+  --ink-3: oklch(0.64 0.014 262);
   --rule: oklch(0.29 0.014 262);
   --rule-strong: oklch(0.37 0.016 262);
 
@@ -64,6 +64,7 @@ body {
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: 16px;
+  font-weight: 450;
   line-height: 1.55;
   letter-spacing: 0.003em;
   -webkit-font-smoothing: antialiased;
@@ -95,8 +96,9 @@ a:hover {
 
 .num {
   font-family: var(--font-data);
+  font-stretch: 87.5%;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
 }
 
 button {

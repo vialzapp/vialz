@@ -22,9 +22,10 @@ export async function fetchReport(apiBase: string, address: string, signal?: Abo
   return (await res.json()) as TokenReport;
 }
 
-/** Loads a report for `address` and re-reads it while funding lookups are still pending. */
-export function useTokenReport(apiBase: string, address: string | null): ReportState {
+/** Loads a report for `address` and re-reads it while funding lookups are still pending. `retry` reads it again. */
+export function useTokenReport(apiBase: string, address: string | null): ReportState & { retry: () => void } {
   const [state, setState] = useState<ReportState>({ status: "idle" });
+  const [nonce, setNonce] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -41,7 +42,11 @@ export function useTokenReport(apiBase: string, address: string | null): ReportS
       try {
         const report = await fetchReport(apiBase, address, ctrl.signal);
         setState({ status: "ready", address, report, refreshing: false });
-        if (report.fundingStatus === "pending" && polls++ < 8) timer.current = setTimeout(() => void load(true), 4_000);
+        if (report.fundingStatus === "pending") {
+          if (polls++ < 8) timer.current = setTimeout(() => void load(true), 4_000);
+          // out of polls: show what we have and stop promising more
+          else setState({ status: "ready", address, report: { ...report, fundingStatus: "off" }, refreshing: false });
+        }
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
         if (refresh) setState((s) => (s.status === "ready" ? { ...s, refreshing: false } : s));
@@ -54,7 +59,7 @@ export function useTokenReport(apiBase: string, address: string | null): ReportS
       ctrl.abort();
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [apiBase, address]);
+  }, [apiBase, address, nonce]);
 
-  return state;
+  return { ...state, retry: () => setNonce((n) => n + 1) };
 }

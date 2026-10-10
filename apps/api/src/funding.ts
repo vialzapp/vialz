@@ -40,12 +40,15 @@ interface Tx {
   from: string;
   value: string;
   timeStamp: string;
+  isError?: string;
 }
 
 async function firstIncoming(wallet: string, action: "txlist" | "txlistinternal"): Promise<Tx | null> {
   const j = await call({ module: "account", action, address: wallet, sort: "asc", page: "1", offset: "20" });
-  if (!Array.isArray(j.result)) return null;
-  return (j.result as Tx[]).find((t) => t.from.toLowerCase() !== wallet && BigInt(t.value) > 0n) ?? null;
+  // an error ("Max rate limit reached", "Invalid API Key") comes back as a string: throw, so the wallet stays unknown
+  // and is asked again later, instead of being remembered as "never funded"
+  if (!Array.isArray(j.result)) throw new Error(`etherscan: ${String(j.result).slice(0, 60)}`);
+  return (j.result as Tx[]).find((t) => t.isError !== "1" && t.from.toLowerCase() !== wallet && BigInt(t.value || "0") > 0n) ?? null;
 }
 
 async function lookup(wallet: string): Promise<string | null> {

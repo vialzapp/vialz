@@ -9,8 +9,13 @@ let cached: { at: number; value: Promise<string | null> } | null = null;
 
 export function busiestLaunch(): Promise<string | null> {
   if (cached && Date.now() - cached.at < TTL_MS) return cached.value;
-  const value = find().catch(() => null);
-  cached = { at: Date.now(), value };
+  const entry = { at: Date.now(), value: find().catch(() => null) };
+  cached = entry;
+  // one failed read is retried after 15 seconds, not after the full three minutes
+  void entry.value.then((t) => {
+    if (t == null && cached === entry) entry.at = Date.now() - TTL_MS + 15_000;
+  });
+  const value = entry.value;
   return value;
 }
 

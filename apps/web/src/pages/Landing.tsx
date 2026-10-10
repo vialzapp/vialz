@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { padsFor, type Pad } from "@vialz/shared";
 import { CheckInput, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate } from "../App";
 import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
-import { Code } from "./Docs";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
 function useLiveExample() {
@@ -17,44 +17,16 @@ function useLiveExample() {
   return { token, failed, state: useTokenReport(API_BASE, token) };
 }
 
-/** Adds `in-view` once the element scrolls in. Without JS nothing is armed and the content simply shows. */
-function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !("IntersectionObserver" in window)) return;
-    el.classList.add("armed");
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e?.isIntersecting) {
-          el.classList.add("in-view");
-          io.disconnect();
-        }
-      },
-      // the grid is taller than a phone screen, so trigger on the first quarter scrolled into view, not a share of the grid
-      { threshold: 0, rootMargin: "0px 0px -25% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return ref;
-}
+const LEVEL_FILL: Record<Pad["level"], number> = { good: 0.62, info: 0.72, warn: 0.84, danger: 0.96, none: 0 };
 
-// each vial is shown at a different reading, so the grid also teaches the scale
-const VIALS = [
-  { name: "Snipers", level: "good", fill: 0.62, reads: "Buys in the launch block and the two after it, by anyone but the creator.", high: "they still hold 10% or more" },
-  { name: "Bundle", level: "info", fill: 0.72, reads: "Wallets the creator declared exempt from the opening tax.", high: "they still hold 5% or more" },
-  { name: "Top 10", level: "warn", fill: 0.84, reads: "Supply in the ten largest wallets, contracts left out.", high: "they hold 50% or more" },
-  { name: "Linked", level: "danger", fill: 0.96, reads: "Holders fed by one sender, or funded by one wallet.", high: "one group holds 10% or more" },
-  { name: "Creator", level: "warn", fill: 0.84, reads: "Every earlier Pons launch from the same wallet, and how it ended.", high: "50+ launches, or early selling" },
-  { name: "Volume", level: "good", fill: 0.62, reads: "Volume made by the five busiest wallets, and wallets that flip.", high: "five wallets make 60% of it" },
-];
-
-const LEGEND = [
-  { name: "clear", level: "good", fill: 0.62 },
-  { name: "note", level: "info", fill: 0.72 },
-  { name: "watch", level: "warn", fill: 0.84 },
-  { name: "high", level: "danger", fill: 0.96 },
+// the reference ranges, as on a lab sheet: what each check reads and when it reads high
+const CHECKS: { key: Pad["key"]; name: string; reads: string; high: string }[] = [
+  { key: "snipers", name: "Snipers", reads: "Buys in the launch block and the two after it, by anyone but the creator and the bundle.", high: "hold 10% or more" },
+  { key: "bundle", name: "Bundle", reads: "Wallets the creator declared exempt from the opening tax.", high: "hold 5% or more" },
+  { key: "holders", name: "Top 10", reads: "Supply in the ten largest wallets. The curve, pools and burn address are left out.", high: "50% or more" },
+  { key: "linked", name: "Linked", reads: "Holders fed the token by one sender, or their first ETH by one funder.", high: "one group holds 10% or more" },
+  { key: "creator", name: "Creator", reads: "Every earlier Pons launch from the same wallet, and whether the creator sold early.", high: "50+ launches, or sold early in half" },
+  { key: "volume", name: "Volume", reads: "Curve volume made by the five busiest wallets, and wallets that keep flipping.", high: "5 wallets make 60% (watch)" },
 ];
 
 const FAQ = [
@@ -68,7 +40,7 @@ const FAQ = [
   },
   {
     q: "Does it work on fomo, gmgn and X?",
-    a: "Yes. The extension opens next to any site. Paste the address, or press Check this page when the address is in the page's link.",
+    a: "Yes. The extension opens next to any site. Paste the address, or press Check this page when the address is in the link of the tab you opened it on.",
   },
   {
     q: "Does it need my wallet?",
@@ -76,160 +48,121 @@ const FAQ = [
   },
   {
     q: "Are clear vials a reason to buy?",
-    a: "No. The vials show how a token was launched and who holds it. It can be wrong, late or incomplete, and it says nothing certain about price.",
+    a: "No. The vials show how a token was launched and who holds it. They can be wrong, late or incomplete, and say nothing certain about price.",
+  },
+  {
+    q: "Can I check the code?",
+    a: "Yes. The API, this site and the extension are open source under the MIT license, and the docs explain how every reading is computed.",
   },
 ];
 
 export function Landing() {
   const live = useLiveExample();
   const r = live.state.status === "ready" ? live.state.report : null;
-  const grid = useReveal<HTMLDivElement>();
+  const pads = r ? padsFor(r) : null;
 
   return (
     <>
       <section className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
-            <h1>Test any Robinhood Chain token before you buy it.</h1>
-            <p className="lede">Paste a contract address. Vialz reads the token's whole history on chain and shows who really holds it.</p>
+            <h1>Check any token before you buy it.</h1>
+            <p className="lede">
+              Paste a Robinhood Chain contract address. Vialz reads the token's whole history on chain and shows who really holds it.
+            </p>
             <CheckInput size="l" onCheck={(a) => navigate(`/t/${a}`)} />
             <ul className="hero-facts">
               <li>Free</li>
-              <li>Read only, no wallet</li>
+              <li>No wallet</li>
               <li>
                 <a href={REPO_URL}>Open source</a>
               </li>
             </ul>
           </div>
 
-          <div className="hero-live" aria-live="polite">
-            <p className="hero-live-label">Live reading of the busiest Pons launch in the last hour</p>
+          <div className="hero-live">
+            <p className="hero-live-label" role="status">
+              {r ? `Read just now: $${r.symbol}, the busiest Pons launch of the last hour` : "Reading the busiest Pons launch of the last hour"}
+            </p>
             {r ? (
               <Report report={r} compact={{ href: `/t/${r.address}` }} apiBase={API_BASE} />
             ) : live.failed || live.state.status === "error" ? (
               <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address on the left."} />
             ) : (
-              <ReportSkeleton note="Reading the busiest Pons launch of the last hour from the chain." />
+              <ReportSkeleton note="Reading it from the chain." />
             )}
           </div>
         </div>
       </section>
 
-      <section className="band" id="vials">
+      <section className="band band-ranges" id="vials">
         <div className="wrap">
-          <div className="vials-head">
-            <h2>Six vials. One look.</h2>
+          <div className="ranges-head">
+            <h2>What the six vials read.</h2>
             <p>
-              Every report opens with six vials, one per check. Each fills with the colour of its reading, and the stronger the reading, the
-              fuller the vial.
+              Each vial fills with the colour of its reading: clear, note, watch or high. They state what the chain shows, never a verdict.
+              {r && ` The vials below are $${r.symbol}, read a moment ago.`}
             </p>
-            <div className="legend" aria-label="How a vial reads">
-              {LEGEND.map((l) => (
-                <span key={l.name} className={`pad-${l.level}`}>
-                  <Vessel level={l.fill} fill="var(--pad)" glass="var(--ink-3)" className="legend-vial" /> {l.name}
-                </span>
-              ))}
+          </div>
+          <div className="ranges" role="table" aria-label="Reference ranges">
+            <div className="ranges-row ranges-th" role="row">
+              <span role="columnheader">Vial</span>
+              <span role="columnheader">Reads</span>
+              <span role="columnheader">High when</span>
             </div>
+            {CHECKS.map((c) => {
+              const pad = pads?.find((p) => p.key === c.key);
+              const level = pad?.level ?? "none";
+              return (
+                <div role="row" key={c.key} className={`ranges-row pad-${level}`}>
+                  <span role="rowheader" className="ranges-name">
+                    <Vessel level={LEVEL_FILL[level]} fill="var(--pad)" glass="var(--ink-3)" className="ranges-vial" />
+                    <b>{c.name}</b>
+                    {pad && <span className="num ranges-reading">{pad.reading}</span>}
+                  </span>
+                  <span role="cell">{c.reads}</span>
+                  <span role="cell" className="num ranges-high">
+                    {c.high}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <div className="vial-grid" ref={grid}>
-            {VIALS.map((v, i) => (
-              <article key={v.name} className={`vial-cell pad-${v.level}`} style={{ "--i": i } as React.CSSProperties}>
-                <Vessel level={v.fill} fill="var(--pad)" glass="var(--ink-2)" stroke={22} className="vial-big" />
-                <h3>{v.name}</h3>
-                <p>{v.reads}</p>
-                <p className="vial-high">High when {v.high}.</p>
-              </article>
-            ))}
-          </div>
-          <p className="vials-more">
-            The exact rules, and how each check is computed, are in the <Link href="/docs#method">docs</Link>.
+          <p className="ranges-more">
+            Exact rules for every reading are in the <Link href="/docs#method">docs</Link>.
           </p>
         </div>
       </section>
 
-      <section className="band" id="extension">
-        <div className="wrap split">
-          <div className="split-copy">
-            <h2>Beside the chart, not in another tab.</h2>
+      <section className="band band-extension" id="extension">
+        <div className="wrap extension">
+          <h2>Opens next to the chart.</h2>
+          <div>
             <p>
-              The extension opens right next to the page you are on. On fomo, gmgn or X, paste the address you are looking at, or press Check this
-              page, and the full report sits beside the chart while you decide.
+              On fomo, gmgn or X, open the extension, paste the address you are looking at or press Check this page, and the full report sits beside
+              the chart while you decide. Your recent checks stay on your device.
             </p>
-            <p>Your recent checks stay on your device. There is nothing to sign in to.</p>
-            <Link className="btn btn-act" href={CHROME_URL}>
+            <Link className="text-link" href={CHROME_URL}>
               {CHROME_LABEL}
             </Link>
           </div>
-          <div className="panel-frame" aria-label="The full report, as the extension shows it">
-            {r ? <Report report={r} apiBase={API_BASE} /> : live.state.status === "error" ? <ReportError message={live.state.message} /> : <ReportSkeleton />}
-          </div>
         </div>
       </section>
 
-      <section className="band band-sheet" id="open">
-        <div className="wrap open">
-          <div>
-            <h2>Every line is public.</h2>
-            <p>
-              The API that reads the chain, this site and the extension are open source under the MIT license. Read how each check works, run your
-              own copy, or build the extension yourself and compare.
-            </p>
-            <ul className="open-links">
-              <li>
-                <a href={REPO_URL}>github.com/vialzapp/vialz</a>
-              </li>
-              <li>
-                <Link href="/docs#method">How each check works</Link>
-              </li>
-              <li>
-                <Link href="/docs#security">Report a vulnerability</Link>
-              </li>
-            </ul>
-          </div>
-          <Code>{`git clone ${REPO_URL}.git
-cd vialz && npm install
-npm run dev:api     # reads the chain on :8787
-npm run dev:web     # this site on :5180`}</Code>
-        </div>
-      </section>
-
-      <section className="band" id="chain">
-        <div className="wrap">
-          <h2 className="chain-title">Straight from the chain.</h2>
-          <dl className="principles">
-            <div>
-              <dt>Read only</dt>
-              <dd>No wallet connection and no signatures. Vialz can look, never touch.</dd>
-            </div>
-            <div>
-              <dt>Facts, not verdicts</dt>
-              <dd>It says 87 wallets funded from one address hold 64%. It never calls a token a scam; that call is yours.</dd>
-            </div>
-            <div>
-              <dt>Fresh on every check</dt>
-              <dd>Each report is read at the current block from Robinhood Chain itself, and says which block.</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
-
-      <section className="band" id="faq">
+      <section className="band band-faq" id="faq">
         <div className="wrap faq">
           <h2>Questions</h2>
-          <div>
-            {FAQ.map((f) => (
-              <details key={f.q}>
-                <summary>{f.q}</summary>
-                <p>{f.a}</p>
-              </details>
-            ))}
-          </div>
+          {FAQ.map((f) => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
         </div>
       </section>
 
-      <section className="band final">
-        <div className="wrap final-inner">
-          <Vessel level={0.5} className="final-mark" />
+      <section className="band band-final">
+        <div className="wrap final">
           <h2>Check it before you ape in.</h2>
           <CheckInput size="l" label="Contract address or link" onCheck={(a) => navigate(`/t/${a}`)} />
         </div>

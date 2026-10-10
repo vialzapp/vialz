@@ -28,7 +28,7 @@ export function Privacy() {
             <b>Side panel</b>, to show the report next to the page you are on.
           </li>
           <li>
-            <b>Active tab</b>, only when you open the panel, to read the current page's address bar and offer to check a contract address found in it. The
+            <b>Active tab</b>, only for the tab you open Vialz on, to read its address bar and offer to check a contract address found in it. The
             page's content is never read.
           </li>
           <li>

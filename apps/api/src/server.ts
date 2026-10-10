@@ -44,15 +44,20 @@ function report(address: string): Promise<TokenReport> {
   const hit = cache.get(address);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.report;
   const p = gated(() => requestDeadline.run(Date.now() + REPORT_BUDGET_MS, () => analyzeToken(address as `0x${string}`)));
-  cache.set(address, { at: Date.now(), report: p });
+  const entry = { at: Date.now(), report: p };
+  cache.set(address, entry);
+  // the entry may have been replaced by a newer read while this one ran; only ever update our own
+  const mine = () => cache.get(address) === entry;
   p.then(
     (r) => {
-      // a report still waiting on funding lookups is kept short so the next request picks them up
-      if (r.fundingStatus === "pending") cache.set(address, { at: Date.now() - TTL_MS + 3_000, report: p });
+      if (!mine()) return;
+      // fresh for TTL from when the read finished; a report still waiting on funding is kept short so polls pick it up
+      entry.at = r.fundingStatus === "pending" ? Date.now() - TTL_MS + 3_000 : Date.now();
     },
     (e) => {
+      if (!mine()) return;
       // "not a token" is remembered for a minute, so junk addresses cost one read, not one per request
-      if (e instanceof NotFound) cache.set(address, { at: Date.now() + 45_000, report: p });
+      if (e instanceof NotFound) entry.at = Date.now() + 45_000;
       else cache.delete(address);
     },
   );
@@ -142,7 +147,7 @@ app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(Number(
   if (!address) return reply.code(400).send({ error: "bad_address", message: "Paste a contract address (0x… 40 hex characters)." });
   try {
     const r = await report(address);
-    reply.header("cache-control", "public, max-age=10");
+    reply.header("cache-control", r.fundingStatus === "pending" ? "no-store" : "public, max-age=10");
     return r;
   } catch (e) {
     if (e instanceof NotFound) return reply.code(404).send({ error: "not_found", message: e.message });

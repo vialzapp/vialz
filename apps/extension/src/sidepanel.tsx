@@ -48,7 +48,8 @@ async function saveRecent(item: Recent): Promise<Recent[]> {
   return list;
 }
 
-/** The address in the active tab's link (gmgn, fomo, dexscreener and explorers put it there). Needs the activeTab grant from opening the panel. */
+/** The address in the link of the tab the panel was opened on (gmgn, fomo, dexscreener and explorers put it there).
+ *  activeTab grants that one tab when the icon is clicked; other tabs stay private, so there is no listener for them. */
 function usePageAddress() {
   const [address, setAddress] = useState<string | null>(null);
   useEffect(() => {
@@ -59,12 +60,6 @@ function usePageAddress() {
         .then(([tab]) => setAddress(tab?.url ? extractAddress(tab.url) : null))
         .catch(() => setAddress(null));
     void read();
-    chrome.tabs.onActivated.addListener(read);
-    chrome.tabs.onUpdated.addListener(read);
-    return () => {
-      chrome.tabs.onActivated.removeListener(read);
-      chrome.tabs.onUpdated.removeListener(read);
-    };
   }, []);
   return address;
 }
@@ -80,16 +75,18 @@ function Panel() {
     void loadRecent().then(setRecent);
   }, []);
 
+  const readySymbol = state.status === "ready" ? state.report.symbol : null;
   useEffect(() => {
-    if (state.status === "ready") void saveRecent({ address: state.address, symbol: state.report.symbol, at: Date.now() }).then(setRecent);
-  }, [state]);
+    if (address && readySymbol) void saveRecent({ address, symbol: readySymbol, at: Date.now() }).then(setRecent);
+  }, [address, readySymbol]);
 
   const open = useCallback(
     (a: string) => {
-      if (address && a !== address) setHistory((h) => [...h, address]);
+      if (a === address) return state.retry();
+      if (address) setHistory((h) => [...h, address]);
       setAddress(a);
     },
-    [address],
+    [address, state],
   );
 
   const back = () => {
@@ -135,7 +132,7 @@ function Panel() {
       )}
 
       {state.status === "loading" && <ReportSkeleton />}
-      {state.status === "error" && <ReportError message={state.message} />}
+      {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} />}
       {state.status === "ready" && <Report report={state.report} onOpenToken={open} apiBase={API} />}
 
       {state.status === "idle" && (

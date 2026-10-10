@@ -26,18 +26,21 @@ interface Props {
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
-export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props) {
+export function Report({ report: r, onOpenToken, apiBase = "", compact, headingLevel = 2 }: Props & { headingLevel?: 1 | 2 }) {
+  const Title = headingLevel === 1 ? "h1" : "h2";
   const age = r.createdAt != null ? nowSec() - r.createdAt : null;
   const quote = r.launch?.quote.symbol ?? "ETH";
 
   return (
-    <article className="vz-report" aria-label={`Vialz of ${r.name}`}>
+    <article className={compact ? "vz-report vz-compact" : "vz-report"} aria-label={`Vialz report on ${r.name}`}>
+      <div className="vz-body">
+      <div className="vz-col vz-col-a">
       <header className="vz-head">
         <TokenImage src={r.links.image} symbol={r.symbol} apiBase={apiBase} />
         <div className="vz-title">
-          <h2>
+          <Title className="vz-name">
             {r.name} <span className="vz-ticker">${r.symbol}</span>
-          </h2>
+          </Title>
           <div className="vz-meta">
             <CopyAddress address={r.address} />
             <span>{age != null ? `${formatAge(age)} old` : "age unknown"}</span>
@@ -58,6 +61,8 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
         </ul>
       </Section>
 
+      </div>
+
       {compact && (
         <footer className="vz-footer vz-compact-foot">
           <a href={compact.href}>Open the full report</a>
@@ -67,6 +72,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
         </footer>
       )}
 
+      <div className="vz-col vz-col-b">
       {!compact && r.market && (
         <Section title="Market" note={r.market.source === "curve" ? "From curve trades on chain" : "Pool data from DexScreener"}>
           <dl className="vz-values">
@@ -86,7 +92,14 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
 
       {!compact && r.launch && (
         <Section title="Launch" note="Pons">
-          <div className="vz-progress" role="img" aria-label={`Curve ${Math.round(r.launch.progressPct)}% to graduation`}>
+          <div
+            className="vz-progress"
+            role="progressbar"
+            aria-label="Curve progress to graduation"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(r.launch.progressPct)}
+          >
             <div className="vz-progress-bar">
               <span style={{ width: `${Math.max(1, r.launch.progressPct)}%` }} />
             </div>
@@ -96,10 +109,10 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
           </div>
           <dl className="vz-values">
             <Value label="Paired with" value={quote} />
-            <Value label="Dev buy" value={r.launch.devBuy ? `${trim(r.launch.devBuy)} ${quote}` : "none"} />
+            <Value label="Dev buy" value={r.launch.devBuy == null ? "n/a" : r.launch.devBuy === 0 ? "none" : `${trim(r.launch.devBuy)} ${quote}`} />
             <Value label="Creator tax" value={r.launch.creatorTaxBps != null ? `${(r.launch.creatorTaxBps / 100).toFixed(1)}%` : "n/a"} />
             <Value label="Snipers took" value={r.snipers ? (r.snipers.wallets ? `${formatPct(r.snipers.boughtPct)} in ${r.snipers.wallets} wallets` : "none") : "n/a"} />
-            <Value label="Bundle" value={r.launch.bundle.length ? `${r.launch.bundle.length} wallets, ${formatPct(r.bundle?.holdPct)} held` : "none"} />
+            <Value label="Bundle" value={!r.bundle ? "n/a" : r.bundle.wallets ? `${r.bundle.wallets} wallets, ${formatPct(r.bundle.holdPct)} held` : "none"} />
             <Value
               label="Fees go to"
               value={r.launch.feeRecipient ? (r.launch.feeRecipient === r.creator ? "the creator" : shortAddress(r.launch.feeRecipient)) : "n/a"}
@@ -109,7 +122,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
       )}
 
       {!compact && (
-      <Section title="Holders" note={`${r.holders.count.toLocaleString("en-US")} wallets`}>
+      <Section title="Holders" note={`${r.holders.count.toLocaleString("en-US")} ${r.holders.count === 1 ? "holder" : "holders"}`}>
         <ol className="vz-holders">
           {r.holders.top.filter((h) => h.pct >= 0.01 || h.labels.length > 0).slice(0, 10).map((h, i, top) => (
             <li key={h.address}>
@@ -206,6 +219,8 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
         </Section>
       )}
 
+      </div>
+
       {!compact && (
       <footer className="vz-footer">
         <span>
@@ -214,6 +229,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact }: Props)
         <span>Facts from the chain, not advice.</span>
       </footer>
       )}
+      </div>
     </article>
   );
 }
@@ -248,11 +264,14 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   );
 }
 
+// figures are set in the data mono; words ("the creator", "none") stay in the text face
+const isFigure = (v: string) => /^(\$|0x|[0-9]|[0-9.]+%)/.test(v);
+
 function Value({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt>{label}</dt>
-      <dd className="num">{value}</dd>
+      <dd className={isFigure(value) ? "num" : undefined}>{value}</dd>
     </div>
   );
 }
@@ -275,10 +294,13 @@ function CopyAddress({ address }: { address: string }) {
       type="button"
       className="vz-copy num"
       onClick={() => {
-        void navigator.clipboard.writeText(address).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1200);
-        });
+        navigator.clipboard
+          .writeText(address)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          })
+          .catch(() => {}); // clipboard blocked: the address is still on screen to select
       }}
       aria-label={copied ? "Address copied" : "Copy contract address"}
     >

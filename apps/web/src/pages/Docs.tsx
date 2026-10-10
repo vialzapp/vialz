@@ -51,13 +51,13 @@ function Section({ id, title, children }: { id: string; title: string; children:
 const VIALS = [
   {
     name: "Snipers",
-    reads: "Buys in the launch block and the two blocks after it, by any wallet except the creator. Shows how much of the supply they still hold.",
+    reads: "Buys in the launch block and the two blocks after it, by any wallet except the creator and the declared bundle. Shows how much of the supply they still hold.",
     levels: "Clear: none. Note: under 3% still held. Watch: 3% or more. High: 10% or more.",
   },
   {
     name: "Bundle",
     reads: "Wallets the creator declared exempt from the opening tax in the launch transaction (Pons launchAndBuy).",
-    levels: "Clear: none declared. Note: they sold out. Watch: they hold 1% or more. High: 5% or more.",
+    levels: "Clear: none declared. Note: they hold under 1%. Watch: 1% or more. High: 5% or more. No reading when the launch did not use launchAndBuy.",
   },
   {
     name: "Top 10",
@@ -72,7 +72,7 @@ const VIALS = [
   {
     name: "Creator",
     reads: "Every earlier Pons launch from the creator's wallet, whether they sold early on their recent launches, and what the creator holds now.",
-    levels: "Watch: 10 or more launches, or holds 5% or more. High: 50 or more launches, or sold early in at least half of the last 8.",
+    levels: "Watch: 10 or more launches, or holds 5% or more. High: 50 or more launches, or sold early in at least half of the last 8 (with 3 or more to compare).",
   },
   {
     name: "Volume",
@@ -174,7 +174,9 @@ export function Docs() {
             </li>
             <li>Pin Vialz from the puzzle icon in the toolbar, so it is one click away.</li>
           </ol>
-          <p className="doc-note">Only install Vialz from the Chrome Web Store link posted on our X account, or build it from this repository yourself.</p>
+          <p className="doc-note">
+            <b>Only install Vialz</b> from the Chrome Web Store link posted on our X account, or build it from this repository yourself.
+          </p>
         </Section>
 
         <Section id="check" title="Check a token">
@@ -185,7 +187,8 @@ export function Docs() {
               address out of it.
             </li>
             <li>
-              If the page you are on has an address in its link, a <b>Check this page's token</b> button appears. One click and it is read.
+              If the tab you opened Vialz on has an address in its link, a <b>Check this page's token</b> button appears. Chrome only lets the
+              extension see the tab you opened it on, so on another tab, paste the address or reopen Vialz there.
             </li>
             <li>The report arrives in 3 to 15 seconds. Earlier launches by the same creator open in the same view; the arrow takes you back.</li>
           </ol>
@@ -226,7 +229,7 @@ export function Docs() {
                   <b>{v.name}</b>
                 </span>
                 <span role="cell">{v.reads}</span>
-                <span role="cell" className="doc-dim">
+                <span role="cell" className="doc-levels">
                   {v.levels}
                 </span>
               </div>
@@ -307,7 +310,10 @@ export function Docs() {
           <dl className="doc-dl">
             <div>
               <dt>Snipers</dt>
-              <dd>Buys on the curve in the launch block and the two blocks after it, by wallets other than the creator. Their current balances give "still hold".</dd>
+              <dd>
+                Buys on the curve in the launch block and the two blocks after it, by wallets other than the creator and the declared bundle (the
+                bundle has its own vial). Their current balances give "still hold".
+              </dd>
             </div>
             <div>
               <dt>Bundle</dt>
@@ -450,7 +456,7 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
             </div>
             <div>
               <dt>activeTab</dt>
-              <dd>Only when you open Vialz, to read the current page's link and offer to check an address found in it. Page content is never read.</dd>
+              <dd>Only for the tab you open Vialz on, to read its link and offer to check an address found in it. Page content is never read.</dd>
             </div>
             <div>
               <dt>storage</dt>
@@ -473,7 +479,7 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
             </li>
           </ul>
           <p className="doc-note">
-            We never DM first. Vialz will never ask you to connect a wallet, sign a message or share a seed phrase. Anything that does is not us.
+            <b>We never DM first.</b> Vialz will never ask you to connect a wallet, sign a message or share a seed phrase. Anything that does is not us.
           </p>
         </Section>
 

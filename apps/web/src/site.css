@@ -1,4 +1,5 @@
-/* Site layout on top of the shared tokens. Dark, quiet, generous: the vials and the report carry the colour. */
+/* Site layout on top of the shared tokens. Dark and quiet; the live report and the vials carry the colour.
+   Type: headings in Archivo condensed, like the labels on lab vials; only the wordmark is set wide. */
 
 .wrap {
   width: min(1180px, 100% - 40px);
@@ -21,6 +22,9 @@
 
 h1,
 h2 {
+  font-weight: 700;
+  font-stretch: 78%;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
@@ -71,51 +75,56 @@ h2 {
   font-size: 15px;
 }
 
-.nav-links a:not(.btn) {
+.nav-links a {
   color: var(--ink-2);
   text-decoration: none;
 }
 
-.nav-links a:not(.btn):hover {
+.nav-links a:hover {
   color: var(--ink);
+}
+
+.nav-links .nav-install {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.25em;
 }
 
 .nav-cta {
   height: 38px;
   padding: 0 16px;
   font-size: 14px;
+  color: var(--act-ink) !important;
 }
 
 @media (max-width: 640px) {
-  .nav-links a:not(.btn) {
+  .nav-links a:not(.nav-install):not(.btn) {
     display: none;
   }
 }
 
-/* ---- hero ---- */
+/* ---- hero: the thesis on the left, the product reading a live token on the right ---- */
 .hero {
-  padding-block: clamp(64px, 10vw, 128px) clamp(64px, 9vw, 112px);
+  padding-block: clamp(56px, 8vw, 112px) clamp(72px, 9vw, 128px);
 }
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr);
   gap: clamp(40px, 5vw, 80px);
   align-items: center;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(40px, 4.7vw, 70px);
-  line-height: 1;
-  font-weight: 800;
-  font-stretch: 112%;
-  letter-spacing: -0.04em;
-  max-width: 20ch;
+  font-size: clamp(52px, 6.6vw, 96px);
+  line-height: 0.94;
+  max-width: 11ch;
 }
 
 .lede {
-  margin: 24px 0 40px;
+  margin: 28px 0 36px;
   max-width: 42ch;
   font-size: clamp(17px, 1.5vw, 19px);
   line-height: 1.55;
@@ -137,37 +146,18 @@ h2 {
   color: var(--ink-3);
 }
 
-.hero-facts li {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hero-facts li::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--good-pad);
-}
-
 .hero-facts a {
   color: var(--ink-2);
 }
 
-/* the live report: the product itself is the hero image */
 .hero-live {
   min-width: 0;
 }
 
 .hero-live-label {
   margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--ink-3);
-}
-
-.hero-live .vz-report {
-  background: var(--sheet);
+  font-size: 14px;
+  color: var(--ink-2);
 }
 
 @media (max-width: 960px) {
@@ -176,116 +166,65 @@ h2 {
   }
 }
 
-/* ---- bands ---- */
-.band {
-  padding-block: clamp(72px, 9vw, 128px);
-  border-top: 1px solid var(--rule);
-}
-
+/* ---- bands: no rules between them; rhythm comes from spacing that changes with the content ---- */
 .band h2 {
   margin: 0 0 20px;
-  font-size: clamp(30px, 3.4vw, 44px);
-  line-height: 1.08;
-  font-weight: 800;
-  font-stretch: 112%;
-  letter-spacing: -0.035em;
+  font-size: clamp(36px, 4.4vw, 60px);
+  line-height: 0.98;
 }
 
 .band p {
-  max-width: 58ch;
+  max-width: 60ch;
   color: var(--ink-2);
 }
 
-/* the extension: copy on the left, the real report on the right in a panel-sized frame */
-.split {
+.band-ranges {
+  padding-block: clamp(96px, 12vw, 168px) clamp(72px, 8vw, 112px);
+}
+
+.band-extension {
+  padding-block: clamp(72px, 8vw, 112px);
+  background: var(--sheet);
+}
+
+.band-faq {
+  padding-block: clamp(80px, 9vw, 128px) clamp(48px, 6vw, 80px);
+}
+
+.band-final {
+  padding-block: clamp(48px, 6vw, 80px) clamp(96px, 11vw, 152px);
+}
+
+/* reference ranges, set like the ranges column of a lab sheet */
+.ranges-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
-  gap: clamp(40px, 7vw, 112px);
-  align-items: start;
-}
-
-.split-copy {
-  position: sticky;
-  top: 132px;
-}
-
-.split-copy .btn {
-  margin-top: 16px;
-}
-
-.panel-frame {
-  max-height: 740px;
-  overflow: auto;
-  padding: 10px;
-  border: 1px solid var(--rule);
-  border-radius: 18px;
-  background: var(--bg);
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--rule-strong) transparent;
-}
-
-@media (max-width: 900px) {
-  .split {
-    grid-template-columns: 1fr;
-  }
-  .split-copy {
-    position: static;
-  }
-  .panel-frame {
-    max-height: none;
-  }
-}
-
-/* what the vials read: a reference table, like the ranges column on a lab sheet */
-.reads-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px clamp(32px, 6vw, 96px);
   align-items: end;
-  gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
-.reads-head h2 {
+.ranges-head h2,
+.ranges-head p {
   margin: 0;
 }
 
-.legend {
-  display: flex;
-  gap: 20px;
-  font-size: 13px;
-  color: var(--ink-2);
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend-vial {
-  width: 24px;
-  height: auto;
-  aspect-ratio: 276 / 204;
-}
-
-.reads-table {
+.ranges {
   border-top: 1px solid var(--ink-3);
 }
 
-.reads-row {
+.ranges-row {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1.5fr) minmax(0, 0.8fr);
   gap: 32px;
-  padding: 20px 0;
+  align-items: center;
+  padding: 18px 0;
   border-bottom: 1px solid var(--rule);
   font-size: 15px;
-  line-height: 1.55;
   color: var(--ink-2);
 }
 
-.reads-th {
+.ranges-th {
   padding: 12px 0;
   font-size: 12px;
   font-weight: 600;
@@ -293,68 +232,99 @@ h2 {
   color: var(--ink-3);
 }
 
-.reads-pad {
-  font-weight: 700;
+.ranges-name {
+  display: grid;
+  grid-template-columns: 44px auto;
+  column-gap: 16px;
+  align-items: center;
+}
+
+.ranges-vial {
+  grid-row: span 2;
+  width: 44px;
+  height: auto;
+  aspect-ratio: 276 / 204;
+  overflow: visible;
+}
+
+.ranges-name b {
+  font-size: 17px;
+  font-weight: 650;
   color: var(--ink);
 }
 
-@media (max-width: 720px) {
-  .reads-row {
+.ranges-reading {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.ranges-high {
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.ranges-more {
+  margin: 24px 0 0;
+  font-size: 14px;
+}
+
+@media (max-width: 860px) {
+  .ranges-head {
     grid-template-columns: 1fr;
-    gap: 4px;
   }
-  .reads-th {
+  .ranges-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .ranges-th {
     display: none;
   }
 }
 
-/* straight from the chain */
-.chain {
+/* the extension: one statement across the raised band */
+.extension {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(40px, 7vw, 112px);
+  gap: 24px clamp(32px, 6vw, 96px);
+  align-items: start;
 }
 
-.chain-facts {
+.extension h2 {
   margin: 0;
-  display: grid;
-  gap: 28px;
 }
 
-.chain-facts div {
-  padding-left: 20px;
-  border-left: 1px solid var(--rule-strong);
+.extension p {
+  margin: 4px 0 20px;
+  font-size: 18px;
 }
 
-.chain-facts dt {
-  font-weight: 700;
-  font-size: 17px;
-}
-
-.chain-facts dd {
-  margin: 6px 0 0;
-  color: var(--ink-2);
-  max-width: 46ch;
+.text-link {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.25em;
 }
 
 @media (max-width: 860px) {
-  .chain {
+  .extension {
     grid-template-columns: 1fr;
   }
 }
 
-/* faq */
-.faq {
-  display: grid;
-  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
-  gap: clamp(24px, 7vw, 112px);
+/* faq: one reading column, on the same left edge as everything else */
+.faq > * {
+  max-width: 760px;
+}
+
+.faq h2 {
+  margin-bottom: 28px;
 }
 
 .faq details {
   border-bottom: 1px solid var(--rule);
 }
 
-.faq details:first-child {
+.faq details:first-of-type {
   border-top: 1px solid var(--rule);
 }
 
@@ -364,7 +334,7 @@ h2 {
   gap: 16px;
   padding: 20px 0;
   font-weight: 600;
-  font-size: 17px;
+  font-size: 18px;
   cursor: pointer;
   list-style: none;
 }
@@ -386,10 +356,23 @@ h2 {
 
 .faq details p {
   margin: 0 0 22px;
+  max-width: 68ch;
+}
+
+/* the closing check: heading and field on one line, left aligned like the rest of the page */
+.final {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px clamp(32px, 6vw, 96px);
+  align-items: end;
+}
+
+.final h2 {
+  margin: 0;
 }
 
 @media (max-width: 860px) {
-  .faq {
+  .final {
     grid-template-columns: 1fr;
   }
 }
@@ -400,9 +383,13 @@ h2 {
 }
 
 .token-wrap {
-  max-width: 840px;
+  max-width: 1180px;
   display: grid;
   gap: 24px;
+}
+
+.token-tools {
+  max-width: 760px;
 }
 
 .token-share {
@@ -425,8 +412,7 @@ h2 {
 .prose h1 {
   margin: 0;
   font-size: clamp(34px, 4vw, 48px);
-  font-stretch: 112%;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
 }
 
 .prose-date {
@@ -476,223 +462,7 @@ h2 {
   color: var(--ink-2);
 }
 
-/* six vials: a grid where each cell is the real vial at a real reading */
-.vials-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px clamp(32px, 6vw, 96px);
-  align-items: end;
-  margin-bottom: 48px;
-}
 
-.vials-head h2 {
-  margin: 0;
-}
-
-.vials-head p {
-  margin: 0;
-}
-
-.vials-head .legend {
-  grid-column: 2;
-}
-
-.vial-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--rule);
-  border-left: 1px solid var(--rule);
-}
-
-.vial-cell {
-  padding: 32px 28px 36px;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  transition: background-color 200ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .vial-cell:hover {
-    background: var(--sheet);
-  }
-}
-
-.vial-big {
-  display: block;
-  width: 96px;
-  height: auto;
-  aspect-ratio: 276 / 204;
-  margin-bottom: 28px;
-  overflow: visible;
-}
-
-.vial-cell h3 {
-  margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 700;
-  font-stretch: 108%;
-  letter-spacing: -0.015em;
-}
-
-.vial-cell p {
-  margin: 0;
-  font-size: 15px;
-  color: var(--ink-2);
-}
-
-.vial-cell .vial-high {
-  margin-top: 12px;
-  font-size: 13px;
-  color: var(--ink-3);
-}
-
-/* the vials fill once the grid scrolls in; without JS they are simply full */
-.vial-grid.armed .vessel-liquid {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  transform: scaleY(0);
-  transition: transform 900ms var(--ease-author);
-  transition-delay: calc(var(--i) * 90ms);
-}
-
-.vial-grid.in-view .vessel-liquid {
-  transform: scaleY(1);
-}
-
-.vials-more {
-  margin: 24px 0 0;
-  font-size: 14px;
-  color: var(--ink-3) !important;
-}
-
-@media (max-width: 900px) {
-  .vials-head {
-    grid-template-columns: 1fr;
-  }
-  .vials-head .legend {
-    grid-column: 1;
-  }
-  .vial-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .vial-grid {
-    grid-template-columns: 1fr;
-  }
-  .vial-cell {
-    display: grid;
-    grid-template-columns: 72px 1fr;
-    column-gap: 20px;
-    padding: 24px 20px;
-  }
-  .vial-big {
-    grid-row: span 3;
-    width: 72px;
-    margin: 4px 0 0;
-  }
-}
-
-/* open source: a raised band, copy and the commands side by side */
-.band-sheet {
-  background: var(--sheet);
-}
-
-.open {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(32px, 6vw, 96px);
-  align-items: center;
-}
-
-/* grid children may shrink below their content, so a long command scrolls inside its block instead of widening the page */
-.open > *,
-.doc-code {
-  min-width: 0;
-}
-
-.open-links {
-  display: grid;
-  gap: 10px;
-  margin: 28px 0 0;
-  padding: 0;
-  list-style: none;
-  font-weight: 600;
-}
-
-.open .doc-code pre {
-  background: var(--bg);
-}
-
-@media (max-width: 860px) {
-  .open {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* principles: three columns, set like a spec sheet */
-.chain-title {
-  margin-bottom: 40px !important;
-}
-
-.principles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  margin: 0;
-  border-top: 1px solid var(--ink-3);
-}
-
-.principles div {
-  padding: 24px 32px 0 0;
-}
-
-.principles dt {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.principles dd {
-  margin: 8px 0 0;
-  color: var(--ink-2);
-  max-width: 34ch;
-}
-
-@media (max-width: 760px) {
-  .principles {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* the closing check */
-.final-inner {
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  max-width: 640px;
-}
-
-.final-mark {
-  width: 64px;
-  height: auto;
-  aspect-ratio: 276 / 204;
-  color: var(--ink);
-  margin-bottom: 28px;
-}
-
-.final .check {
-  width: 100%;
-  text-align: left;
-  margin-top: 16px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vial-grid.armed .vessel-liquid {
-    transform: none;
-    transition: none;
-  }
-}
 
 .footer-row nav {
   display: flex;
@@ -768,8 +538,7 @@ h2 {
   font-size: clamp(36px, 4vw, 52px);
   line-height: 1.05;
   font-weight: 800;
-  font-stretch: 112%;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
 }
 
 .docs-head p {
@@ -785,11 +554,8 @@ h2 {
 
 .doc-section h2 {
   margin: 0 0 14px;
-  font-size: 24px;
-  line-height: 1.2;
-  font-weight: 700;
-  font-stretch: 108%;
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  line-height: 1.1;
 }
 
 .doc-section h2 a {
@@ -822,11 +588,11 @@ h2 {
 }
 
 .doc-note {
-  padding: 14px 16px;
-  border-left: 2px solid var(--signal);
-  background: var(--sheet);
-  border-radius: 0 var(--r-s) var(--r-s) 0;
   color: var(--ink) !important;
+}
+
+.doc-note b {
+  font-weight: 700;
 }
 
 .doc-steps {
@@ -944,6 +710,13 @@ h2 {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-3);
+}
+
+.doc-levels {
+  color: var(--ink) !important;
+  font-family: var(--font-data);
+  font-stretch: 87.5%;
+  font-size: 13px;
 }
 
 .doc-dl {
