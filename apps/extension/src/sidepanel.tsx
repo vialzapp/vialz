@@ -6,7 +6,7 @@ import "@fontsource-variable/martian-mono/standard.css";
 import "@vialz/ui";
 import "./panel.css";
 import { extractAddress, shortAddress } from "@vialz/shared";
-import { CheckInput, Report, ReportError, ReportSkeleton, useTokenReport } from "@vialz/ui";
+import { CheckInput, Mark, Report, ReportError, ReportSkeleton, useTokenReport } from "@vialz/ui";
 
 declare const __API_URL__: string;
 const API = __API_URL__;
@@ -101,9 +101,7 @@ function Panel() {
           </button>
         ) : (
           <span className="panel-mark" aria-hidden>
-            <i />
-            <i />
-            <i />
+            <Mark size={14} />
           </span>
         )}
         <span className="panel-name">Vialz</span>
@@ -137,7 +135,7 @@ function Panel() {
       {state.status === "idle" && (
         <section className="panel-recent" aria-label="Recent checks">
           {recent.length === 0 ? (
-            <p className="panel-hint">Paste a contract address or a gmgn, fomo, X or DexScreener link. Vialz reads the token from Robinhood Chain.</p>
+            <p className="panel-hint">Paste a contract address or a gmgn, fomo, X or DexScreener link. Vialz reads the token straight from Robinhood Chain.</p>
           ) : (
             <>
               <h2>Recent</h2>

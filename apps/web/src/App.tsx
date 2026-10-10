@@ -1,5 +1,6 @@
 import { useEffect, useState, type AnchorHTMLAttributes } from "react";
 import { extractAddress } from "@vialz/shared";
+import { Mark } from "@vialz/ui";
 import { Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
@@ -49,11 +50,7 @@ export function App() {
       <header className="nav">
         <div className="wrap nav-row">
           <Link href="/" className="wordmark" aria-label="Vialz home">
-            <span className="wordmark-strip" aria-hidden>
-              <i />
-              <i />
-              <i />
-            </span>
+            <Mark size={18} />
             Vialz
           </Link>
           <nav className="nav-links" aria-label="Main">

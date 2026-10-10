@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { padsFor } from "@vialz/shared";
-import { CheckInput, Report, ReportError, ReportSkeleton, Strip, useTokenReport } from "@vialz/ui";
-import { Link, navigate } from "../App";
+import { useEffect, useState, type CSSProperties } from "react";
+import { CheckInput, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
+import { navigate } from "../App";
 import { API_BASE, CHROME_URL } from "../brand";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
@@ -16,6 +15,10 @@ function useLiveExample() {
   }, []);
   return { token, failed, state: useTokenReport(API_BASE, token) };
 }
+
+// the hero rack: five samples, one of them is the rug
+const RACK = [0.55, 0.3, 0.7, 0.62, 0.45];
+const RUG = 3;
 
 const READINGS = [
   {
@@ -50,6 +53,13 @@ const READINGS = [
   },
 ];
 
+const LEGEND = [
+  { name: "clear", level: "good", fill: 0.5 },
+  { name: "note", level: "info", fill: 0.62 },
+  { name: "watch", level: "warn", fill: 0.78 },
+  { name: "high", level: "danger", fill: 0.95 },
+];
+
 const FAQ = [
   {
     q: "Which tokens can it read?",
@@ -61,15 +71,15 @@ const FAQ = [
   },
   {
     q: "Does it work on fomo, gmgn and X?",
-    a: "Yes. The extension opens in Chrome's side panel on any site. Paste the address, or press Check this page when the address is in the page's link.",
+    a: "Yes. The extension opens next to any site. Paste the address, or press Check this page when the address is in the page's link.",
   },
   {
     q: "Does it need my wallet?",
     a: "No. Vialz only reads public chain data. It never asks for a wallet, a signature or an account.",
   },
   {
-    q: "Is a clean strip a reason to buy?",
-    a: "No. The strip shows how a token was launched and who holds it. It can be wrong, late or incomplete, and it says nothing certain about price.",
+    q: "Are clear vials a reason to buy?",
+    a: "No. The vials show how a token was launched and who holds it. It can be wrong, late or incomplete, and it says nothing certain about price.",
   },
 ];
 
@@ -87,30 +97,18 @@ export function Landing() {
             <CheckInput size="l" onCheck={(a) => navigate(`/t/${a}`)} />
           </div>
 
-          <figure className="hero-live" aria-live="polite">
-            {r ? (
-              <>
-                <Strip pads={padsFor(r)} size="l" />
-                <figcaption>
-                  <span>
-                    Live reading of <b>${r.symbol}</b>, the busiest Pons launch of the last hour.
-                  </span>
-                  <Link href={`/t/${r.address}`}>Open the full report</Link>
-                </figcaption>
-              </>
-            ) : live.failed || live.state.status === "error" ? (
-              <figcaption className="hero-live-empty">The live example could not be read right now. Paste any address on the left.</figcaption>
-            ) : (
-              <>
-                <div className="hero-live-wait" aria-hidden>
-                  {Array.from({ length: 6 }, (_, i) => (
-                    <span key={i} className="sk" />
-                  ))}
-                </div>
-                <figcaption>Reading the busiest Pons launch of the last hour from the chain.</figcaption>
-              </>
-            )}
-          </figure>
+          <div className="hero-rack" aria-hidden>
+            {RACK.map((level, i) => (
+              <Vessel
+                key={i}
+                className={i === RUG ? "rack-vial rack-rug" : "rack-vial"}
+                level={level}
+                fill={i === RUG ? "var(--signal)" : "var(--ink)"}
+                glass={i === RUG ? "var(--signal)" : "var(--ink)"}
+                style={{ "--i": i } as CSSProperties}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -119,15 +117,15 @@ export function Landing() {
           <div className="split-copy">
             <h2>Beside the chart, not in another tab.</h2>
             <p>
-              Vialz lives in Chrome's side panel. Open it on fomo, gmgn or X, paste the address you are looking at, and the full report sits next to the
-              chart while you decide.
+              The extension opens right next to the page you are on. On fomo, gmgn or X, paste the address you are looking at and the full report sits
+              beside the chart while you decide.
             </p>
             <p>The extension keeps your recent checks on your device. There is nothing to sign in to.</p>
             <a className="btn btn-act" href={CHROME_URL}>
               Add to Chrome
             </a>
           </div>
-          <div className="panel-frame" aria-label="The report as it appears in the side panel">
+          <div className="panel-frame" aria-label="The report as it appears in the extension">
             {r ? (
               <Report report={r} />
             ) : live.state.status === "error" ? (
@@ -142,25 +140,18 @@ export function Landing() {
       <section className="band" id="reads">
         <div className="wrap">
           <div className="reads-head">
-            <h2>Six readings on one strip.</h2>
-            <div className="legend" aria-label="Pad colours">
-              <span>
-                <i className="pad-good" /> clear
-              </span>
-              <span>
-                <i className="pad-info" /> note
-              </span>
-              <span>
-                <i className="pad-warn" /> watch
-              </span>
-              <span>
-                <i className="pad-danger" /> high
-              </span>
+            <h2>Six vials for every token.</h2>
+            <div className="legend" aria-label="How a vial reads">
+              {LEGEND.map((l) => (
+                <span key={l.name} className={`pad-${l.level}`}>
+                  <Vessel level={l.fill} fill="var(--pad)" glass="var(--ink-3)" className="legend-vial" /> {l.name}
+                </span>
+              ))}
             </div>
           </div>
           <div className="reads-table" role="table" aria-label="What each pad reads">
             <div className="reads-row reads-th" role="row">
-              <span role="columnheader">Pad</span>
+              <span role="columnheader">Vial</span>
               <span role="columnheader">What Vialz reads</span>
               <span role="columnheader">Marked high when</span>
             </div>

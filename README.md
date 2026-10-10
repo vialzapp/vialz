@@ -7,7 +7,7 @@ top holders, linked wallets, the creator's earlier launches and volume quality. 
 apps/api        Node + Fastify. GET /v1/token/:address builds the report on demand; also serves the site
 apps/web        the site (Vite + React): landing, /t/:address reports, /privacy
 apps/extension  Chrome MV3 side panel
-packages/shared report types, address parsing, formatting, the six strip pads
+packages/shared report types, address parsing, formatting, the six readings
 packages/ui     shared React components and design tokens (site and extension use the same ones)
 ```
 

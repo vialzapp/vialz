@@ -18,7 +18,7 @@
 
 .check-icon {
   position: absolute;
-  left: 12px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--ink-3);
@@ -29,9 +29,9 @@
   width: 100%;
   min-width: 0;
   height: 44px;
-  padding: 0 12px 0 38px;
+  padding: 0 16px 0 42px;
   border: 1px solid var(--rule-strong);
-  border-radius: var(--r-m);
+  border-radius: 999px;
   background: var(--sheet);
   color: var(--ink);
   font-family: var(--font-data);
@@ -50,8 +50,8 @@
 
 .check input:focus-visible {
   outline: none;
-  border-color: var(--act);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--act) 22%, transparent);
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px oklch(0.955 0.006 262 / 0.12);
 }
 
 .check input[aria-invalid="true"] {

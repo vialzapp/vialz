@@ -84,7 +84,7 @@
 }
 
 .vz-copy:hover {
-  color: var(--act);
+  color: var(--act-hover);
 }
 
 .vz-links {
@@ -106,33 +106,34 @@
   color: var(--ink);
 }
 
-/* ---- strip ---- */
+/* ---- the vials ---- */
 .strip {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  padding-block: 14px 16px;
+  gap: 8px;
+  padding-block: 18px 16px;
   border-block: 1px solid var(--rule);
   background: var(--well);
 }
 
 .strip-cell {
+  --glass: var(--ink-3);
   display: grid;
+  justify-items: start;
   gap: 2px;
   min-width: 0;
 }
 
-.strip-pad {
-  display: block;
-  height: 28px;
-  border-radius: 3px;
-  background: var(--pad);
-  animation: develop 420ms var(--ease-out) both;
-  animation-delay: calc(var(--i) * 55ms);
+.strip-vial {
+  width: 100%;
+  max-width: 44px;
+  height: auto;
+  aspect-ratio: 276 / 204;
+  overflow: visible;
 }
 
-.strip-l .strip-pad {
-  height: 56px;
+.strip-l .strip-vial {
+  max-width: 88px;
 }
 
 .pad-good {
@@ -146,26 +147,33 @@
 }
 .pad-danger {
   --pad: var(--danger-pad);
+  --glass: var(--ink-2);
 }
 .pad-none {
   --pad: var(--none-pad);
 }
 
-@keyframes develop {
+/* the liquid rises once per reading */
+.strip-vial .vessel-liquid {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: fill 520ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 60ms);
+}
+
+@keyframes fill {
   from {
-    background: var(--none-pad);
-  }
-  to {
-    background: var(--pad);
+    transform: scaleY(0);
   }
 }
 
 .strip-label {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--ink);
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -173,7 +181,7 @@
 
 .strip-reading {
   font-size: 10.5px;
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--ink-2);
   overflow: hidden;
   display: -webkit-box;
@@ -186,7 +194,7 @@
 @container (max-width: 380px) {
   .strip {
     grid-template-columns: repeat(3, 1fr);
-    row-gap: 12px;
+    row-gap: 14px;
   }
 }
 
@@ -337,7 +345,7 @@
 }
 
 .vz-holders a:hover {
-  color: var(--act);
+  color: var(--act-hover);
   text-decoration: underline;
 }
 
@@ -421,7 +429,7 @@
 
 .vz-cluster-pct {
   font-weight: 600;
-  color: var(--danger);
+  color: var(--signal);
 }
 
 /* creator's earlier launches */
@@ -446,7 +454,10 @@
 .vz-prior a,
 .vz-linkish {
   font-weight: 600;
-  color: var(--act);
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.22em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -462,11 +473,11 @@
 }
 
 .vz-linkish:hover {
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 
 .vz-sold {
-  color: var(--danger);
+  color: var(--signal);
 }
 
 .vz-footer {
@@ -535,9 +546,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .strip-pad {
-    animation-duration: 1ms;
-    animation-delay: 0ms;
+  .strip-vial .vessel-liquid {
+    animation: none;
   }
   .sk {
     animation: none;

@@ -26,26 +26,10 @@ body {
 
 .panel-mark {
   display: inline-grid;
-  grid-template-columns: repeat(3, 5px);
-  gap: 2px;
-  padding: 3px;
-  border-radius: 3px;
-  background: oklch(0.2 0.018 262);
-}
-
-.panel-mark i {
-  height: 10px;
-  border-radius: 1px;
-}
-
-.panel-mark i:nth-child(1) {
-  background: var(--good-pad);
-}
-.panel-mark i:nth-child(2) {
-  background: var(--warn-pad);
-}
-.panel-mark i:nth-child(3) {
-  background: var(--danger-pad);
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ink);
 }
 
 .panel-icon {
@@ -87,7 +71,7 @@ body {
   height: 40px;
   padding: 0 12px;
   border: 1px solid var(--rule-strong);
-  border-radius: var(--r-m);
+  border-radius: 999px;
   background: var(--sheet);
   color: var(--ink);
   font-size: 14px;
