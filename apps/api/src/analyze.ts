@@ -3,7 +3,7 @@
 // distribution clusters and pool market data.
 import type { Address, Cluster, Flag, Holder, HolderLabel, PriorLaunch, TokenReport } from "@vialz/shared";
 import { CHAIN_ID } from "@vialz/shared";
-import { DeadlineError, batch, blockTimestamp, getLogs, getLogsBackward, head, rpc, topicAddress, addressFromTopic, type Log } from "./rpc.js";
+import { DeadlineError, batch, blockTimestamp, getLogs, getLogsBackward, head, inBackground, rpc, topicAddress, addressFromTopic, type Log } from "./rpc.js";
 import {
   CURVE_BUY, CURVE_SELL, DEAD, FACTORY, FACTORY_START, FOMO_ROUTER, HOOK, LOCKER, POOL_GRADUATED, POOL_MANAGER, ROUTER, TOKEN_LAUNCHED,
   TRANSFER, ZERO, callData, decodeLaunchAndBuy, decodeLaunched, decodeString, decodeTokenInfo, decodeUint, words,
@@ -103,7 +103,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   // is not in by then the report goes out marked pending and a later read picks it up from the cache.
   const devP: Promise<CreatorLaunches | null> | null =
     launchLog && creator
-      ? creatorLaunches(creator, h, { token, curve: curve!, block: launchLog.blockNumber, phase: record?.phase ?? "unknown" }).catch(() => null)
+      ? inBackground(() => creatorLaunches(creator!, h, { token, curve: curve!, block: launchLog!.blockNumber, phase: record?.phase ?? "unknown" })).catch(() => null)
       : null;
 
   let partial = false;
@@ -133,7 +133,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const [[launchTx, tradesRead, gradLogs, , quoteMeta, tsHead, pairs, quotePrice, reserveRaw], mintTx, tsCreated] = await Promise.all([
     early,
     !creator && firstMint ? rpc<{ from: string } | null>("eth_getTransactionByHash", [firstMint.transactionHash]) : null,
-    createdBlock != null ? blockTimestamp(createdBlock).catch(() => null) : null,
+    createdBlock != null ? tag("created at", blockTimestamp(createdBlock).catch(() => null)) : null,
   ]);
   // a partial history has no reliable trade picture either
   const trades = partial ? null : tradesRead;

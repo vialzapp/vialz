@@ -39,20 +39,38 @@ const deadlineOf = (explicit: number) => Math.min(explicit, requestDeadline.getS
 let nextId = 1;
 export const rpcStats = { requests: 0, retries: 0 };
 let active = 0;
+let activeBackground = 0;
 const queue: (() => void)[] = [];
+const backgroundQueue: (() => void)[] = [];
 const MAX_QUEUE = Number(process.env.RH_RPC_MAX_QUEUE ?? 200);
+// background reads (a creator's whole history) may hold at most this many slots, so a report never waits behind them
+const BACKGROUND_SLOTS = Math.max(1, CONCURRENCY - 2);
+const background = new AsyncLocalStorage<true>();
+
+/** Runs `fn` with its RPC requests marked as background: they yield to the reads a report is waiting on. */
+export const inBackground = <T>(fn: () => Promise<T>): Promise<T> => background.run(true, fn);
+
+function release() {
+  // the next request in line: reports first, background only while it stays within its share
+  const next = queue.shift() ?? (activeBackground < BACKGROUND_SLOTS ? backgroundQueue.shift() : undefined);
+  next?.();
+}
 
 async function slot<T>(fn: () => Promise<T>): Promise<T> {
-  if (active >= CONCURRENCY) {
-    if (queue.length >= MAX_QUEUE) throw new RpcError("rpc queue full");
-    await new Promise<void>((r) => queue.push(r));
+  const bg = background.getStore() === true;
+  if (active >= CONCURRENCY || (bg && (activeBackground >= BACKGROUND_SLOTS || queue.length > 0))) {
+    const line = bg ? backgroundQueue : queue;
+    if (line.length >= MAX_QUEUE) throw new RpcError("rpc queue full");
+    await new Promise<void>((r) => line.push(r));
   }
   active++;
+  if (bg) activeBackground++;
   try {
     return await fn();
   } finally {
     active--;
-    queue.shift()?.();
+    if (bg) activeBackground--;
+    release();
   }
 }
 
