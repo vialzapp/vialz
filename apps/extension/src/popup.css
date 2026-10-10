@@ -316,3 +316,9 @@ body {
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
+
+/* the report's tab bar sticks under the popup's own bar */
+.panel-body {
+  --vz-sticky-top: 52px;
+  --vz-tabs-bg: var(--bg);
+}

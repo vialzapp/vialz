@@ -418,6 +418,7 @@ html {
 
 /* ---- token page ---- */
 .token-page {
+  --vz-sticky-top: 69px; /* under the site bar */
   padding-block: 40px 88px;
 }
 
@@ -433,8 +434,9 @@ html {
 
 .token-share {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   font-size: 13px;
   color: var(--ink-2);
 }

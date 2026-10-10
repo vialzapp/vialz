@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckIcon, LinkSimpleIcon } from "@phosphor-icons/react";
-import { CheckInput, Report, ReportError, ReportSkeleton, useTokenReport } from "@vialz/ui";
+import { CheckInput, CopySummary, Report, ReportError, ReportSkeleton, useTokenReport } from "@vialz/ui";
 import { navigate } from "../App";
 import { API_BASE } from "../brand";
 
@@ -27,7 +27,7 @@ export function TokenPage({ address }: { address: string }) {
         {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} quiet={state.notFound} />}
         {state.status === "ready" && (
           <>
-            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} shareUrl={`${location.origin}/t/${state.report.address}`} />
+            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} />
             <div className="token-share">
               <button
                 type="button"
@@ -45,6 +45,7 @@ export function TokenPage({ address }: { address: string }) {
                 {copied ? <CheckIcon size={16} weight="bold" /> : <LinkSimpleIcon size={16} />}
                 {copied ? "Link copied" : "Copy link"}
               </button>
+              <CopySummary report={state.report} url={`${location.origin}/t/${state.report.address}`} />
               {state.refreshing && <span className="token-refresh">Checking where top holders got their ETH</span>}
             </div>
           </>
