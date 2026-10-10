@@ -31,6 +31,10 @@ switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the t
 | `PORT` | 8787 | |
 | `RH_RPC` | official Robinhood Chain RPC | must allow address-filtered `eth_getLogs` over wide ranges |
 | `ETHERSCAN_API_KEY` | none | turns on funding clusters (who sent top holders their first ETH) |
+| `ETHERSCAN_DAILY_BUDGET` | 80000 | Etherscan calls per day before funding switches off until tomorrow |
+| `TRUST_PROXY_HOPS` | 0 | proxies in front of the API (1 on Railway), so rate limits see the real client IP |
+| `TOKEN_PER_MINUTE` | 15 | token reports per client IP per minute |
+| `MAX_RUNNING` / `MAX_WAITING` | 3 / 24 | fresh chain reads at once, and how many may wait before clients get 503 |
 | `VITE_API_URL` | build time, extension | API origin the extension calls |
 
 ## Official links

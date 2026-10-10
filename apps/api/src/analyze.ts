@@ -253,16 +253,16 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const report: TokenReport = {
     address: token,
     chainId: CHAIN_ID,
-    name: decodeString(nameR) || "Unknown",
-    symbol: decodeString(symbolR) || "?",
+    name: cleanText(decodeString(nameR), 48) || "Unknown",
+    symbol: cleanText(decodeString(symbolR), 16) || "?",
     decimals,
     totalSupply: supply,
     launchpad: launchLog ? "pons" : null,
     createdBlock,
     createdAt: tsCreated,
     creator: creator as Address | null,
-    description: info?.description ?? null,
-    links: { x: info?.x ?? null, telegram: info?.telegram ?? null, website: info?.website ?? null, image: info?.image ?? null },
+    description: cleanText(info?.description, 280) || null,
+    links: { x: safeUrl(info?.x), telegram: safeUrl(info?.telegram), website: safeUrl(info?.website), image: ipfsCid(info?.image) },
     launch,
     market,
     holders: { count: held.length, top10Pct, top, creatorPct: creator ? balancePct(creator) : 0, partial },
@@ -386,7 +386,7 @@ async function loadCreatorLaunches(creator: string, h: number): Promise<CreatorL
   return launches.map((l, i) => ({
     ...l,
     phase: i < sample.length ? (decodeLaunched(res[2 * i])?.phase ?? "unknown") : "unknown",
-    symbol: i < sample.length ? decodeString(res[2 * i + 1]) || "?" : "?",
+    symbol: i < sample.length ? cleanText(decodeString(res[2 * i + 1]), 16) || "?" : "?",
     creatorSold: i < checks.length ? sold[i]! : null,
   }));
 }
@@ -408,6 +408,32 @@ function devSummary(all: CreatorLaunches, token: string, tsOf: (b: number) => nu
       creatorSold: l.creatorSold,
     })),
   };
+}
+
+// ---- strings from the chain are written by whoever launched the token: bound them and keep only what is safe -------
+
+// control characters, bidi overrides and zero-width characters can make one name look like another
+const INVISIBLE = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
+const cleanText = (v: string | null | undefined, max: number) => (v ? v.replace(INVISIBLE, "").trim().slice(0, max) : "");
+
+/** A link is kept only when it parses as http(s); X handles become profile links. */
+function safeUrl(v: string | null | undefined): string | null {
+  if (!v) return null;
+  let raw = cleanText(v, 300);
+  if (/^@[A-Za-z0-9_]{1,15}$/.test(raw)) raw = `https://x.com/${raw.slice(1)}`;
+  else if (!/^https?:\/\//i.test(raw)) raw = `https://${raw}`;
+  try {
+    const u = new URL(raw);
+    return (u.protocol === "https:" || u.protocol === "http:") && u.hostname.includes(".") && !u.username && !u.password ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Images are only ever served through the API's IPFS proxy, so only a content id is kept. */
+function ipfsCid(v: string | null | undefined): string | null {
+  const cid = cleanText(v, 300).replace(/^ipfs:\/\//, "").replace(/^https?:\/\/[^/]+\/ipfs\//, "").split(/[/?#]/)[0] ?? "";
+  return /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,100})$/.test(cid) ? cid : null;
 }
 
 const fmt = (v: number) => (v >= 10 ? v.toFixed(0) : v.toFixed(1));

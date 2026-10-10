@@ -271,17 +271,26 @@ function CopyAddress({ address }: { address: string }) {
   );
 }
 
+/** The real host a link goes to, shown on hover, so a look-alike name cannot hide where it points. */
+function hostOf(href: string): string {
+  try {
+    return new URL(href).hostname;
+  } catch {
+    return href;
+  }
+}
+
 function Links({ links }: { links: TokenReport["links"] }) {
   const items = [
-    links.x && { href: normalizeUrl(links.x), label: "X", icon: <XLogoIcon size={16} /> },
-    links.telegram && { href: normalizeUrl(links.telegram), label: "Telegram", icon: <TelegramLogoIcon size={16} /> },
-    links.website && { href: normalizeUrl(links.website), label: "Website", icon: <GlobeIcon size={16} /> },
+    links.x && { href: links.x, label: "X", icon: <XLogoIcon size={16} /> },
+    links.telegram && { href: links.telegram, label: "Telegram", icon: <TelegramLogoIcon size={16} /> },
+    links.website && { href: links.website, label: "Website", icon: <GlobeIcon size={16} /> },
   ].filter(Boolean) as { href: string; label: string; icon: ReactNode }[];
   if (items.length === 0) return null;
   return (
     <nav className="vz-links" aria-label="Project links">
       {items.map((l) => (
-        <a key={l.label} href={l.href} target="_blank" rel="noreferrer nofollow" aria-label={l.label} title={l.href}>
+        <a key={l.label} href={l.href} target="_blank" rel="noreferrer nofollow" aria-label={`${l.label}: ${hostOf(l.href)}`} title={hostOf(l.href)}>
           {l.icon}
         </a>
       ))}
@@ -289,17 +298,10 @@ function Links({ links }: { links: TokenReport["links"] }) {
   );
 }
 
-function normalizeUrl(u: string): string {
-  if (/^https?:\/\//i.test(u)) return u;
-  if (u.startsWith("@")) return `https://x.com/${u.slice(1)}`;
-  return `https://${u}`;
-}
-
 function imageUrl(src: string | null, apiBase: string): string | null {
-  if (!src) return null;
-  const cid = src.replace(/^ipfs:\/\//, "").replace(/^https?:\/\/[^/]+\/ipfs\//, "").split(/[/?#]/)[0] ?? "";
-  if (/^(baf|Qm)[a-zA-Z0-9]+$/.test(cid)) return `${apiBase}/v1/img/${cid}`;
-  return /^https:\/\//.test(src) ? src : null;
+  // the API keeps only an IPFS content id, and images only ever load through its proxy: a token's own image URL
+  // would tell its launcher who is checking the token and from where
+  return src && /^(baf|Qm)[a-zA-Z0-9]+$/.test(src) ? `${apiBase}/v1/img/${src}` : null;
 }
 
 function TokenImage({ src, symbol, apiBase }: { src: string | null; symbol: string; apiBase: string }) {
@@ -307,7 +309,7 @@ function TokenImage({ src, symbol, apiBase }: { src: string | null; symbol: stri
   const url = imageUrl(src, apiBase);
   return (
     <div className="vz-image" aria-hidden>
-      {url && !failed ? <img src={url} alt="" width={44} height={44} loading="lazy" onError={() => setFailed(true)} /> : symbol.slice(0, 1)}
+      {url && !failed ? <img src={url} alt="" width={44} height={44} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : symbol.slice(0, 1)}
     </div>
   );
 }

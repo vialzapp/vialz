@@ -25,7 +25,13 @@ const inExtension = typeof chrome !== "undefined" && Boolean(chrome.storage?.loc
 async function loadRecent(): Promise<Recent[]> {
   try {
     const v = inExtension ? await chrome.storage.local.get(RECENT_KEY) : { [RECENT_KEY]: JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") };
-    return Array.isArray(v[RECENT_KEY]) ? (v[RECENT_KEY] as Recent[]) : [];
+    const list: unknown = v[RECENT_KEY];
+    if (!Array.isArray(list)) return [];
+    // stored data is checked on the way back in: only well-formed entries with a real address survive
+    return list
+      .filter((r): r is Recent => typeof r?.address === "string" && extractAddress(r.address) === r.address && typeof r.symbol === "string" && typeof r.at === "number")
+      .map((r) => ({ address: r.address, symbol: r.symbol.slice(0, 16), at: r.at }))
+      .slice(0, RECENT_MAX);
   } catch {
     return [];
   }

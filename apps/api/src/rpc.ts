@@ -2,6 +2,7 @@
 // Requests go through node:https rather than fetch: the official node sits behind Cloudflare, which answers fetch's
 // browser-style headers with a challenge page, while a plain client (like curl) gets JSON.
 import https from "node:https";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 const RPC_URL = process.env.RH_RPC ?? "https://rpc.mainnet.chain.robinhood.com";
 // The official node allows 10M blocks per address-filtered eth_getLogs (checked 10.10.2026).
@@ -30,13 +31,22 @@ export class RpcError extends Error {}
 /** A log read ran past its time budget (a token with millions of transfers). */
 export class DeadlineError extends Error {}
 
+/** The current request's deadline. Every RPC call made while serving a request inherits it, so no call can outlive
+ *  the request that started it and hold a connection slot for minutes. */
+export const requestDeadline = new AsyncLocalStorage<number>();
+const deadlineOf = (explicit: number) => Math.min(explicit, requestDeadline.getStore() ?? Infinity);
+
 let nextId = 1;
 export const rpcStats = { requests: 0, retries: 0 };
 let active = 0;
 const queue: (() => void)[] = [];
+const MAX_QUEUE = Number(process.env.RH_RPC_MAX_QUEUE ?? 200);
 
 async function slot<T>(fn: () => Promise<T>): Promise<T> {
-  if (active >= CONCURRENCY) await new Promise<void>((r) => queue.push(r));
+  if (active >= CONCURRENCY) {
+    if (queue.length >= MAX_QUEUE) throw new RpcError("rpc queue full");
+    await new Promise<void>((r) => queue.push(r));
+  }
   active++;
   try {
     return await fn();
@@ -78,7 +88,8 @@ function postOnce(body: string): Promise<unknown> {
   });
 }
 
-async function post(body: unknown, deadline = Infinity): Promise<unknown> {
+async function post(body: unknown, explicitDeadline = Infinity): Promise<unknown> {
+  const deadline = deadlineOf(explicitDeadline);
   rpcStats.requests++;
   const text = JSON.stringify(body);
   let last: unknown;
@@ -97,7 +108,8 @@ async function post(body: unknown, deadline = Infinity): Promise<unknown> {
   throw new RpcError(`rpc unreachable: ${String(last)}`);
 }
 
-export function rpc<T>(method: string, params: unknown[], deadline = Infinity): Promise<T> {
+export function rpc<T>(method: string, params: unknown[], explicitDeadline = Infinity): Promise<T> {
+  const deadline = deadlineOf(explicitDeadline);
   return slot(async () => {
     if (Date.now() > deadline) throw new DeadlineError("request ran out of time");
     const j = (await post({ jsonrpc: "2.0", id: nextId++, method, params }, deadline)) as { result?: T; error?: { message: string } };
@@ -118,6 +130,7 @@ export async function batch(calls: [string, unknown[]][]): Promise<unknown[]> {
 function batchOnce(calls: [string, unknown[]][]): Promise<unknown[]> {
   if (calls.length === 0) return Promise.resolve([]);
   return slot(async () => {
+    if (Date.now() > deadlineOf(Infinity)) throw new DeadlineError("request ran out of time");
     const base = nextId;
     nextId += calls.length;
     const j = (await post(calls.map(([method, params], i) => ({ jsonrpc: "2.0", id: base + i, method, params })))) as {

@@ -1,9 +1,13 @@
 // Token images live on IPFS. Public gateways rate-limit or block cross-origin loads, so the API fetches them once,
-// tries gateways in turn and serves them from memory.
+// asks the gateways in parallel and serves the first good answer from memory.
+// Bounded everywhere: bytes per image (checked while streaming), fetches in flight, cache size, misses remembered.
 
 const GATEWAYS = ["https://gateway.pinata.cloud/ipfs/", "https://ipfs.io/ipfs/", "https://dweb.link/ipfs/"];
 const MAX_BYTES = 3 * 1024 * 1024;
 const MAX_CACHE_BYTES = 80 * 1024 * 1024;
+const TIMEOUT_MS = 10_000;
+const MAX_FETCHING = 8;
+const MISS_TTL_MS = 10 * 60_000;
 export const CID_RE = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,100})$/;
 
 interface Img {
@@ -12,40 +16,77 @@ interface Img {
 }
 
 const cache = new Map<string, Img>();
-const missing = new Map<string, number>(); // cid -> when no gateway had it; retried after MISS_TTL_MS
-const MISS_TTL_MS = 10 * 60_000;
+const missing = new Map<string, number>(); // cid -> when no gateway had it
+const inFlight = new Map<string, Promise<Img | null>>();
 let cacheBytes = 0;
+
+export class ImagesBusy extends Error {}
+
+/** Reads a response body, giving up as soon as it passes the size limit. */
+async function readCapped(r: Response, ctrl: AbortController): Promise<Buffer | null> {
+  const declared = Number(r.headers.get("content-length"));
+  if (declared > MAX_BYTES || !r.body) return null;
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for await (const chunk of r.body as unknown as AsyncIterable<Uint8Array>) {
+    size += chunk.byteLength;
+    if (size > MAX_BYTES) {
+      ctrl.abort();
+      return null;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+async function fromGateway(gateway: string, cid: string, ctrl: AbortController): Promise<Img> {
+  const r = await fetch(gateway + cid, { signal: ctrl.signal });
+  const type = (r.headers.get("content-type") ?? "").toLowerCase();
+  if (!r.ok || !type.startsWith("image/") || type.includes("svg")) throw new Error("not an image"); // svg can carry script
+  const body = await readCapped(r, ctrl);
+  if (!body) throw new Error("too large");
+  return { type, body };
+}
+
+async function fetchImage(cid: string): Promise<Img | null> {
+  const ctrls = GATEWAYS.map(() => new AbortController());
+  const timer = setTimeout(() => ctrls.forEach((c) => c.abort()), TIMEOUT_MS);
+  try {
+    const img = await Promise.any(GATEWAYS.map((g, i) => fromGateway(g, cid, ctrls[i]!)));
+    ctrls.forEach((c) => c.abort()); // stop the slower gateways
+    return img;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export async function ipfsImage(cid: string): Promise<Img | null> {
   const hit = cache.get(cid);
   if (hit) return hit;
   const missedAt = missing.get(cid);
   if (missedAt && Date.now() - missedAt < MISS_TTL_MS) return null;
-  let found: Img | null = null;
-  for (const g of GATEWAYS) {
-    try {
-      const r = await fetch(g + cid, { signal: AbortSignal.timeout(8_000) });
-      const type = r.headers.get("content-type") ?? "";
-      if (!r.ok || !type.startsWith("image/") || type.includes("svg")) continue; // svg can carry script
-      const body = Buffer.from(await r.arrayBuffer());
-      if (body.length > MAX_BYTES) continue;
-      found = { type, body };
-      break;
-    } catch {
-      // next gateway
+  const pending = inFlight.get(cid);
+  if (pending) return pending;
+  if (inFlight.size >= MAX_FETCHING) throw new ImagesBusy("too many image fetches");
+
+  const p = fetchImage(cid).then((found) => {
+    if (!found) {
+      missing.set(cid, Date.now());
+      if (missing.size > 5_000) missing.delete(missing.keys().next().value!);
+      return null;
     }
-  }
-  if (!found) {
-    missing.set(cid, Date.now());
-    if (missing.size > 5_000) missing.delete(missing.keys().next().value!);
-    return null;
-  }
-  cache.set(cid, found);
-  cacheBytes += found.body.length;
-  while (cacheBytes > MAX_CACHE_BYTES) {
-    const [k, v] = cache.entries().next().value!;
-    cache.delete(k);
-    cacheBytes -= v.body.length;
-  }
-  return found;
+    cache.set(cid, found);
+    cacheBytes += found.body.length;
+    while (cacheBytes > MAX_CACHE_BYTES) {
+      const [k, v] = cache.entries().next().value!;
+      cache.delete(k);
+      cacheBytes -= v.body.length;
+    }
+    return found;
+  });
+  inFlight.set(cid, p);
+  void p.finally(() => inFlight.delete(cid));
+  return p;
 }

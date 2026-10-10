@@ -5,17 +5,34 @@ const KEY = process.env.ETHERSCAN_API_KEY;
 const BASE = "https://api.etherscan.io/v2/api?chainid=4663";
 const MIN_GAP_MS = 350; // free tier: 3 calls per second
 
-const funders = new Map<string, string | null>(); // wallet -> first funder, kept for the life of the process
+const funders = new Map<string, string | null>(); // wallet -> first funder
+const MAX_FUNDERS = 20_000;
+const MAX_QUEUED = 200;
+// Etherscan's free tier has a daily cap; stop short of it so funding fails quietly instead of the key being blocked
+const DAILY_BUDGET = Number(process.env.ETHERSCAN_DAILY_BUDGET ?? 80_000);
+const budget = { day: "", used: 0 };
 let last = 0;
 
-export const fundingEnabled = () => Boolean(KEY);
+/** Off without a key, and for the rest of the day once the budget is spent: reports then skip funding instead of waiting on it. */
+export const fundingEnabled = () => Boolean(KEY) && !(budget.day === new Date().toISOString().slice(0, 10) && budget.used >= DAILY_BUDGET);
+
+function spend(): boolean {
+  const day = new Date().toISOString().slice(0, 10);
+  if (budget.day !== day) Object.assign(budget, { day, used: 0 });
+  if (budget.used >= DAILY_BUDGET) return false;
+  budget.used++;
+  return true;
+}
+
 
 async function call(params: Record<string, string>): Promise<{ status: string; result: unknown }> {
+  if (!spend()) throw new Error("daily Etherscan budget used");
   const wait = last + MIN_GAP_MS - Date.now();
   last = Math.max(Date.now(), last + MIN_GAP_MS);
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   const q = new URLSearchParams({ ...params, apikey: KEY ?? "" });
   const r = await fetch(`${BASE}&${q}`, { signal: AbortSignal.timeout(10_000) });
+  if (!r.ok) throw new Error(`etherscan http ${r.status}`);
   return (await r.json()) as { status: string; result: unknown };
 }
 
@@ -45,7 +62,7 @@ let draining = false;
 
 export function queueFunders(wallets: string[]) {
   if (!KEY) return;
-  for (const w of wallets) if (!funders.has(w)) queued.add(w);
+  for (const w of wallets) if (!funders.has(w) && queued.size < MAX_QUEUED) queued.add(w);
   if (!draining) void drain();
 }
 
@@ -56,6 +73,7 @@ async function drain() {
       queued.delete(w);
       try {
         funders.set(w, await lookup(w));
+        if (funders.size > MAX_FUNDERS) funders.delete(funders.keys().next().value!);
       } catch {
         // left unknown: the next report queues it again
       }
