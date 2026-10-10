@@ -1,4 +1,4 @@
-/* The assay sheet. Laid out with container queries so the same component fits a 360px side panel and a wide page. */
+/* The assay sheet. Laid out with container queries so the same component fits a 400px extension popup and a wide page. */
 
 .vz-report {
   container-type: inline-size;
@@ -31,13 +31,6 @@
     grid-column: 1 / -1;
     border-top: 1px solid var(--rule);
   }
-  .vz-report:not(.vz-compact) .vz-col-a .strip {
-    grid-template-columns: repeat(3, 1fr);
-    row-gap: 20px;
-  }
-  .vz-report:not(.vz-compact) .strip-vial {
-    max-width: 72px;
-  }
   .vz-report:not(.vz-compact) .finding {
     font-size: 16px;
   }
@@ -55,13 +48,14 @@
 .vz-image {
   width: 44px;
   height: 44px;
-  border-radius: var(--r-s);
-  background: var(--well);
+  border-radius: 10px;
+  background: oklch(0.3 0.045 var(--hue, 70));
   display: grid;
   place-items: center;
   overflow: hidden;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--ink-2);
+  color: oklch(0.86 0.07 var(--hue, 70));
 }
 
 .vz-image img {
@@ -79,7 +73,7 @@
   font-size: 18px;
   line-height: 1.25;
   font-weight: 700;
-  font-stretch: 105%;
+  font-stretch: 100%;
   letter-spacing: -0.015em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -87,33 +81,96 @@
 }
 
 .vz-ticker {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink-2);
 }
 
 .vz-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 4px;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 2px;
   font-size: 13px;
   color: var(--ink-2);
+}
+
+/* the four numbers people look for first */
+.vz-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding-bottom: 12px;
+}
+
+.vz-stats dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.vz-stats dd {
+  margin: 1px 0 0;
+  font-size: 16px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* findings counted by level */
+.vz-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding-block: 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.vz-tally b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.vz-tally .tally-danger b {
+  color: var(--danger);
+}
+.vz-tally .tally-warn b {
+  color: var(--warn);
+}
+.vz-tally .tally-zero,
+.vz-tally .tally-zero b {
+  color: var(--ink-3);
 }
 
 .vz-copy {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0;
-  border: 0;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
   background: none;
-  color: var(--ink);
-  font-size: 13px;
+  color: var(--ink-2);
+  font-size: 12px;
   cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease;
 }
 
 .vz-copy:hover {
-  color: var(--act-hover);
+  color: var(--ink);
+  border-color: var(--rule-strong);
 }
 
 .vz-links {
@@ -135,48 +192,62 @@
   color: var(--ink);
 }
 
-/* ---- the vials ---- */
+/* ---- the vials: six on one shelf ---- */
 .strip {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: start;
-  gap: 8px;
-  padding-block: 18px 16px;
+  padding-block: 16px 14px;
   border-block: 1px solid var(--rule);
   background: var(--well);
 }
 
+/* the shelf the vials stand on */
+.strip::before {
+  content: "";
+  position: absolute;
+  inset-inline: 12px;
+  top: 50px;
+  height: 1px;
+  background: var(--rule-strong);
+}
+
 .strip-cell {
-  --glass: var(--ink-3);
   display: grid;
-  justify-items: start;
-  gap: 2px;
+  justify-items: center;
+  gap: 1px;
   min-width: 0;
+  text-align: center;
 }
 
 .strip-vial {
-  width: 100%;
-  max-width: 44px;
-  height: auto;
-  aspect-ratio: 276 / 204;
+  width: 46px;
+  height: 34px;
+  margin-bottom: 10px;
   overflow: visible;
 }
 
 .strip-l .strip-vial {
-  max-width: 88px;
+  width: 88px;
+  height: 65px;
 }
 
 .pad-good {
   --pad: var(--good-pad);
+  --surface: oklch(0.82 0.09 160);
 }
 .pad-info {
   --pad: var(--info-pad);
+  --surface: oklch(0.82 0.07 240);
 }
 .pad-warn {
   --pad: var(--warn-pad);
+  --surface: oklch(0.91 0.11 85);
 }
 .pad-danger {
   --pad: var(--danger-pad);
+  --surface: oklch(0.8 0.15 38);
   --glass: var(--ink-2);
 }
 .pad-none {
@@ -187,8 +258,8 @@
 .strip-vial .vessel-liquid {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: fill 520ms var(--ease-out) both;
-  animation-delay: calc(var(--i) * 60ms);
+  animation: fill 560ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 70ms);
 }
 
 @keyframes fill {
@@ -198,35 +269,39 @@
 }
 
 .strip-label {
-  margin-top: 8px;
-  font-size: 12px;
+  max-width: 100%;
+  font-size: 10.5px;
   font-weight: 600;
   line-height: 1.2;
-  color: var(--ink);
-  max-width: 100%;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .strip-reading {
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--ink-2);
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* six columns only where the readings fit on one line; the panel and phones get 3 by 2 */
-@container (max-width: 560px) {
-  .strip {
-    grid-template-columns: repeat(3, 1fr);
-    row-gap: 16px;
-  }
+.pad-warn .strip-reading {
+  color: var(--warn);
+}
+.pad-danger .strip-reading {
+  color: var(--danger);
+}
+.pad-none .strip-reading {
+  color: var(--ink-3);
+  font-weight: 500;
 }
 
 /* ---- sections ---- */
@@ -255,49 +330,78 @@
   color: var(--ink-3);
 }
 
-/* findings: one line per reading, the mark says how it reads */
+/* findings: one line per reading, a square in the reading's colour */
 .vz-findings {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 7px;
 }
 
 .finding {
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 10px;
+  grid-template-columns: 8px 1fr;
+  gap: 12px;
   align-items: baseline;
   font-size: 14px;
   line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.finding-danger,
+.finding-warn {
+  color: var(--ink);
 }
 
 .finding-mark {
-  font-family: var(--font-data);
-  font-stretch: 87.5%;
-  font-size: 11.5px;
-  font-weight: 600;
-  text-align: center;
-  padding: 2px 0;
-  border-radius: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--good-pad);
+  transform: translateY(-1px);
 }
 
 .finding-danger .finding-mark {
-  background: var(--danger-wash);
-  color: var(--danger);
+  background: var(--danger-pad);
 }
 .finding-warn .finding-mark {
-  background: var(--warn-wash);
-  color: var(--warn);
+  background: var(--warn-pad);
 }
 .finding-info .finding-mark {
-  background: var(--info-wash);
-  color: var(--info);
+  background: var(--info-pad);
 }
-.finding-good .finding-mark {
-  background: var(--good-wash);
-  color: var(--good);
+
+.vz-more {
+  display: block;
+  margin: 8px 0 0 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vz-more:hover {
+  color: var(--ink-2);
+}
+
+/* copy summary, open the full page */
+.vz-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-block: 0 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.vz-actions .btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13.5px;
 }
 
 /* values */
@@ -321,23 +425,39 @@
 
 .vz-values dd {
   margin: 2px 0 0;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-/* curve progress */
+/* figures in the text face here: the mono is for addresses */
+.vz-values dd.num {
+  font-family: var(--font-ui);
+  font-stretch: 100%;
+  letter-spacing: 0;
+}
+
+/* curve progress, under the stats */
 .vz-progress {
   display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
-  font-size: 12px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  font-size: 12.5px;
   color: var(--ink-2);
 }
 
+.vz-progress b {
+  color: var(--ink);
+  font-weight: 650;
+}
+
 .vz-progress-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--well);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--raise);
   overflow: hidden;
 }
 
@@ -345,7 +465,74 @@
   display: block;
   height: 100%;
   background: var(--ink);
-  border-radius: 3px;
+  border-radius: 2px;
+}
+
+/* where the supply sits */
+.vz-dist {
+  margin: 0 0 14px;
+}
+
+.vz-dist-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+.vz-dist-bar span {
+  min-width: 3px;
+  border-radius: 2px;
+}
+
+.vz-dist figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.vz-dist figcaption span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vz-dist figcaption i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.vz-dist figcaption b {
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.dist-contract {
+  --dist: var(--ink-3);
+}
+.dist-flagged {
+  --dist: var(--warn-pad);
+}
+.dist-creator {
+  --dist: var(--info-pad);
+}
+.dist-top {
+  --dist: var(--ink);
+}
+.dist-burn {
+  --dist: var(--none-pad);
+}
+.dist-rest {
+  --dist: var(--rule-strong);
+}
+
+.vz-dist-bar span,
+.vz-dist figcaption i {
+  background: var(--dist);
 }
 
 /* holders */
@@ -558,13 +745,26 @@
   }
 }
 
+/* while reading: the six glasses stand empty on the shelf */
+.vz-skeleton .strip {
+  margin-inline: -16px;
+}
+
 .vz-loading-note {
   margin: 0;
   font-size: 13px;
   color: var(--ink-2);
 }
 
+.vz-loading-step {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .vz-error {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
   padding: 16px;
   background: var(--danger-wash);
   border-radius: var(--r-m);
@@ -572,22 +772,30 @@
   font-size: 14px;
 }
 
-.vz-error {
-  display: grid;
-  gap: 4px;
-  justify-items: start;
+.vz-error b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--danger);
+}
+
+/* not a token: nothing went wrong, there is just nothing to read */
+.vz-error-quiet {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+}
+
+.vz-error-quiet b {
+  color: var(--ink);
+}
+
+.vz-error-quiet span {
+  color: var(--ink-2);
 }
 
 .vz-retry {
   margin-top: 10px;
   height: 36px;
   font-size: 14px;
-}
-
-.vz-error b {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--danger);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -606,4 +814,21 @@
 
 .vz-compact-foot a {
   font-weight: 600;
+}
+
+/* phones: the report is narrower than the popup, so the small caps give up their tracking */
+@container (max-width: 380px) {
+  .strip-label {
+    font-size: 9.5px;
+    letter-spacing: 0;
+  }
+  .strip::before {
+    inset-inline: 6px;
+  }
+  .vz-stats dt {
+    letter-spacing: 0.01em;
+  }
+  .vz-stats dd {
+    font-size: 15px;
+  }
 }

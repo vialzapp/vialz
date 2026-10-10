@@ -12,13 +12,14 @@ interface Props {
   level?: number; // 0..1 of the height
   fill?: string; // liquid colour
   glass?: string; // wall colour
+  surface?: string; // meniscus colour; none when left out
   stroke?: number;
   className?: string;
   style?: CSSProperties;
   title?: string;
 }
 
-export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentColor", stroke = 26, className, style, title }: Props) {
+export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentColor", surface, stroke = 26, className, style, title }: Props) {
   const lip = stroke * 0.85;
   const l = CX - W / 2;
   const r = CX + W / 2;
@@ -28,7 +29,15 @@ export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentCol
   return (
     <svg viewBox={VIEWBOX} className={className} style={style} role={title ? "img" : undefined} aria-hidden={title ? undefined : true}>
       {title && <title>{title}</title>}
-      {level > 0 && <path className="vessel-liquid" d={`M${CX - half},${ly} H${CX + half} L${CX},${by} Z`} fill={fill} />}
+      {level > 0 && (
+        <g className="vessel-liquid">
+          <path d={`M${CX - half},${ly} H${CX + half} L${CX},${by} Z`} fill={fill} />
+          {/* the meniscus: a lighter line on the surface is what makes it read as liquid */}
+          {surface && half > stroke && (
+            <path className="vessel-surface" d={`M${CX - half + stroke * 0.6},${ly} H${CX + half - stroke * 0.6}`} stroke={surface} strokeWidth={stroke * 0.6} strokeLinecap="round" />
+          )}
+        </g>
+      )}
       <path
         d={`M${l - lip},${TOP} H${l} L${CX},${by} L${r},${TOP} H${r + lip}`}
         fill="none"

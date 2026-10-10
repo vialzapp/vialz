@@ -51,7 +51,7 @@
 .check input:focus-visible {
   outline: none;
   border-color: var(--ink-2);
-  box-shadow: 0 0 0 3px oklch(0.955 0.006 262 / 0.12);
+  box-shadow: 0 0 0 3px oklch(0.955 0.008 85 / 0.12);
 }
 
 .check input[aria-invalid="true"] {

@@ -112,7 +112,8 @@ export interface ApiError {
   message: string;
 }
 
-const ADDRESS_RE = /0x[a-fA-F0-9]{40}/;
+// exactly 40 hex digits: a tx hash or a longer hex run must not yield its first 40 as an address
+const ADDRESS_RE = /(?<![a-zA-Z0-9])0x[a-fA-F0-9]{40}(?![a-fA-F0-9])/;
 
 /** Pulls a contract address out of anything a user might paste: a bare address, an X post, a gmgn, fomo, pons, dexscreener or explorer link. */
 export function extractAddress(input: string): Address | null {
@@ -170,7 +171,8 @@ export interface Pad {
   key: "snipers" | "bundle" | "holders" | "linked" | "creator" | "volume";
   label: string;
   level: PadLevel;
-  reading: string; // short value shown under the pad
+  reading: string; // the reading in words, for lists and screen readers
+  short: string; // the same reading in a few characters, shown under the vial
 }
 
 const worst = (...levels: PadLevel[]): PadLevel => {
@@ -178,42 +180,60 @@ const worst = (...levels: PadLevel[]): PadLevel => {
   return rank.find((r) => levels.includes(r)) ?? "none";
 };
 
+/** 1st, 2nd, 23rd, 112th */
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
+
 export function padsFor(r: TokenReport): Pad[] {
   const pct = (v: number) => `${v >= 10 ? v.toFixed(0) : v.toFixed(1)}%`;
+  const na = (key: Pad["key"], label: string): Pad => ({ key, label, level: "none", reading: "n/a", short: "n/a" });
 
   const s = r.snipers;
   const snipers: Pad = !s
-    ? { key: "snipers", label: "Snipers", level: "none", reading: "n/a" }
+    ? na("snipers", "Snipers")
     : {
         key: "snipers",
         label: "Snipers",
         level: s.wallets === 0 ? "good" : s.holdPct >= 10 ? "danger" : s.holdPct >= 3 ? "warn" : "info",
-        reading: s.wallets === 0 ? "none" : s.holdPct < 0.05 ? "all sold" : `${pct(s.holdPct)} held`,
+        reading: s.wallets === 0 ? "none" : s.holdPct < 0.05 ? `${s.wallets} wallets, all sold` : `${s.wallets} wallets hold ${pct(s.holdPct)}`,
+        short: s.wallets === 0 ? "0" : s.holdPct < 0.05 ? "sold" : pct(s.holdPct),
       };
 
   const b = r.bundle;
   const bundle: Pad = !b
-    ? { key: "bundle", label: "Bundle", level: "none", reading: "n/a" }
+    ? na("bundle", "Bundle")
     : {
         key: "bundle",
         label: "Bundle",
         level: b.wallets === 0 ? "good" : b.holdPct >= 5 ? "danger" : b.holdPct >= 1 ? "warn" : "info",
-        reading: b.wallets === 0 ? "none" : `${b.wallets} wallets`,
+        reading: b.wallets === 0 ? "none" : `${b.wallets} wallets hold ${pct(b.holdPct)}`,
+        short: b.wallets === 0 ? "0" : b.holdPct < 0.05 ? "sold" : pct(b.holdPct),
       };
 
   const t = r.holders.top10Pct;
   const holders: Pad = r.holders.partial || r.holders.count === 0
-    ? { key: "holders", label: "Top 10", level: "none", reading: "n/a" }
-    : { key: "holders", label: "Top 10", level: t >= 50 ? "danger" : t >= 30 ? "warn" : t >= 15 ? "info" : "good", reading: pct(t) };
+    ? na("holders", "Top 10")
+    : { key: "holders", label: "Top 10", level: t >= 50 ? "danger" : t >= 30 ? "warn" : t >= 15 ? "info" : "good", reading: `hold ${pct(t)}`, short: pct(t) };
 
   const c = r.clusters[0];
   const linked: Pad = r.holders.partial
-    ? { key: "linked", label: "Linked", level: "none", reading: "n/a" }
-    : { key: "linked", label: "Linked", level: !c ? "good" : c.pct >= 10 ? "danger" : c.pct >= 3 ? "warn" : "info", reading: c ? pct(c.pct) : "none found" };
+    ? na("linked", "Linked")
+    : {
+        key: "linked",
+        label: "Linked",
+        level: !c ? "good" : c.pct >= 10 ? "danger" : c.pct >= 3 ? "warn" : "info",
+        reading: c ? `${c.wallets + 1} wallets hold ${pct(c.pct)}` : "none found",
+        short: c ? pct(c.pct) : "none",
+      };
 
   const d = r.dev;
   const creator: Pad = !d
-    ? { key: "creator", label: "Creator", level: r.holders.creatorPct >= 5 ? "warn" : "none", reading: r.creator ? pct(r.holders.creatorPct) : "unknown" }
+    ? {
+        key: "creator",
+        label: "Creator",
+        level: r.holders.creatorPct >= 5 ? "warn" : "none",
+        reading: r.creator ? `holds ${pct(r.holders.creatorPct)}` : "unknown",
+        short: r.creator ? pct(r.holders.creatorPct) : "n/a",
+      }
     : {
         key: "creator",
         label: "Creator",
@@ -222,18 +242,45 @@ export function padsFor(r: TokenReport): Pad[] {
           d.checked >= 3 && d.sold / d.checked >= 0.5 ? "danger" : "good",
           r.holders.creatorPct >= 5 ? "warn" : "good",
         ),
-        reading: d.launches === 1 ? "first launch" : `${d.launches} launches`,
+        reading: d.launches === 1 ? "first launch" : `launch number ${d.launches}`,
+        short: d.launches === 1 ? "1st" : ordinal(d.launches),
       };
 
   const v = r.volume;
   const volume: Pad = !v
-    ? { key: "volume", label: "Volume", level: "none", reading: "n/a" }
-    : {
-        key: "volume",
-        label: "Volume",
-        level: v.trades < 30 ? "info" : v.top5SharePct >= 60 || v.roundTripWallets >= 5 ? "warn" : "good",
-        reading: v.trades < 30 ? `${v.trades} trades` : `top 5: ${pct(v.top5SharePct)}`,
-      };
+    ? na("volume", "Volume")
+    : v.trades < 30
+      ? { key: "volume", label: "Volume", level: "info", reading: `${v.trades} trades so far`, short: `${v.trades} tx` }
+      : {
+          key: "volume",
+          label: "Top 5 vol",
+          level: v.top5SharePct >= 60 || v.roundTripWallets >= 5 ? "warn" : "good",
+          reading: `five wallets made ${pct(v.top5SharePct)} of volume`,
+          short: pct(v.top5SharePct),
+        };
 
   return [snipers, bundle, holders, linked, creator, volume];
+}
+
+/** How many findings read high, watch, note and clear. Counts, not a score. */
+export function tallyFlags(flags: Flag[]): Record<Flag["level"], number> {
+  const t = { danger: 0, warn: 0, info: 0, good: 0 };
+  for (const f of flags) t[f.level]++;
+  return t;
+}
+
+/** A few lines of fact to paste into a post or a chat, with the link to the full report. */
+export function summaryText(r: TokenReport, url: string): string {
+  const pads = padsFor(r);
+  const pad = (k: Pad["key"]) => pads.find((p) => p.key === k)!;
+  const lines = [
+    `$${r.symbol} on Robinhood Chain`,
+    [r.market?.mcapUsd != null && `MC ${formatUsd(r.market.mcapUsd)}`, `${r.holders.count.toLocaleString("en-US")} holders`, `top 10 ${pad("holders").reading}`]
+      .filter(Boolean)
+      .join(" · "),
+    `Snipers: ${pad("snipers").reading} · Bundle: ${pad("bundle").reading}`,
+    `Creator: ${pad("creator").reading}`,
+    `Read on chain by Vialz: ${url}`,
+  ];
+  return lines.join("\n");
 }

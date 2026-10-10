@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { padsFor, type Pad } from "@vialz/shared";
-import { CheckInput, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
+import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate } from "../App";
 import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
 
@@ -16,8 +16,6 @@ function useLiveExample() {
   }, []);
   return { token, failed, state: useTokenReport(API_BASE, token) };
 }
-
-const LEVEL_FILL: Record<Pad["level"], number> = { good: 0.62, info: 0.72, warn: 0.84, danger: 0.96, none: 0 };
 
 // the reference ranges, as on a lab sheet: what each check reads and when it reads high
 const CHECKS: { key: Pad["key"]; name: string; reads: string; high: string }[] = [
@@ -116,9 +114,9 @@ export function Landing() {
               return (
                 <div role="row" key={c.key} className={`ranges-row pad-${level}`}>
                   <span role="rowheader" className="ranges-name">
-                    <Vessel level={LEVEL_FILL[level]} fill="var(--pad)" glass="var(--ink-3)" className="ranges-vial" />
+                    <Vessel level={FILL[level]} fill="var(--pad)" glass="var(--ink-3)" className="ranges-vial" />
                     <b>{c.name}</b>
-                    {pad && <span className="num ranges-reading">{pad.reading}</span>}
+                    {pad && <span className="ranges-reading">{pad.reading}</span>}
                   </span>
                   <span role="cell">{c.reads}</span>
                   <span role="cell" className="num ranges-high">

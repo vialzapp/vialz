@@ -44,7 +44,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const [nameR, symbolR, decimalsR, supplyR, launchedR, infoR] = basics;
   const supplyRaw = decodeUint(supplyR);
   const decimalsRaw = decodeUint(decimalsR);
-  if (supplyRaw == null || decimalsRaw == null) throw new NotFound("not an ERC-20 token on Robinhood Chain");
+  if (supplyRaw == null || decimalsRaw == null) throw new NotFound("This address isn't a token on Robinhood Chain. Check that you copied the contract address.");
   const decimals = Number(decimalsRaw);
   const unit = 10 ** decimals;
   const supply = Number(supplyRaw) / unit;
@@ -503,8 +503,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
   if (r.volume && r.volume.trades >= 30 && r.volume.top5SharePct >= 60)
     f.push({ level: "warn", text: `5 wallets made ${fmt(r.volume.top5SharePct)}% of volume` });
   if (r.volume && r.volume.trades >= 30 && r.volume.roundTripWallets >= 5)
-    f.push({ level: "warn", text: `${r.volume.roundTripWallets} wallets keep buying and selling` });
-  if (r.createdAt != null && now - r.createdAt < 3600) f.push({ level: "info", text: `Launched ${Math.max(1, Math.floor((now - r.createdAt) / 60))}m ago` });
+    f.push({ level: "warn", text: `${r.volume.roundTripWallets} wallets bought and sold it again and again` });
   if (!r.links.x && !r.links.website && !r.links.telegram) f.push({ level: "info", text: "No socials set" });
 
   const order = { danger: 0, warn: 1, info: 2, good: 3 } as const;

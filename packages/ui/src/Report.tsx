@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { CheckIcon, CopyIcon, GlobeIcon, TelegramLogoIcon, XLogoIcon } from "@phosphor-icons/react";
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { ArrowUpRightIcon, CheckIcon, CopyIcon, GlobeIcon, TelegramLogoIcon, XLogoIcon } from "@phosphor-icons/react";
 import {
   explorerAddress,
   formatAge,
@@ -8,6 +8,8 @@ import {
   formatUsd,
   padsFor,
   shortAddress,
+  summaryText,
+  tallyFlags,
   type Flag,
   type HolderLabel,
   type TokenReport,
@@ -22,44 +24,65 @@ interface Props {
   compact?: { href: string };
   /** open another token's report inside the same surface (creator's earlier launches) */
   onOpenToken?: (address: string) => void;
+  /** the public page of this report: copied with the summary, and linked when `openFull` is set */
+  shareUrl?: string;
+  openFull?: boolean;
 }
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
-export function Report({ report: r, onOpenToken, apiBase = "", compact, headingLevel = 2 }: Props & { headingLevel?: 1 | 2 }) {
+export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl, openFull, headingLevel = 2 }: Props & { headingLevel?: 1 | 2 }) {
   const Title = headingLevel === 1 ? "h1" : "h2";
   const age = r.createdAt != null ? nowSec() - r.createdAt : null;
   const quote = r.launch?.quote.symbol ?? "ETH";
+  const onCurve = r.launch != null && r.launch.graduatedBlock == null && r.launch.phase === "curve";
 
   return (
     <article className={compact ? "vz-report vz-compact" : "vz-report"} aria-label={`Vialz report on ${r.name}`}>
       <div className="vz-body">
       <div className="vz-col vz-col-a">
       <header className="vz-head">
-        <TokenImage src={r.links.image} symbol={r.symbol} apiBase={apiBase} />
+        <TokenImage src={r.links.image} symbol={r.symbol} address={r.address} apiBase={apiBase} />
         <div className="vz-title">
-          <Title className="vz-name">
-            {r.name} <span className="vz-ticker">${r.symbol}</span>
-          </Title>
+          <Title className="vz-name">{r.name}</Title>
           <div className="vz-meta">
+            <span className="vz-ticker">${r.symbol}</span>
             <CopyAddress address={r.address} />
-            <span>{age != null ? `${formatAge(age)} old` : "age unknown"}</span>
-            <span>{venue(r)}</span>
           </div>
         </div>
         <Links links={r.links} />
       </header>
 
+      <dl className="vz-stats">
+        <Stat label="MCap" value={formatUsd(r.market?.mcapUsd)} />
+        <Stat label={r.market?.source === "dexscreener" ? "Liquidity" : "In curve"} value={formatUsd(r.market?.liquidityUsd)} />
+        <Stat label="Holders" value={r.holders.partial ? "n/a" : r.holders.count.toLocaleString("en-US")} />
+        <Stat label="Age" value={age != null ? formatAge(age) : "n/a"} />
+      </dl>
+
+      {r.launch && (
+        <div
+          className="vz-progress"
+          role="progressbar"
+          aria-label="Curve progress to graduation"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(r.launch.progressPct)}
+        >
+          <div className="vz-progress-bar">
+            <span style={{ width: `${Math.max(1, Math.min(100, r.launch.progressPct))}%` }} />
+          </div>
+          <span>{onCurve ? <><b>{r.launch.progressPct.toFixed(0)}%</b> to graduation on Pons</> : venue(r)}</span>
+        </div>
+      )}
+
+      <Tally flags={r.flags} />
+
       <Strip pads={padsFor(r)} />
 
-      <Section title="Findings">
-        <ul className="vz-findings">
-          {r.flags.length === 0 && <li className="finding finding-info">Nothing stands out in what the chain shows.</li>}
-          {r.flags.map((f, i) => (
-            <Finding key={i} flag={f} />
-          ))}
-        </ul>
-      </Section>
+      <Findings flags={r.flags} />
+
+      {!compact && shareUrl && <Actions report={r} url={shareUrl} openFull={openFull} />}
 
       </div>
 
@@ -74,7 +97,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, headingL
 
       <div className="vz-col vz-col-b">
       {!compact && r.market && (
-        <Section title="Market" note={r.market.source === "curve" ? "From curve trades on chain" : "Pool data from DexScreener"}>
+        <Section title="Market" note={r.market.source === "curve" ? "On-chain curve trades" : "Pool data from DexScreener"}>
           <dl className="vz-values">
             <Value label="Price" value={r.market.priceUsd != null ? `$${formatSmall(r.market.priceUsd)}` : "n/a"} />
             <Value label="Market cap" value={formatUsd(r.market.mcapUsd)} />
@@ -91,28 +114,13 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, headingL
       )}
 
       {!compact && r.launch && (
-        <Section title="Launch" note="Pons">
-          <div
-            className="vz-progress"
-            role="progressbar"
-            aria-label="Curve progress to graduation"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(r.launch.progressPct)}
-          >
-            <div className="vz-progress-bar">
-              <span style={{ width: `${Math.max(1, r.launch.progressPct)}%` }} />
-            </div>
-            <span className="num">
-              {r.launch.graduatedBlock != null ? "graduated to Uniswap" : `${r.launch.progressPct.toFixed(1)}% to graduation`}
-            </span>
-          </div>
+        <Section title="Launch" note={venue(r)}>
           <dl className="vz-values">
             <Value label="Paired with" value={quote} />
             <Value label="Dev buy" value={r.launch.devBuy == null ? "n/a" : r.launch.devBuy === 0 ? "none" : `${trim(r.launch.devBuy)} ${quote}`} />
             <Value label="Creator tax" value={r.launch.creatorTaxBps != null ? `${(r.launch.creatorTaxBps / 100).toFixed(1)}%` : "n/a"} />
-            <Value label="Snipers took" value={r.snipers ? (r.snipers.wallets ? `${formatPct(r.snipers.boughtPct)} in ${r.snipers.wallets} wallets` : "none") : "n/a"} />
-            <Value label="Bundle" value={!r.bundle ? "n/a" : r.bundle.wallets ? `${r.bundle.wallets} wallets, ${formatPct(r.bundle.holdPct)} held` : "none"} />
+            <Value label="Snipers bought" value={r.snipers ? (r.snipers.wallets ? `${formatPct(r.snipers.boughtPct)}, ${r.snipers.wallets} wallets` : "none") : "n/a"} />
+            <Value label="Bundle holds" value={!r.bundle ? "n/a" : r.bundle.wallets ? `${formatPct(r.bundle.holdPct)}, ${r.bundle.wallets} wallets` : "none"} />
             <Value
               label="Fees go to"
               value={r.launch.feeRecipient ? (r.launch.feeRecipient === r.creator ? "the creator" : shortAddress(r.launch.feeRecipient)) : "n/a"}
@@ -123,6 +131,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, headingL
 
       {!compact && (
       <Section title="Holders" note={`${r.holders.count.toLocaleString("en-US")} ${r.holders.count === 1 ? "holder" : "holders"}`}>
+        {!r.holders.partial && <Distribution report={r} />}
         <ol className="vz-holders">
           {r.holders.top.filter((h) => h.pct >= 0.01 || h.labels.length > 0).slice(0, 10).map((h, i, top) => (
             <li key={h.address}>
@@ -186,8 +195,8 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, headingL
               <dl className="vz-values">
                 <Value label="Pons launches" value={r.dev.launches.toLocaleString("en-US")} />
                 <Value label="Graduated" value={`${r.dev.graduated}`} />
-                <Value label="Sold early" value={r.dev.checked ? `${r.dev.sold} of last ${r.dev.checked}` : "no earlier launches"} />
-                <Value label="Holds now" value={formatPct(r.holders.creatorPct)} />
+                <Value label="Sold early" value={r.dev.checked ? `${r.dev.sold} of last ${r.dev.checked}` : r.dev.launches === 1 ? "n/a, first launch" : "n/a"} />
+                <Value label="Holds now" value={r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />
               </dl>
               {r.dev.recent.length > 0 && (
                 <ul className="vz-prior">
@@ -213,7 +222,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, headingL
           ) : (
             <dl className="vz-values">
               <Value label="Deployer" value={shortAddress(r.creator)} />
-              <Value label="Holds now" value={formatPct(r.holders.creatorPct)} />
+              <Value label="Holds now" value={r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />
             </dl>
           )}
         </Section>
@@ -277,13 +286,128 @@ function Value({ label, value }: { label: string; value: string }) {
 }
 
 const MARK: Record<Flag["level"], string> = { danger: "High", warn: "Watch", info: "Note", good: "Clear" };
+const ORDER: Flag["level"][] = ["danger", "warn", "info", "good"];
 
-function Finding({ flag }: { flag: Flag }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <li className={`finding finding-${flag.level}`}>
-      <span className="finding-mark">{MARK[flag.level]}</span>
-      <span>{flag.text}</span>
-    </li>
+    <div>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+/** The findings counted by level. A count of facts, not a score. */
+function Tally({ flags }: { flags: Flag[] }) {
+  const t = tallyFlags(flags);
+  const word: Record<Flag["level"], [string, string]> = { danger: ["high", "high"], warn: ["watch", "watch"], info: ["note", "notes"], good: ["clear", "clear"] };
+  return (
+    <p className="vz-tally" aria-label="Findings by level">
+      {ORDER.map((l) => (
+        <span key={l} className={`tally-${l}${t[l] === 0 ? " tally-zero" : ""}`}>
+          <b>{t[l]}</b> {word[l][t[l] === 1 ? 0 : 1]}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/** One line per finding, most serious first. Clear findings fold into one line when anything else is there. */
+function Findings({ flags }: { flags: Flag[] }) {
+  const [showClear, setShowClear] = useState(false);
+  const sorted = [...flags].sort((a, b) => ORDER.indexOf(a.level) - ORDER.indexOf(b.level));
+  const clear = sorted.filter((f) => f.level === "good");
+  const fold = clear.length > 0 && clear.length < sorted.length && !showClear;
+  const shown = fold ? sorted.filter((f) => f.level !== "good") : sorted;
+  return (
+    <section className="vz-section vz-findings-section" aria-label="Findings">
+      <ul className="vz-findings">
+        {flags.length === 0 && <li className="finding finding-info">Nothing stands out in what the chain shows.</li>}
+        {shown.map((f, i) => (
+          <li key={i} className={`finding finding-${f.level}`}>
+            <span className="finding-mark" role="img" aria-label={MARK[f.level]} />
+            <span>{f.text}</span>
+          </li>
+        ))}
+      </ul>
+      {fold && (
+        <button type="button" className="vz-more" onClick={() => setShowClear(true)}>
+          + {clear.length} clear: {clear.map((f) => f.text.toLowerCase()).join(", ")}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/** Where the supply sits: contracts, flagged wallets, the creator, the rest of the top 10, everyone else. */
+function Distribution({ report: r }: { report: TokenReport }) {
+  const sum = { contract: 0, burn: 0, flagged: 0, creator: 0, top: 0 };
+  let wallets = 0;
+  for (const h of r.holders.top) {
+    const l = h.labels;
+    if (l.includes("curve") || l.includes("pool") || l.includes("launchpad")) sum.contract += h.pct;
+    else if (l.includes("burn")) sum.burn += h.pct;
+    else if (l.includes("creator")) sum.creator += h.pct;
+    else if (l.includes("bundle") || l.includes("sniper")) sum.flagged += h.pct;
+    else if (wallets++ < 10) sum.top += h.pct; // unlabelled wallets: only the ten biggest get their own colour
+  }
+  // the list stops at 20 holders; the bundle and sniper totals cover their smaller wallets too
+  sum.flagged = Math.max(sum.flagged, (r.bundle?.holdPct ?? 0) + (r.snipers?.holdPct ?? 0));
+  const rest = Math.max(0, 100 - sum.contract - sum.burn - sum.flagged - sum.creator - sum.top);
+  const parts = [
+    { key: "contract", label: r.launch && r.launch.graduatedBlock == null ? "Curve" : "Pools", pct: sum.contract },
+    { key: "flagged", label: "Bundle and snipers", pct: sum.flagged },
+    { key: "creator", label: "Creator", pct: sum.creator },
+    { key: "top", label: "Other top 10", pct: sum.top },
+    { key: "burn", label: "Burned", pct: sum.burn },
+    { key: "rest", label: "Everyone else", pct: rest },
+  ].filter((p) => p.pct >= 0.05);
+  return (
+    <figure className="vz-dist">
+      <div className="vz-dist-bar" aria-hidden>
+        {parts.map((p) => (
+          <span key={p.key} className={`dist-${p.key}`} style={{ flexGrow: p.pct }} />
+        ))}
+      </div>
+      <figcaption>
+        {parts.map((p) => (
+          <span key={p.key} className={`dist-${p.key}`}>
+            <i aria-hidden />
+            {p.label} <b>{formatPct(p.pct)}</b>
+          </span>
+        ))}
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Copy a few lines of fact for a post, and open the full page. */
+function Actions({ report, url, openFull }: { report: TokenReport; url: string; openFull?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="vz-actions">
+      <button
+        type="button"
+        className="btn btn-quiet"
+        onClick={() => {
+          navigator.clipboard
+            .writeText(summaryText(report, url))
+            .then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            })
+            .catch(() => {});
+        }}
+      >
+        {copied ? <CheckIcon size={16} weight="bold" /> : <CopyIcon size={16} />}
+        {copied ? "Copied" : "Copy summary"}
+      </button>
+      {openFull && (
+        <a className="btn btn-quiet" href={url} target="_blank" rel="noreferrer">
+          Full report <ArrowUpRightIcon size={16} />
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -343,11 +467,13 @@ function imageUrl(src: string | null, apiBase: string): string | null {
   return src && /^(baf|Qm)[a-zA-Z0-9]+$/.test(src) ? `${apiBase}/v1/img/${src}` : null;
 }
 
-function TokenImage({ src, symbol, apiBase }: { src: string | null; symbol: string; apiBase: string }) {
+function TokenImage({ src, symbol, address, apiBase }: { src: string | null; symbol: string; address: string; apiBase: string }) {
   const [failed, setFailed] = useState(false);
   const url = imageUrl(src, apiBase);
+  // no image: a tint taken from the address, so tokens without art still look apart
+  const hue = parseInt(address.slice(2, 6), 16) % 360;
   return (
-    <div className="vz-image" aria-hidden>
+    <div className="vz-image" aria-hidden style={{ "--hue": hue } as CSSProperties}>
       {url && !failed ? <img src={url} alt="" width={44} height={44} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : symbol.slice(0, 1)}
     </div>
   );

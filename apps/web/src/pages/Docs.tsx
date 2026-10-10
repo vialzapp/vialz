@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
-import { Vessel } from "@vialz/ui";
+import { FILL, Vessel } from "@vialz/ui";
 import { REPO_URL, X_URL } from "../brand";
 
 // The documentation: how to use Vialz, how every reading is computed, and how to run and verify it yourself.
@@ -201,14 +201,14 @@ export function Docs() {
         <Section id="vials" title="The six vials">
           <p>
             Every report opens with six vials, one per check. Each fills with the colour of its reading, and the stronger the reading, the fuller
-            the vial. An empty vial means there was nothing to read, for example no launch data on a token that did not come from Pons.
+            the vial: a high reading fills it to the brim. An empty vial means there was nothing to read, for example no launch data on a token that did not come from Pons.
           </p>
           <div className="doc-legend">
             {[
-              ["good", 0.62, "Clear", "nothing of concern in this check"],
-              ["info", 0.72, "Note", "worth knowing, not a warning"],
-              ["warn", 0.84, "Watch", "look closer before you buy"],
-              ["danger", 0.96, "High", "a pattern often seen before a rug"],
+              ["good", FILL.good, "Clear", "nothing of concern in this check"],
+              ["info", FILL.info, "Note", "worth knowing, not a warning"],
+              ["warn", FILL.warn, "Watch", "look closer before you buy"],
+              ["danger", FILL.danger, "High", "a pattern often seen before a rug"],
             ].map(([level, fill, name, text]) => (
               <div key={name as string} className={`pad-${level}`}>
                 <Vessel level={fill as number} fill="var(--pad)" glass="var(--ink-3)" className="doc-legend-vial" />
@@ -239,7 +239,9 @@ export function Docs() {
 
         <Section id="findings" title="Findings">
           <p>
-            Under the vials, each finding is one line of fact, marked <b>High</b>, <b>Watch</b>, <b>Note</b> or <b>Clear</b>, most serious first.
+            Above the vials, a line counts the findings at each level. Under them, each finding is one line of fact, marked by a square in the
+            colour of its level (<b>High</b>, <b>Watch</b>, <b>Note</b> or <b>Clear</b>), most serious first. Clear findings fold into one
+            line when there is anything else to read.
             Findings say what the chain shows, for example "87 linked wallets hold 64% of supply" or "Creator sold early in 5 of their last 8
             launches". Vialz never calls a token a scam; that judgement is yours.
           </p>

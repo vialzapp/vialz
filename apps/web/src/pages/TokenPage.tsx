@@ -24,10 +24,10 @@ export function TokenPage({ address }: { address: string }) {
           />
         </div>
         {state.status === "loading" && <ReportSkeleton />}
-        {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} />}
+        {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} quiet={state.notFound} />}
         {state.status === "ready" && (
           <>
-            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} />
+            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} shareUrl={`${location.origin}/t/${state.report.address}`} />
             <div className="token-share">
               <button
                 type="button"

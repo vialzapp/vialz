@@ -1,23 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiError, TokenReport } from "@vialz/shared";
 
 export type ReportState =
   | { status: "idle" }
   | { status: "loading"; address: string }
   | { status: "ready"; address: string; report: TokenReport; refreshing: boolean }
-  | { status: "error"; address: string; message: string };
+  | { status: "error"; address: string; message: string; notFound: boolean };
+
+/** A failed read, with the API's error code when it sent one. */
+export class ReportFailure extends Error {
+  constructor(message: string, readonly code: string | null = null) {
+    super(message);
+  }
+}
 
 export async function fetchReport(apiBase: string, address: string, signal?: AbortSignal): Promise<TokenReport> {
   let res: Response;
   try {
-    res = await fetch(`${apiBase}/v1/token/${address}`, { signal });
+    const timeout = AbortSignal.timeout(45_000);
+    const both = signal && "any" in AbortSignal ? AbortSignal.any([signal, timeout]) : (signal ?? timeout);
+    res = await fetch(`${apiBase}/v1/token/${address}`, { signal: both });
   } catch (e) {
-    if ((e as Error).name === "AbortError") throw e;
-    throw new Error("Can't reach the Vialz server. Check your connection and try again.");
+    if ((e as Error).name === "AbortError" && signal?.aborted) throw e;
+    if ((e as Error).name === "TimeoutError") throw new ReportFailure("The read took too long. Try again in a few seconds.");
+    throw new ReportFailure("Can't reach the Vialz server. Check your connection and try again.");
   }
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as ApiError | null;
-    throw new Error(body?.message ?? `The server answered ${res.status}. Try again in a few seconds.`);
+    throw new ReportFailure(body?.message ?? `The server answered ${res.status}. Try again in a few seconds.`, body?.error ?? null);
   }
   return (await res.json()) as TokenReport;
 }
@@ -49,8 +59,9 @@ export function useTokenReport(apiBase: string, address: string | null): ReportS
         }
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
-        if (refresh) setState((s) => (s.status === "ready" ? { ...s, refreshing: false } : s));
-        else setState({ status: "error", address, message: (e as Error).message });
+        // a failed re-read keeps the report but stops promising funding results that will not come
+        if (refresh) setState((s) => (s.status === "ready" ? { ...s, refreshing: false, report: { ...s.report, fundingStatus: "off" } } : s));
+        else setState({ status: "error", address, message: (e as Error).message, notFound: e instanceof ReportFailure && e.code === "not_found" });
       }
     };
     void load(false);
@@ -61,5 +72,9 @@ export function useTokenReport(apiBase: string, address: string | null): ReportS
     };
   }, [apiBase, address, nonce]);
 
-  return { ...state, retry: () => setNonce((n) => n + 1) };
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
+  // until the effect runs, state may still belong to the previous address: never hand that out under the new one
+  if (!address) return { status: "idle", retry };
+  if (state.status === "idle" || state.address !== address) return { status: "loading", address, retry };
+  return { ...state, retry };
 }
