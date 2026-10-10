@@ -32,9 +32,10 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   // DexScreener needs nothing from the chain: ask it while the chain is read
   const pairsP = dexPairs(token);
   const started = Date.now();
-  // VIALZ_TIMING=1 logs how long each phase took, to see where a slow read spends its time
+  // one log line per read with the time each phase took, to see where a slow read spends it
   const phases: [string, number][] = [];
   const lap = (name: string) => phases.push([name, Date.now() - started]);
+  const tag = <T,>(name: string, p: Promise<T>): Promise<T> => p.finally(() => lap(name));
   const [h, basics] = await Promise.all([
     head(),
     batch([
@@ -81,14 +82,14 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   // Everything that needs only the launch starts now and runs while the transfer history is read: the creator's
   // record, the curve trades, graduation, prices. Secondary reads fail soft: the report goes out without that part.
   const early = Promise.all([
-    launchLog ? rpc<{ input: string } | null>("eth_getTransactionByHash", [launchLog.transactionHash]) : null,
-    curve && launchLog ? readCurveTrades(curve, launchLog.blockNumber, h, started + 2 * HISTORY_BUDGET_MS).catch(() => null) : Promise.resolve(null),
-    launchLog ? getLogs({ address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[]) : [],
+    launchLog ? tag("launch tx", rpc<{ input: string } | null>("eth_getTransactionByHash", [launchLog.transactionHash])) : null,
+    curve && launchLog ? tag("curve trades", readCurveTrades(curve, launchLog.blockNumber, h, started + 2 * HISTORY_BUDGET_MS).catch(() => null)) : Promise.resolve(null),
+    launchLog ? tag("graduation", getLogs({ address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[])) : [],
     null, // the creator's record runs on its own budget below
     quoteAddr ? batch([call(quoteAddr, callData.symbol()), call(quoteAddr, callData.decimals())]) : null,
     blockTimestamp(h),
-    pairsP,
-    launchLog ? quoteUsd(quoteAddr) : Promise.resolve(null),
+    tag("dexscreener", pairsP),
+    launchLog ? tag("eth price", quoteUsd(quoteAddr)) : Promise.resolve(null),
     // what the curve actually holds: the reserve that graduation is measured against
     curve
       ? (quoteAddr
@@ -328,7 +329,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   };
   report.flags = flagsFor(report, creatorSold, tsHead);
   report.tookMs = Date.now() - started;
-  if (process.env.VIALZ_TIMING) console.log(token, phases.map(([n, t]) => `${n} ${t}ms`).join(" | "));
+  console.log(`read ${token} ${phases.map(([n, t]) => `${n} ${t}ms`).join(" | ")}`);
   return report;
 }
 
