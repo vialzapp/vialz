@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate, Out } from "../App";
 import { ExtensionShowcase } from "../Showcase";
-import { API_BASE, REPO_URL } from "../brand";
+import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
 function useLiveExample() {
@@ -94,8 +94,8 @@ export function Landing() {
                   ? `Your check: $${mine.report.symbol}`
                   : "Reading your token from the chain"
                 : r
-                  ? `Live: $${r.symbol}, the busiest Pons launch of the last hour`
-                  : "Reading the busiest Pons launch of the last hour"}
+                  ? `$${r.symbol}, the busiest Pons launch this hour`
+                  : "Reading the busiest Pons launch this hour"}
               {checked && (
                 <button type="button" className="hero-live-back" onClick={() => setChecked(null)}>
                   Show the live launch
@@ -119,6 +119,12 @@ export function Landing() {
                 <ReportSkeleton note="Reading it from the chain." quick={live.state.status === "loading" ? live.state.quick : undefined} apiBase={API_BASE} />
               )}
             </ExtensionShowcase>
+            <div className="ext-cta">
+              <Link className="btn btn-act" href={CHROME_URL}>
+                {CHROME_LABEL}
+              </Link>
+              <span>Click the icon on any token page: gmgn, fomo, DexScreener.</span>
+            </div>
           </div>
         </div>
       </section>

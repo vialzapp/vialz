@@ -209,7 +209,7 @@ html {
 
 /* ---- hero: the thesis on the left, the product reading a live token on the right ---- */
 .hero {
-  padding-block: clamp(28px, 3.5vw, 56px) clamp(36px, 4.5vw, 64px);
+  padding-block: clamp(24px, 3vw, 44px) clamp(24px, 3vw, 40px);
 }
 
 .hero-grid {
@@ -259,6 +259,11 @@ html {
 
 .hero-live-label {
   margin: 0 0 12px;
+  /* leaves room for the "Vialz extension" pointer on the right */
+  padding-right: 164px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 14px;
   color: var(--ink-2);
 }
@@ -1053,7 +1058,7 @@ html {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  padding: 10px 8px 14px;
+  padding: 10px 8px 10px;
 }
 
 /* the page the popup opens over: only the shape of a token page, kept quiet */
@@ -1191,4 +1196,43 @@ html {
   .ext-popup {
     width: 100%;
   }
+}
+
+/* the pointer at the toolbar icon, sitting just above the window's right edge */
+.ext-showcase {
+  position: relative;
+}
+
+.ext-callout {
+  position: absolute;
+  top: -34px;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px 0 11px;
+  border-radius: 999px;
+  background: var(--act);
+  color: var(--act-ink);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* under the window: get it */
+.ext-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 10px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.ext-cta .btn {
+  height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { LockSimpleIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
+import { ArrowDownIcon, LockSimpleIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
 import { shortAddress } from "@vialz/shared";
 import { Mark } from "@vialz/ui";
 
@@ -22,55 +22,62 @@ function line(address: string | null): string {
  */
 export function ExtensionShowcase({ address, children }: { address: string | null; children: ReactNode }) {
   return (
-    <figure className="ext-window" aria-label="The Vialz extension open over a token page">
-      <div className="ext-bar" aria-hidden>
-        <span className="ext-dots">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="ext-url">
-          <LockSimpleIcon size={12} weight="bold" />
-          <span>app</span>
-          <span className="ext-url-path">/token/{address ? shortAddress(address) : "0x…"}</span>
-        </span>
-        <span className="ext-icons">
-          <PuzzlePieceIcon size={15} />
-          <span className="ext-vialz">
-            <Mark size={10} />
+    <div className="ext-showcase">
+      {/* a pointer at the toolbar icon, so it reads as the extension and not as part of the site */}
+      <span className="ext-callout" aria-hidden>
+        Vialz extension
+        <ArrowDownIcon size={13} weight="bold" />
+      </span>
+      <figure className="ext-window" aria-label="The Vialz extension open over a token page">
+        <div className="ext-bar" aria-hidden>
+          <span className="ext-dots">
+            <i />
+            <i />
+            <i />
           </span>
-        </span>
-      </div>
-
-      <div className="ext-stage">
-        <div className="ext-page" aria-hidden>
-          <div className="ext-page-title">
-            <span />
-            <span />
-          </div>
-          <svg className="ext-chart" viewBox="0 0 300 100" preserveAspectRatio="none">
-            <polyline points={line(address)} fill="none" />
-          </svg>
-          <div className="ext-page-rows">
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-
-        <div className="ext-popup">
-          <span className="ext-caret" aria-hidden />
-          <div className="ext-popup-head" aria-hidden>
-            <Mark size={12} />
-            <b>Vialz</b>
-            <span className="ext-chip">
-              <MagnifyingGlassIcon size={12} />
-              Check another
+          <span className="ext-url">
+            <LockSimpleIcon size={12} weight="bold" />
+            <span>app</span>
+            <span className="ext-url-path">/token/{address ? shortAddress(address) : "0x…"}</span>
+          </span>
+          <span className="ext-icons">
+            <PuzzlePieceIcon size={15} />
+            <span className="ext-vialz">
+              <Mark size={10} />
             </span>
-          </div>
-          <div className="ext-popup-body">{children}</div>
+          </span>
         </div>
-      </div>
-    </figure>
+
+        <div className="ext-stage">
+          <div className="ext-page" aria-hidden>
+            <div className="ext-page-title">
+              <span />
+              <span />
+            </div>
+            <svg className="ext-chart" viewBox="0 0 300 100" preserveAspectRatio="none">
+              <polyline points={line(address)} fill="none" />
+            </svg>
+            <div className="ext-page-rows">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+
+          <div className="ext-popup">
+            <span className="ext-caret" aria-hidden />
+            <div className="ext-popup-head" aria-hidden>
+              <Mark size={12} />
+              <b>Vialz</b>
+              <span className="ext-chip">
+                <MagnifyingGlassIcon size={12} />
+                Check another
+              </span>
+            </div>
+            <div className="ext-popup-body">{children}</div>
+          </div>
+        </div>
+      </figure>
+    </div>
   );
 }
