@@ -211,7 +211,7 @@ app.addHook("onRequest", async (req, reply) => {
     return reply.code(404).header("cache-control", "no-store").send({ error: "not_found", message: "Not found." });
   }
   if (url.pathname === "/privacy")
-    return reply.code(200).type("text/html; charset=utf-8").header("cache-control", "no-store").header("content-security-policy", PLACEHOLDER_CSP).send(PRIVACY_PAGE);
+    return reply.code(200).type("text/html; charset=utf-8").header("cache-control", "no-store, no-transform").header("content-security-policy", PLACEHOLDER_CSP).send(PRIVACY_PAGE);
   if (url.pathname === "/robots.txt") return reply.type("text/plain").header("cache-control", "no-store").send("User-agent: *\nDisallow: /\n");
   if (url.pathname.startsWith("/assets/") || /\.[a-z0-9]+$/i.test(url.pathname)) return reply.code(404).header("cache-control", "no-store").send("Not found.");
   return reply.code(200).type("text/html; charset=utf-8").header("cache-control", "no-store").header("content-security-policy", PLACEHOLDER_CSP).send(PLACEHOLDER);

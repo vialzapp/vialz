@@ -687,7 +687,7 @@
   background: var(--ink);
 }
 .vz-pos-bar .pos-burned {
-  background: var(--ink-3);
+  background: var(--good-pad);
 }
 .vz-pos-bar .pos-locked {
   background: var(--info-pad);
@@ -723,7 +723,10 @@
   background: var(--ink);
 }
 .vz-pos-values .pos-burned dt::before {
-  background: var(--ink-3);
+  background: var(--good-pad);
+}
+.vz-pos-values .pos-burned dd {
+  color: var(--good);
 }
 .vz-pos-values .pos-locked dt::before {
   background: var(--info-pad);

@@ -815,8 +815,11 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     const forWhat = cp.got && cp.got > 0 ? ` for ${trimQuote(cp.got)} ${quote}` : "";
     f.push({ level: share >= 50 ? "warn" : "info", text: `Creator sold ${Math.round(share)}% of their tokens${forWhat}` });
   } else if (!cp && creatorSold > 0) f.push({ level: "warn", text: `Creator sold ${creatorSold.toFixed(3)} ${quote} worth` });
-  if (cp && took > 0 && cp.burnedPct >= 0.1)
-    f.push({ level: "info", text: `Creator burned ${Math.round(Math.min(100, (cp.burnedPct / took) * 100))}% of their tokens (${fmt(cp.burnedPct)}% of supply)` });
+  if (cp && took > 0 && cp.burnedPct >= 0.1) {
+    // burning most of their own bag is a good sign; a small burn next to a big sell is not
+    const share = Math.min(100, (cp.burnedPct / took) * 100);
+    f.push({ level: share >= 50 ? "good" : "info", text: `Creator burned ${Math.round(share)}% of their tokens (${fmt(cp.burnedPct)}% of supply)` });
+  }
   if (cp && took > 0 && cp.sentPct >= 0.1) {
     const share = Math.min(100, (cp.sentPct / took) * 100);
     f.push({
