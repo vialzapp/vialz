@@ -49,6 +49,11 @@ const BACKGROUND_SLOTS = 2;
 const URGENT_SLOTS = 2;
 const laneOf = new AsyncLocalStorage<"background" | "urgent">();
 
+/** Runs `fn` on its own: its own deadline and the urgent lane, whatever request happened to start it. For reads that
+ *  several requests share, so one caller's short deadline cannot fail the others. */
+export const detached = <T>(fn: () => Promise<T>, budgetMs = 20_000): Promise<T> =>
+  requestDeadline.run(Date.now() + budgetMs, () => laneOf.run("urgent", fn));
+
 /** Runs `fn` with its RPC requests in the background lane. */
 export const inBackground = <T>(fn: () => Promise<T>): Promise<T> => laneOf.run("background", fn);
 /** Runs `fn` with its RPC requests in the urgent lane: a few light calls someone is looking at a blank card for. They
@@ -131,7 +136,10 @@ async function post(body: unknown, explicitDeadline = Infinity): Promise<unknown
   const urgent = laneOf.getStore() === "urgent";
   for (let attempt = 0; attempt < 7; attempt++) {
     const wait = pauseUntil - Date.now();
-    if (wait > 0 && !urgent) await sleep(wait);
+    if (wait > 0 && !urgent) {
+      if (Date.now() + wait > deadline) throw new DeadlineError("the node's pause outlasts this request");
+      await sleep(wait);
+    }
     if (Date.now() > deadline) throw new DeadlineError("request ran out of time");
     try {
       return await postOnce(text);
@@ -144,7 +152,9 @@ async function post(body: unknown, explicitDeadline = Infinity): Promise<unknown
         rpcStats.limited++;
         if (process.env.RH_DEBUG_LIMITS) console.log("429 on", text.slice(0, 220));
         // as long as the node asks; otherwise 250 ms, doubling, never more than 3 s
-        const ms = (e as RpcError).retryAfter ? (e as RpcError).retryAfter! * 1000 : Math.min(3_000, 250 * 2 ** attempt) * (0.8 + Math.random() * 0.4);
+        // what the node asks, but never more than 5 s: one long Retry-After must not stall every read for minutes
+        const asked = (e as RpcError).retryAfter;
+        const ms = asked ? Math.min(asked, 5) * 1000 : Math.min(3_000, 250 * 2 ** attempt) * (0.8 + Math.random() * 0.4);
         if (urgent) await sleep(Math.min(ms, 150 * 2 ** attempt));
         else pauseUntil = Math.max(pauseUntil, Date.now() + ms);
       } else await sleep(300 * 2 ** Math.min(attempt, 3) * (0.75 + Math.random() / 2));
@@ -275,9 +285,11 @@ export async function getLogsKept(key: string, filter: LogFilter, from: number, 
   const all = hit && hit.from === from ? hit.logs.concat(fresh) : fresh;
   const settled = Math.max(from - 1, to - REORG_MARGIN);
   const keep = all.filter((l) => l.blockNumber <= settled);
-  if (hit) {
+  // another read of the same key may have stored its own entry meanwhile: replace whatever is there now
+  const cur = logCache.get(key);
+  if (cur) {
     logCache.delete(key);
-    logCacheSize -= hit.logs.length;
+    logCacheSize -= cur.logs.length;
   }
   if (keep.length <= LOG_CACHE_MAX / 4) {
     logCache.set(key, { from, settled, logs: keep });
@@ -288,7 +300,8 @@ export async function getLogsKept(key: string, filter: LogFilter, from: number, 
       logCacheSize -= v.logs.length;
     }
   }
-  return all;
+  // a cached history can run past this read's head when two reads use heads a few blocks apart
+  return all.filter((l) => l.blockNumber <= to);
 }
 
 /** Walks back from `to` one span at a time; stops once `done` says the logs seen so far are enough, or at `floor`.

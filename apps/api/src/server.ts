@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { extractAddress, isPending, type TokenReport } from "@vialz/shared";
-import { analyzeToken, NotFound, quickToken, withCreator } from "./analyze.js";
+import { analyzeToken, NotFound, quickCached, quickToken, withCreator } from "./analyze.js";
 import { inUrgent, requestDeadline } from "./rpc.js";
 import { busiestLaunch } from "./latest.js";
 import { CID_RE, ImagesBusy, ipfsImage } from "./images.js";
@@ -49,18 +49,32 @@ const cached = (address: string) => {
 // Reads that go to the chain are limited per client; answers from memory (repeat checks, the polls that wait for the
 // creator's record) only count against the much looser route limit.
 const READS_PER_MINUTE = Number(process.env.TOKEN_PER_MINUTE ?? 15);
-const reads = new Map<string, number[]>();
-function allowRead(ip: string): number {
+const QUICK_PER_MINUTE = 30;
+// per client and kind: the times of reads that went to the chain, with the address, so one page re-reading its own
+// token (polls) counts once a minute
+const reads = new Map<string, { t: number; a: string }[]>();
+function allowRead(ip: string, address: string, kind: "report" | "quick" = "report"): number {
   const now = Date.now();
-  const recent = (reads.get(ip) ?? []).filter((t) => now - t < 60_000);
-  if (recent.length >= READS_PER_MINUTE) {
-    reads.set(ip, recent);
-    return Math.ceil((recent[0]! + 60_000 - now) / 1000); // seconds until a slot frees
+  const key = `${kind}:${ip}`;
+  const recent = (reads.get(key) ?? []).filter((r) => now - r.t < 60_000);
+  if (recent.some((r) => r.a === address)) return 0;
+  if (recent.length >= (kind === "quick" ? QUICK_PER_MINUTE : READS_PER_MINUTE)) {
+    reads.set(key, recent);
+    return Math.ceil((recent[0]!.t + 60_000 - now) / 1000); // seconds until a slot frees
   }
-  recent.push(now);
-  reads.set(ip, recent);
-  if (reads.size > 20_000) reads.delete(reads.keys().next().value!);
+  recent.push({ t: now, a: address });
+  reads.set(key, recent);
+  if (reads.size > 40_000) reads.delete(reads.keys().next().value!);
   return 0;
+}
+
+// The image proxy serves only images of tokens someone has read: it is not a general IPFS gateway on our domain.
+const knownImages = new Set<string>();
+function noteImage(cid: string | null | undefined) {
+  if (!cid) return;
+  knownImages.delete(cid);
+  knownImages.add(cid);
+  if (knownImages.size > 20_000) knownImages.delete(knownImages.values().next().value!);
 }
 
 function report(address: string): Promise<TokenReport> {
@@ -84,6 +98,7 @@ function report(address: string): Promise<TokenReport> {
     (r) => {
       if (!mine()) return;
       entry.value = r;
+      noteImage(r.links.image);
       // fresh for TTL from when the read finished; a report still waiting on funding is kept short so polls pick it
       // up (the creator's record needs no new read: see above)
       entry.at = r.fundingStatus === "pending" ? Date.now() - TTL_MS + 2_000 : Date.now();
@@ -157,6 +172,7 @@ app.get("/v1/health", async () => ({ ok: true }));
 
 app.get<{ Params: { cid: string } }>("/v1/img/:cid", perMinute(120), async (req, reply) => {
   if (!CID_RE.test(req.params.cid)) return reply.code(400).send({ error: "bad_cid", message: "Not an IPFS content id." });
+  if (!knownImages.has(req.params.cid)) return reply.code(404).send({ error: "not_found", message: "Not the image of a token read here." });
   let img;
   try {
     img = await ipfsImage(req.params.cid);
@@ -180,7 +196,7 @@ app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(120), a
   const address = extractAddress(req.params.address);
   if (!address) return reply.code(400).send({ error: "bad_address", message: "Paste a contract address (0x… 40 hex characters)." });
   if (!cached(address)) {
-    const wait = allowRead(clientIp(req, CLIENT_IP_HEADER));
+    const wait = allowRead(clientIp(req, CLIENT_IP_HEADER), address);
     if (wait > 0)
       return reply
         .code(429)
@@ -204,8 +220,13 @@ app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(120), a
 app.get<{ Params: { address: string } }>("/v1/token/:address/quick", perMinute(120), async (req, reply) => {
   const address = extractAddress(req.params.address);
   if (!address) return reply.code(400).send({ error: "bad_address", message: "Paste a contract address (0x… 40 hex characters)." });
+  if (!quickCached(address)) {
+    const wait = allowRead(clientIp(req, CLIENT_IP_HEADER), address, "quick");
+    if (wait > 0) return reply.code(429).header("retry-after", String(wait)).send({ error: "rate_limited", message: `Too many checks. Try again in ${wait} seconds.` });
+  }
   try {
     const q = await requestDeadline.run(Date.now() + 10_000, () => inUrgent(() => quickToken(address)));
+    noteImage(q.links.image);
     reply.header("cache-control", "public, max-age=5");
     return q;
   } catch (e) {

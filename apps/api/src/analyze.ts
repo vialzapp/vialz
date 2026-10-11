@@ -4,7 +4,7 @@
 import type { Address, Cluster, Flag, Holder, HolderLabel, PriorLaunch, TokenQuick, TokenReport } from "@vialz/shared";
 import { CHAIN_ID } from "@vialz/shared";
 import {
-  DeadlineError, batch, blockTimestamp, getLogs, getLogsBackward, getLogsKept, inBackground, knownBlockTime, noteBlockTime, noteHead, rpc, rpcStats,
+  DeadlineError, batch, blockTimestamp, detached, getLogs, getLogsBackward, getLogsKept, inBackground, knownBlockTime, noteBlockTime, noteHead, rpc, rpcStats,
   topicAddress, addressFromTopic, type Log,
 } from "./rpc.js";
 import {
@@ -69,7 +69,7 @@ const bound = <K, V>(m: Map<K, V>, max: number) => {
 function factsOf(token: Address): Promise<Facts> {
   const hit = factsMemo.get(token);
   if (hit && Date.now() - hit.at < FACTS_TTL_MS) return hit.value;
-  const value = readFacts(token);
+  const value = detached(() => readFacts(token));
   const entry = { at: Date.now(), value };
   factsMemo.set(token, entry);
   value.catch(() => {
@@ -113,8 +113,11 @@ async function readFacts(token: Address): Promise<Facts> {
         FACTORY_START,
       );
       launchLog = found[0];
-      launchLogs.set(token, launchLog ?? null);
-      bound(launchLogs, 50_000);
+      // only a found log is kept: a just-launched token's log can lag the factory call by a moment
+      if (launchLog) {
+        launchLogs.set(token, launchLog);
+        bound(launchLogs, 50_000);
+      }
     }
   }
   const curve = launchLog ? addressFromTopic(launchLog.topics[2]!) : (record?.curve ?? null);
@@ -177,8 +180,29 @@ const thresholdOf = (f: Facts) => (f.launchWords[2] != null ? Number(f.launchWor
 
 /** The first look at a token, in about two round trips: name, links, age, curve progress and what the pool or curve
  *  holds. The full report follows; this is what the page shows while it is read. */
+const notTokens = new Map<string, number>(); // address -> when it turned out not to be a token
+
+/** True when a quick look at this address is answered from memory. */
+export const quickCached = (token: string) => {
+  const hit = factsMemo.get(token);
+  const miss = notTokens.get(token);
+  return (hit != null && Date.now() - hit.at < FACTS_TTL_MS) || (miss != null && Date.now() - miss < 60_000);
+};
+
 export async function quickToken(token: Address): Promise<TokenQuick> {
-  const f = await factsOf(token);
+  const miss = notTokens.get(token);
+  if (miss != null && Date.now() - miss < 60_000) throw new NotFound("This address isn't a token on Robinhood Chain. Check that you copied the contract address.");
+  const facts = factsOf(token).catch((e) => {
+    if (e instanceof NotFound) {
+      notTokens.set(token, Date.now());
+      bound(notTokens, 20_000);
+    }
+    throw e;
+  });
+  return quickFrom(token, await facts);
+}
+
+async function quickFrom(token: Address, f: Facts): Promise<TokenQuick> {
   const [pairs, quotePrice] = await Promise.all([dexPairs(token).catch(() => [] as DexPair[]), f.launchLog ? quoteUsd(f.quoteAddr).catch(() => null) : null]);
   const pair = pairs[0];
   const graduated = f.record?.phase === "pool" || f.record?.phase === "swept";
@@ -238,7 +262,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const devGate = new Promise<void>((r) => (startDev = r));
   const devP: Promise<CreatorLaunches | null> | null =
     launchLog && creator
-      ? (creatorCached(creator) ? Promise.resolve() : devGate)
+      ? (creatorCached(creator, token) ? Promise.resolve() : devGate)
           .then(() => inBackground(() => creatorLaunches(creator!, h, { token, curve: curve!, block: launchLog!.blockNumber, phase: record?.phase ?? "unknown" })))
           .catch(() => null)
       : null;
@@ -606,15 +630,18 @@ interface SelfLaunch {
   phase: CreatorLaunch["phase"];
 }
 
-const creatorCached = (creator: string) => {
+const creatorCached = (creator: string, token?: string) => {
   const hit = creatorCache.get(creator);
+  if (hit?.done != null && token && !hit.done.some((l) => l.token === token)) return false;
   return hit != null && Date.now() - hit.at < CREATOR_TTL_MS;
 };
 
 /** Every Pons launch by a creator, newest first, with phases and, for the latest few, whether the creator sold. Cached per creator. */
 function creatorLaunches(creator: string, h: number, self: SelfLaunch): Promise<CreatorLaunches> {
   const hit = creatorCache.get(creator);
-  if (hit && Date.now() - hit.at < CREATOR_TTL_MS) return hit.value;
+  // a record read before this token launched is out of date, however fresh: it would call a second launch the first
+  const stale = hit?.done != null && !hit.done.some((l) => l.token === self.token);
+  if (hit && !stale && Date.now() - hit.at < CREATOR_TTL_MS) return hit.value;
   const value = loadCreatorLaunches(creator, h, self);
   const entry: { at: number; value: Promise<CreatorLaunches>; done?: CreatorLaunches | null } = { at: Date.now(), value };
   creatorCache.set(creator, entry);
