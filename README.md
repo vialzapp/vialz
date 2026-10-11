@@ -40,8 +40,10 @@ switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the t
 
 ## Official links
 
+- Site: [vialz.xyz](https://vialz.xyz)
 - X: [@vialzapp](https://x.com/vialzapp)
-- The extension is only published from this repository's releases and the Chrome Web Store listing linked on X.
+- Code: [github.com/vialzapp/vialz](https://github.com/vialzapp/vialz)
+- The extension is only published on the Chrome Web Store listing linked from the site and from X. Until it is live you can build it from this repository.
 
 License: MIT. See [SECURITY.md](SECURITY.md) and [NOTICE.md](NOTICE.md).
 
