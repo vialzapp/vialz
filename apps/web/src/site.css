@@ -209,7 +209,7 @@ html {
 
 /* ---- hero: the thesis on the left, the product reading a live token on the right ---- */
 .hero {
-  padding-block: clamp(24px, 3vw, 44px) clamp(24px, 3vw, 40px);
+  padding-block: clamp(24px, 2.6vw, 40px) clamp(24px, 2.6vw, 36px);
 }
 
 .hero-grid {
@@ -255,24 +255,6 @@ html {
 
 .hero-live {
   min-width: 0;
-}
-
-.hero-live-label {
-  margin: 0 0 12px;
-  /* leaves room for the "Vialz extension" pointer on the right */
-  padding-right: 164px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 14px;
-  color: var(--ink-2);
-}
-
-.hero-live-label {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 16px;
 }
 
 .hero-live-back {
@@ -1058,7 +1040,7 @@ html {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  padding: 10px 8px 10px;
+  padding: 8px;
 }
 
 /* the page the popup opens over: only the shape of a token page, kept quiet */
@@ -1187,7 +1169,20 @@ html {
 }
 
 @media (max-width: 560px) {
+  /* no room beside the popup: the page keeps only its heading, above it */
+  .ext-stage {
+    flex-direction: column;
+  }
   .ext-page {
+    position: static;
+    padding: 6px 8px 12px;
+  }
+  .ext-page-title {
+    max-width: none;
+    margin: 0;
+  }
+  .ext-chart,
+  .ext-page-rows {
     display: none;
   }
   .ext-stage {
@@ -1198,41 +1193,48 @@ html {
   }
 }
 
-/* the pointer at the toolbar icon, sitting just above the window's right edge */
-.ext-showcase {
-  position: relative;
-}
-
+/* the pointer at the pressed icon, inside the toolbar */
 .ext-callout {
-  position: absolute;
-  top: -34px;
-  right: 0;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 24px;
-  padding: 0 10px 0 11px;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px 0 10px;
   border-radius: 999px;
   background: var(--act);
   color: var(--act-ink);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   white-space: nowrap;
 }
 
-/* under the window: get it */
-.ext-cta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 16px;
-  margin-top: 10px;
-  font-size: 13.5px;
-  color: var(--ink-2);
+/* the token page's heading, left of the popup */
+.ext-page-title {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  max-width: 15ch;
+  margin-bottom: 18px;
 }
 
-.ext-cta .btn {
-  height: 40px;
-  padding: 0 18px;
-  font-size: 14px;
+.ext-page-title b {
+  font-size: 24px;
+  line-height: 1.05;
+  font-weight: 700;
+  font-stretch: 78%;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.ext-page-title small {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--w-ink);
+}
+
+.ext-page-title .hero-live-back {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink);
+  pointer-events: auto;
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate, Out } from "../App";
 import { ExtensionShowcase } from "../Showcase";
-import { API_BASE, CHROME_LABEL, CHROME_URL, REPO_URL } from "../brand";
+import { API_BASE, REPO_URL } from "../brand";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
 function useLiveExample() {
@@ -88,21 +88,20 @@ export function Landing() {
           </div>
 
           <div className="hero-live" aria-live="polite">
-            <p className="hero-live-label">
-              {checked
-                ? mine.status === "ready"
-                  ? `Your check: $${mine.report.symbol}`
-                  : "Reading your token from the chain"
-                : r
-                  ? `$${r.symbol}, the busiest Pons launch this hour`
-                  : "Reading the busiest Pons launch this hour"}
-              {checked && (
-                <button type="button" className="hero-live-back" onClick={() => setChecked(null)}>
-                  Show the live launch
-                </button>
-              )}
-            </p>
-            <ExtensionShowcase address={checked ?? r?.address ?? live.token}>
+            <ExtensionShowcase
+              address={checked ?? r?.address ?? live.token}
+              title={
+                <>
+                  <b>{checked ? (mine.status === "ready" ? `$${mine.report.symbol}` : "Your token") : r ? `$${r.symbol}` : "Reading"}</b>
+                  <small>{checked ? "your check, read from the chain" : "the busiest Pons launch this hour"}</small>
+                  {checked && (
+                    <button type="button" className="hero-live-back" onClick={() => setChecked(null)}>
+                      Show the live launch
+                    </button>
+                  )}
+                </>
+              }
+            >
               {checked ? (
                 mine.status === "ready" ? (
                   <Report report={mine.report} compact={{ href: `/t/${mine.report.address}` }} apiBase={API_BASE} />
@@ -119,12 +118,6 @@ export function Landing() {
                 <ReportSkeleton note="Reading it from the chain." quick={live.state.status === "loading" ? live.state.quick : undefined} apiBase={API_BASE} />
               )}
             </ExtensionShowcase>
-            <div className="ext-cta">
-              <Link className="btn btn-act" href={CHROME_URL}>
-                {CHROME_LABEL}
-              </Link>
-              <span>Click the icon on any token page: gmgn, fomo, DexScreener.</span>
-            </div>
           </div>
         </div>
       </section>

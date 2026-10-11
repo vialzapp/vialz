@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowDownIcon, LockSimpleIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, LockSimpleIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
 import { shortAddress } from "@vialz/shared";
 import { Mark } from "@vialz/ui";
 
@@ -20,14 +20,9 @@ function line(address: string | null): string {
  * The extension as it is used: a token page open in the browser, the Vialz icon pressed in the toolbar, and the popup
  * hanging under it with the reading. The page behind is only a suggestion of one; the popup is the real report.
  */
-export function ExtensionShowcase({ address, children }: { address: string | null; children: ReactNode }) {
+export function ExtensionShowcase({ address, title, children }: { address: string | null; title: ReactNode; children: ReactNode }) {
   return (
     <div className="ext-showcase">
-      {/* a pointer at the toolbar icon, so it reads as the extension and not as part of the site */}
-      <span className="ext-callout" aria-hidden>
-        Vialz extension
-        <ArrowDownIcon size={13} weight="bold" />
-      </span>
       <figure className="ext-window" aria-label="The Vialz extension open over a token page">
         <div className="ext-bar" aria-hidden>
           <span className="ext-dots">
@@ -42,6 +37,11 @@ export function ExtensionShowcase({ address, children }: { address: string | nul
           </span>
           <span className="ext-icons">
             <PuzzlePieceIcon size={15} />
+            {/* a pointer at the pressed icon, so the popup reads as the extension and not as part of the site */}
+            <span className="ext-callout">
+              Vialz extension
+              <ArrowRightIcon size={12} weight="bold" />
+            </span>
             <span className="ext-vialz">
               <Mark size={10} />
             </span>
@@ -49,15 +49,13 @@ export function ExtensionShowcase({ address, children }: { address: string | nul
         </div>
 
         <div className="ext-stage">
-          <div className="ext-page" aria-hidden>
-            <div className="ext-page-title">
-              <span />
-              <span />
-            </div>
-            <svg className="ext-chart" viewBox="0 0 300 100" preserveAspectRatio="none">
+          <div className="ext-page">
+            {/* the token page's own heading: which token the popup is reading */}
+            <div className="ext-page-title">{title}</div>
+            <svg className="ext-chart" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden>
               <polyline points={line(address)} fill="none" />
             </svg>
-            <div className="ext-page-rows">
+            <div className="ext-page-rows" aria-hidden>
               <span />
               <span />
               <span />
