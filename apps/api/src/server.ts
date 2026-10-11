@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -155,7 +155,26 @@ const cookieOf = (header: string | undefined, name: string) =>
     ?.split(";")
     .map((c) => c.trim().split("="))
     .find(([k]) => k === name)?.[1];
-const PLACEHOLDER = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Soon</title><style>html,body{height:100%;margin:0;background:#0b0c0f;color:#8b8f99;font:500 15px/1.5 system-ui,sans-serif}body{display:grid;place-items:center}</style></head><body><p>Soon.</p></body></html>`;
+// the placeholder: the same night sky as the site and one word, with no name, mark or link that ties it to the project.
+// The site's display face is inlined, because the site's own files stay closed to strangers.
+const STARS_IMAGE = "radial-gradient(circle at 165px 77px, oklch(0.97 0.01 250 / 0.23) 0 0.7px, transparent 1.3px), radial-gradient(circle at 48px 187px, oklch(0.97 0.01 250 / 0.47) 0 0.7px, transparent 1.3px), radial-gradient(circle at 109px 19px, oklch(0.97 0.01 250 / 0.6) 0 1.1px, transparent 1.7px), radial-gradient(circle at 123px 46px, oklch(0.97 0.01 250 / 0.24) 0 0.7px, transparent 1.3px), radial-gradient(circle at 289px 63px, oklch(0.97 0.01 250 / 0.4) 0 0.7px, transparent 1.3px), radial-gradient(circle at 298px 31px, oklch(0.97 0.01 250 / 0.33) 0 0.7px, transparent 1.3px), radial-gradient(circle at 113px 23px, oklch(0.97 0.01 250 / 0.26) 0 0.7px, transparent 1.3px), radial-gradient(circle at 214px 73px, oklch(0.97 0.01 250 / 0.38) 0 0.7px, transparent 1.3px), radial-gradient(circle at 573px 185px, oklch(0.97 0.01 250 / 0.65) 0 1.1px, transparent 1.7px), radial-gradient(circle at 192px 381px, oklch(0.97 0.01 250 / 0.7) 0 1.1px, transparent 1.7px), radial-gradient(circle at 577px 61px, oklch(0.97 0.01 250 / 0.36) 0 0.7px, transparent 1.3px), radial-gradient(circle at 544px 437px, oklch(0.97 0.01 250 / 0.35) 0 0.7px, transparent 1.3px), radial-gradient(circle at 464px 370px, oklch(0.97 0.01 250 / 0.44) 0 0.7px, transparent 1.3px), radial-gradient(circle at 715px 249px, oklch(0.97 0.01 250 / 0.56) 0 1.1px, transparent 1.7px), radial-gradient(circle at 506px 351px, oklch(0.97 0.01 250 / 0.3) 0 0.7px, transparent 1.3px), radial-gradient(circle at 74px 120px, oklch(0.97 0.01 250 / 0.27) 0 0.7px, transparent 1.3px)";
+const STARS_SIZE = "263px 263px, 263px 263px, 331px 331px, 331px 331px, 409px 409px, 409px 409px, 487px 487px, 487px 487px, 577px 577px, 577px 577px, 661px 661px, 661px 661px, 743px 743px, 743px 743px, 853px 853px, 853px 853px";
+function placeholderPage(): string {
+  const assets = [join(dirname(fileURLToPath(import.meta.url)), "../../web/dist/assets"), join(dirname(fileURLToPath(import.meta.url)), "../web/dist/assets")].find((d) => existsSync(d));
+  const fontFile = assets && readdirSync(assets).find((f) => /^archivo-latin-standard-normal-.*\.woff2$/.test(f));
+  const font = fontFile ? `@font-face{font-family:A;src:url(data:font/woff2;base64,${readFileSync(join(assets!, fontFile)).toString("base64")}) format("woff2");font-weight:100 900;font-stretch:62% 125%}` : "";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Soon</title><style>${font}
+html,body{height:100%;margin:0;background:#0b0c10;overflow:hidden}
+body{display:grid;place-items:center;font-family:A,"Arial Narrow",system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0;background-image:${STARS_IMAGE};background-size:${STARS_SIZE};animation:sky 2.4s ease-out both}
+h1{position:relative;margin:0;color:#f3f4f6;font-size:clamp(84px,19vw,280px);font-weight:700;font-stretch:78%;letter-spacing:-.03em;line-height:.9;animation:rise 1.6s cubic-bezier(.16,1,.3,1) .2s both}
+@keyframes rise{from{opacity:0;transform:translateY(24px);letter-spacing:.04em}}
+@keyframes sky{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){h1,body::before{animation:none}}
+</style></head><body><h1>Soon.</h1></body></html>`;
+}
+const PLACEHOLDER = PREVIEW_KEY ? placeholderPage() : "";
+const PLACEHOLDER_CSP = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
 app.addHook("onRequest", async (req, reply) => {
   if (!PREVIEW_KEY) return;
@@ -175,7 +194,7 @@ app.addHook("onRequest", async (req, reply) => {
   }
   if (url.pathname === "/robots.txt") return reply.type("text/plain").header("cache-control", "no-store").send("User-agent: *\nDisallow: /\n");
   if (url.pathname.startsWith("/assets/") || /\.[a-z0-9]+$/i.test(url.pathname)) return reply.code(404).header("cache-control", "no-store").send("Not found.");
-  return reply.code(200).type("text/html; charset=utf-8").header("cache-control", "no-store").send(PLACEHOLDER);
+  return reply.code(200).type("text/html; charset=utf-8").header("cache-control", "no-store").header("content-security-policy", PLACEHOLDER_CSP).send(PLACEHOLDER);
 });
 
 app.addHook("onSend", async (req, reply) => {
@@ -185,7 +204,7 @@ app.addHook("onSend", async (req, reply) => {
   reply.header("x-frame-options", "DENY");
   if (req.url.startsWith("/v1/img/")) reply.header("content-security-policy", "default-src 'none'; sandbox");
   else if (!req.url.startsWith("/v1/")) {
-    reply.header("content-security-policy", SITE_CSP);
+    if (!reply.getHeader("content-security-policy")) reply.header("content-security-policy", SITE_CSP);
     // hashed build files never change; the page itself is always revalidated
     // no-transform: Cloudflare may not rewrite our pages, so it injects no analytics beacon (our CSP would block it anyway,
     // and the privacy page promises no third-party analytics)
