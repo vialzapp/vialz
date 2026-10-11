@@ -168,10 +168,10 @@ html,body{height:100%;margin:0;background:#0b0c10;overflow:hidden}
 body{display:grid;place-items:center;font-family:A,"Arial Narrow",system-ui,sans-serif}
 body::before{content:"";position:fixed;inset:0;background-image:${STARS_IMAGE};background-size:${STARS_SIZE};animation:sky 2.4s ease-out both}
 h1{position:relative;margin:0;color:#f3f4f6;font-size:clamp(84px,19vw,280px);font-weight:700;font-stretch:78%;letter-spacing:-.03em;line-height:.9;animation:rise 1.6s cubic-bezier(.16,1,.3,1) .2s both}
-@keyframes rise{from{opacity:0;transform:translateY(24px);letter-spacing:.04em}}
+@keyframes rise{from{opacity:0}}
 @keyframes sky{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){h1,body::before{animation:none}}
-</style></head><body><h1>Soon.</h1></body></html>`;
+</style></head><body><h1>Soon</h1></body></html>`;
 }
 const PLACEHOLDER = PREVIEW_KEY ? placeholderPage() : "";
 const PLACEHOLDER_CSP = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
