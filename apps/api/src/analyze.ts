@@ -1,9 +1,12 @@
 // Builds a TokenReport for any ERC-20 on Robinhood Chain straight from the chain.
 // Pons launches get the full launch section (curve, dev buy, bundle, snipers, dev history); other tokens get holders,
 // distribution clusters and pool market data.
-import type { Address, Cluster, Flag, Holder, HolderLabel, PriorLaunch, TokenReport } from "@vialz/shared";
+import type { Address, Cluster, Flag, Holder, HolderLabel, PriorLaunch, TokenQuick, TokenReport } from "@vialz/shared";
 import { CHAIN_ID } from "@vialz/shared";
-import { DeadlineError, batch, blockTimestamp, getLogs, getLogsBackward, head, inBackground, rpc, topicAddress, addressFromTopic, type Log } from "./rpc.js";
+import {
+  DeadlineError, batch, blockTimestamp, getLogs, getLogsBackward, getLogsKept, inBackground, knownBlockTime, noteBlockTime, noteHead, rpc, rpcStats,
+  topicAddress, addressFromTopic, type Log,
+} from "./rpc.js";
 import {
   CURVE_BUY, CURVE_SELL, DEAD, FACTORY, FACTORY_START, FOMO_ROUTER, HOOK, LOCKER, POOL_GRADUATED, POOL_MANAGER, ROUTER, TOKEN_LAUNCHED,
   TRANSFER, ZERO, callData, decodeLaunchAndBuy, decodeLaunched, decodeString, decodeTokenInfo, decodeUint, words,
@@ -28,6 +31,177 @@ interface Trade {
 
 const call = (to: string, data: string): [string, unknown[]] => ["eth_call", [{ to, data }, "latest"]];
 
+// ---- the facts every read starts from, read in two round trips and shared --------------------------------------------
+// The quick card and the full report both need these; asked for at the same moment they share one read. What never
+// changes (the launch log, the launch transaction, the launch block's time) is kept for good.
+
+interface Facts {
+  h: number;
+  name: string;
+  symbol: string;
+  decimals: number;
+  supplyRaw: bigint;
+  supply: number;
+  record: ReturnType<typeof decodeLaunched>;
+  info: ReturnType<typeof decodeTokenInfo>;
+  launchLog: Log | undefined;
+  curve: string | null;
+  launchWords: bigint[];
+  quoteAddr: string | null;
+  quoteDecimals: number;
+  quoteSymbol: string;
+  reserveRaw: string | null;
+  launchInput: string | null;
+  tsHead: number;
+  tsLaunch: number | null;
+}
+
+const launchLogs = new Map<string, Log | null>(); // token -> its TOKEN_LAUNCHED log (null: not a Pons launch)
+const launchInputs = new Map<string, string | null>(); // launch tx hash -> its calldata
+const quoteMetas = new Map<string, [string, number]>(); // quote token -> [symbol, decimals]
+const factsMemo = new Map<string, { at: number; value: Promise<Facts> }>();
+const FACTS_TTL_MS = 4_000;
+
+const bound = <K, V>(m: Map<K, V>, max: number) => {
+  if (m.size > max) m.delete(m.keys().next().value!);
+};
+
+function factsOf(token: Address): Promise<Facts> {
+  const hit = factsMemo.get(token);
+  if (hit && Date.now() - hit.at < FACTS_TTL_MS) return hit.value;
+  const value = readFacts(token);
+  const entry = { at: Date.now(), value };
+  factsMemo.set(token, entry);
+  value.catch(() => {
+    if (factsMemo.get(token) === entry) factsMemo.delete(token);
+  });
+  bound(factsMemo, 2_000);
+  return value;
+}
+
+async function readFacts(token: Address): Promise<Facts> {
+  // round trip 1: the head and the token's own calls
+  const first = await batch([
+    ["eth_blockNumber", []],
+    call(token, callData.name()),
+    call(token, callData.symbol()),
+    call(token, callData.decimals()),
+    call(token, callData.totalSupply()),
+    call(FACTORY, callData.getLaunchedToken(token)),
+    call(token, callData.getTokenInfo()),
+  ]);
+  const h = Number(first[0]);
+  noteHead(h);
+  const supplyRaw = decodeUint(first[4]);
+  const decimalsRaw = decodeUint(first[3]);
+  if (supplyRaw == null || decimalsRaw == null) throw new NotFound("This address isn't a token on Robinhood Chain. Check that you copied the contract address.");
+  const decimals = Number(decimalsRaw);
+  const record = decodeLaunched(first[5]);
+  const info = decodeTokenInfo(first[6]);
+
+  // the launch log: found once by walking back from the head, then kept
+  let launchLog: Log | undefined;
+  if (record) {
+    const known = launchLogs.get(token);
+    if (known !== undefined) launchLog = known ?? undefined;
+    else {
+      const found = await getLogsBackward(
+        { address: FACTORY, topics: [TOKEN_LAUNCHED, topicAddress(token)] },
+        h,
+        (spans) => spans.some((x) => x.length > 0),
+        Infinity,
+        FACTORY_START,
+      );
+      launchLog = found[0];
+      launchLogs.set(token, launchLog ?? null);
+      bound(launchLogs, 50_000);
+    }
+  }
+  const curve = launchLog ? addressFromTopic(launchLog.topics[2]!) : (record?.curve ?? null);
+  const launchWords = launchLog ? words(launchLog.data) : [];
+  const quoteAddr = launchWords[0] ? ("0x" + launchWords[0].toString(16).padStart(40, "0")).toLowerCase() : null;
+
+  // round trip 2: everything else small, in one batch; what is already known is not asked again
+  const asks: [string, [string, unknown[]]][] = [["headBlock", ["eth_getBlockByNumber", ["0x" + h.toString(16), false]]]];
+  const launchBlock = launchLog?.blockNumber;
+  if (launchBlock != null && knownBlockTime(launchBlock) == null) asks.push(["launchBlock", ["eth_getBlockByNumber", ["0x" + launchBlock.toString(16), false]]]);
+  if (launchLog && !launchInputs.has(launchLog.transactionHash)) asks.push(["launchTx", ["eth_getTransactionByHash", [launchLog.transactionHash]]]);
+  if (quoteAddr && !quoteMetas.has(quoteAddr)) asks.push(["quoteSymbol", call(quoteAddr, callData.symbol())], ["quoteDecimals", call(quoteAddr, callData.decimals())]);
+  // what the curve actually holds: the reserve that graduation is measured against
+  if (curve)
+    asks.push([
+      "reserve",
+      quoteAddr ? ["eth_call", [{ to: quoteAddr, data: "0x70a08231" + topicAddress(curve).slice(2) }, "latest"]] : ["eth_getBalance", [curve, "latest"]],
+    ]);
+  const got = await batch(asks.map(([, c]) => c));
+  const res = (name: string) => got[asks.findIndex(([n]) => n === name)] ?? null;
+
+  const headBlock = res("headBlock") as { timestamp?: string } | null;
+  const tsHead = headBlock?.timestamp ? Number(headBlock.timestamp) : Math.floor(Date.now() / 1000);
+  noteBlockTime(h, tsHead);
+  const lb = res("launchBlock") as { timestamp?: string } | null;
+  if (launchBlock != null && lb?.timestamp) noteBlockTime(launchBlock, Number(lb.timestamp));
+  const tx = res("launchTx") as { input?: string } | null;
+  if (launchLog && tx) {
+    launchInputs.set(launchLog.transactionHash, tx.input ?? null);
+    bound(launchInputs, 50_000);
+  }
+  if (quoteAddr && !quoteMetas.has(quoteAddr) && res("quoteDecimals") != null)
+    quoteMetas.set(quoteAddr, [decodeString(res("quoteSymbol")) || "?", Number(decodeUint(res("quoteDecimals")) ?? 18n)]);
+  const quote = quoteAddr ? quoteMetas.get(quoteAddr) : undefined;
+
+  return {
+    h,
+    name: cleanText(decodeString(first[1]), 48) || "Unknown",
+    symbol: cleanText(decodeString(first[2]), 16) || "?",
+    decimals,
+    supplyRaw,
+    supply: Number(supplyRaw) / 10 ** decimals,
+    record,
+    info,
+    launchLog,
+    curve,
+    launchWords,
+    quoteAddr,
+    quoteDecimals: quote?.[1] ?? 18,
+    quoteSymbol: quote?.[0] ?? "ETH",
+    reserveRaw: (res("reserve") as string | null) ?? null,
+    launchInput: launchLog ? (launchInputs.get(launchLog.transactionHash) ?? null) : null,
+    tsHead,
+    tsLaunch: launchBlock != null ? (knownBlockTime(launchBlock) ?? null) : null,
+  };
+}
+
+const reserveOf = (f: Facts) => (f.reserveRaw && f.reserveRaw.length > 2 ? Number(BigInt(f.reserveRaw.slice(0, 66))) / 10 ** f.quoteDecimals : 0);
+const thresholdOf = (f: Facts) => (f.launchWords[2] != null ? Number(f.launchWords[2]) / 10 ** f.quoteDecimals : 0);
+
+/** The first look at a token, in about two round trips: name, links, age, curve progress and what the pool or curve
+ *  holds. The full report follows; this is what the page shows while it is read. */
+export async function quickToken(token: Address): Promise<TokenQuick> {
+  const f = await factsOf(token);
+  const [pairs, quotePrice] = await Promise.all([dexPairs(token).catch(() => [] as DexPair[]), f.launchLog ? quoteUsd(f.quoteAddr).catch(() => null) : null]);
+  const pair = pairs[0];
+  const graduated = f.record?.phase === "pool" || f.record?.phase === "swept";
+  const reserve = reserveOf(f);
+  const threshold = thresholdOf(f);
+  const fromPool = pair && (graduated || !f.launchLog);
+  return {
+    address: token,
+    name: f.name,
+    symbol: f.symbol,
+    links: { x: safeUrl(f.info?.x), telegram: safeUrl(f.info?.telegram), website: safeUrl(f.info?.website), image: ipfsCid(f.info?.image) },
+    createdAt: f.tsLaunch,
+    launch: f.launchLog
+      ? { progressPct: graduated ? 100 : threshold > 0 ? Math.min(100, (reserve / threshold) * 100) : 0, graduated, quoteSymbol: f.quoteSymbol }
+      : null,
+    market: fromPool
+      ? { source: "dexscreener", mcapUsd: pair.marketCap ?? pair.fdv ?? null, liquidityUsd: pair.liquidity?.usd ?? null }
+      : f.launchLog
+        ? { source: "curve", mcapUsd: null, liquidityUsd: quotePrice != null ? reserve * quotePrice : null }
+        : null,
+  };
+}
+
 export async function analyzeToken(token: Address): Promise<TokenReport> {
   // DexScreener needs nothing from the chain: ask it while the chain is read
   const pairsP = dexPairs(token);
@@ -36,79 +210,42 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const phases: [string, number][] = [];
   const lap = (name: string) => phases.push([name, Date.now() - started]);
   const tag = <T,>(name: string, p: Promise<T>): Promise<T> => p.finally(() => lap(name));
-  const [h, basics] = await Promise.all([
-    head(),
-    batch([
-      call(token, callData.name()),
-      call(token, callData.symbol()),
-      call(token, callData.decimals()),
-      call(token, callData.totalSupply()),
-      call(FACTORY, callData.getLaunchedToken(token)),
-      call(token, callData.getTokenInfo()),
-    ]),
-  ]);
-  lap("basics");
-  const [nameR, symbolR, decimalsR, supplyR, launchedR, infoR] = basics;
-  const supplyRaw = decodeUint(supplyR);
-  const decimalsRaw = decodeUint(decimalsR);
-  if (supplyRaw == null || decimalsRaw == null) throw new NotFound("This address isn't a token on Robinhood Chain. Check that you copied the contract address.");
-  const decimals = Number(decimalsRaw);
+  const limitedBefore = rpcStats.limited;
+
+  const f = await factsOf(token);
+  lap("facts");
+  const { h, supplyRaw, decimals, supply, record, info, launchLog, curve, launchWords, quoteAddr, quoteDecimals, quoteSymbol, tsHead } = f;
   const unit = 10 ** decimals;
-  const supply = Number(supplyRaw) / unit;
-  const record = decodeLaunched(launchedR);
-  const info = decodeTokenInfo(infoR);
-
-  // ---- the launch (Pons) and the token's whole transfer history -------------------------------------------------
-  // The node keeps no historical state, so the creation block is found by walking the logs back from the head.
-  let launchLog: Log | undefined;
-  if (record) {
-    const found = await getLogsBackward(
-      { address: FACTORY, topics: [TOKEN_LAUNCHED, topicAddress(token)] },
-      h,
-      (spans) => spans.some((x) => x.length > 0),
-      Infinity,
-      FACTORY_START,
-    );
-    launchLog = found[0];
-  }
-  lap("launch lookup");
   const deadline = started + HISTORY_BUDGET_MS;
-
-  const curve = launchLog ? addressFromTopic(launchLog.topics[2]!) : (record?.curve ?? null);
-  const launchWords = launchLog ? words(launchLog.data) : [];
-  const quoteAddr = launchWords[0] ? ("0x" + launchWords[0].toString(16).padStart(40, "0")).toLowerCase() : null;
   let creator: string | null = launchLog ? addressFromTopic(launchLog.topics[3]!) : null;
 
-  // Everything that needs only the launch starts now and runs while the transfer history is read: the creator's
-  // record, the curve trades, graduation, prices. Secondary reads fail soft: the report goes out without that part.
+  // Everything that needs only the launch starts now and runs while the transfer history is read: the curve trades,
+  // graduation, prices. Secondary reads fail soft: the report goes out without that part.
   const early = Promise.all([
-    launchLog ? tag("launch tx", rpc<{ input: string } | null>("eth_getTransactionByHash", [launchLog.transactionHash])) : null,
     curve && launchLog ? tag("curve trades", readCurveTrades(curve, launchLog.blockNumber, h, started + 2 * HISTORY_BUDGET_MS).catch(() => null)) : Promise.resolve(null),
-    launchLog ? tag("graduation", getLogs({ address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[])) : [],
-    null, // the creator's record runs on its own budget below
-    quoteAddr ? batch([call(quoteAddr, callData.symbol()), call(quoteAddr, callData.decimals())]) : null,
-    blockTimestamp(h),
+    launchLog
+      ? tag("graduation", getLogsKept(`grad:${token}`, { address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[]))
+      : [],
     tag("dexscreener", pairsP),
     launchLog ? tag("eth price", quoteUsd(quoteAddr)) : Promise.resolve(null),
-    // what the curve actually holds: the reserve that graduation is measured against
-    curve
-      ? (quoteAddr
-          ? rpc<string>("eth_call", [{ to: quoteAddr, data: "0x70a08231" + topicAddress(curve).slice(2) }, "latest"])
-          : rpc<string>("eth_getBalance", [curve, "latest"])
-        ).catch(() => null)
-      : null,
   ]);
   void early.catch(() => {}); // awaited below; this only keeps an early failure from going unhandled meanwhile
   // A creator's whole record can take seconds to read. It gets a short wait after the rest of the report is ready; if it
   // is not in by then the report goes out marked pending and a later read picks it up from the cache.
+  // It starts once the heavy reads below are done (or right away when it is cached), so it does not spend the node's
+  // limit while the report itself is being read.
+  let startDev: () => void = () => {};
+  const devGate = new Promise<void>((r) => (startDev = r));
   const devP: Promise<CreatorLaunches | null> | null =
     launchLog && creator
-      ? inBackground(() => creatorLaunches(creator!, h, { token, curve: curve!, block: launchLog!.blockNumber, phase: record?.phase ?? "unknown" })).catch(() => null)
+      ? (creatorCached(creator) ? Promise.resolve() : devGate)
+          .then(() => inBackground(() => creatorLaunches(creator!, h, { token, curve: curve!, block: launchLog!.blockNumber, phase: record?.phase ?? "unknown" })))
+          .catch(() => null)
       : null;
 
   let partial = false;
   const transfers = await (launchLog
-    ? getLogs({ address: token, topics: [TRANSFER] }, launchLog.blockNumber, h, deadline)
+    ? getLogsKept(`transfers:${token}`, { address: token, topics: [TRANSFER] }, launchLog.blockNumber, h, deadline)
     : getLogsBackward(
         { address: token, topics: [TRANSFER] },
         h,
@@ -130,10 +267,11 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const firstMint = transfers.find((l) => addressFromTopic(l.topics[1]!) === ZERO);
   const launchBlock = launchLog?.blockNumber ?? createdBlock;
 
-  const [[launchTx, tradesRead, gradLogs, , quoteMeta, tsHead, pairs, quotePrice, reserveRaw], mintTx, tsCreated] = await Promise.all([
+  void early.then(startDev, startDev);
+  const [[tradesRead, gradLogs, pairs, quotePrice], mintTx, tsCreated] = await Promise.all([
     early,
     !creator && firstMint ? rpc<{ from: string } | null>("eth_getTransactionByHash", [firstMint.transactionHash]) : null,
-    createdBlock != null ? tag("created at", blockTimestamp(createdBlock).catch(() => null)) : null,
+    f.tsLaunch != null ? f.tsLaunch : createdBlock != null ? tag("created at", blockTimestamp(createdBlock).catch(() => null)) : null,
   ]);
   // a partial history has no reliable trade picture either
   const trades = partial ? null : tradesRead;
@@ -147,9 +285,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const tsOf = (b: number) =>
     tsCreated == null || createdBlock == null || h === createdBlock ? tsHead : tsCreated + ((b - createdBlock) * (tsHead - tsCreated)) / (h - createdBlock);
 
-  const quoteDecimals = quoteMeta ? Number(decodeUint(quoteMeta[1]) ?? 18n) : 18;
-  const quoteSymbol = quoteMeta ? decodeString(quoteMeta[0]) || "?" : "ETH";
-  const launchCall = decodeLaunchAndBuy(launchTx?.input);
+  const launchCall = decodeLaunchAndBuy(f.launchInput ?? undefined);
   const bundle = launchCall?.exempt.filter((a) => a !== creator) ?? [];
   const tradesQ = trades?.map((t) => ({ ...t, quote: t.quote / 10 ** quoteDecimals, tokens: t.tokens / unit })) ?? [];
 
@@ -206,7 +342,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   clusters.sort((a, b) => b.pct - a.pct);
 
   // ---- market ---------------------------------------------------------------------------------------------------
-  const reserve = reserveRaw && reserveRaw.length > 2 ? Number(BigInt(reserveRaw.slice(0, 66))) / 10 ** quoteDecimals : 0;
+  const reserve = reserveOf(f);
   const graduatedBlock = gradLogs[0]?.blockNumber ?? null;
   const pair: DexPair | undefined = pairs[0];
   let market: TokenReport["market"] = null;
@@ -244,7 +380,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   }
 
   // ---- launch section -------------------------------------------------------------------------------------------
-  const threshold = launchWords[2] != null ? Number(launchWords[2]) / 10 ** quoteDecimals : 0;
+  const threshold = thresholdOf(f);
   const launch: TokenReport["launch"] =
     launchLog && curve
       ? {
@@ -348,8 +484,8 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const report: TokenReport = {
     address: token,
     chainId: CHAIN_ID,
-    name: cleanText(decodeString(nameR), 48) || "Unknown",
-    symbol: cleanText(decodeString(symbolR), 16) || "?",
+    name: f.name,
+    symbol: f.symbol,
     decimals,
     totalSupply: supply,
     launchpad: launchLog ? "pons" : null,
@@ -376,7 +512,8 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   };
   report.flags = flagsFor(report, creatorSold, tsHead);
   report.tookMs = Date.now() - started;
-  console.log(`read ${token} ${phases.map(([n, t]) => `${n} ${t}ms`).join(" | ")}`);
+  const limited = rpcStats.limited - limitedBefore;
+  console.log(`read ${token} ${phases.map(([n, t]) => `${n} ${t}ms`).join(" | ")}${limited ? ` | node limited ${limited}x` : ""}`);
   return report;
 }
 
@@ -386,7 +523,7 @@ const num = (v: string | undefined) => {
 };
 
 async function readCurveTrades(curve: string, from: number, to: number, deadline: number): Promise<Trade[]> {
-  const logs = await getLogs({ address: curve, topics: [[CURVE_BUY, CURVE_SELL]] }, from, to, deadline);
+  const logs = await getLogsKept(`trades:${curve}`, { address: curve, topics: [[CURVE_BUY, CURVE_SELL]] }, from, to, deadline);
   return logs.map((l) => {
     const w = words(l.data);
     return l.topics[0] === CURVE_BUY
@@ -468,6 +605,11 @@ interface SelfLaunch {
   block: number;
   phase: CreatorLaunch["phase"];
 }
+
+const creatorCached = (creator: string) => {
+  const hit = creatorCache.get(creator);
+  return hit != null && Date.now() - hit.at < CREATOR_TTL_MS;
+};
 
 /** Every Pons launch by a creator, newest first, with phases and, for the latest few, whether the creator sold. Cached per creator. */
 function creatorLaunches(creator: string, h: number, self: SelfLaunch): Promise<CreatorLaunches> {

@@ -125,6 +125,17 @@ export interface TokenReport {
 /** Parts of the report are still being read: read it again shortly. */
 export const isPending = (r: TokenReport) => r.fundingStatus === "pending" || r.devStatus === "pending";
 
+/** The first look at a token, read in about two round trips while the full report is still being read. */
+export interface TokenQuick {
+  address: Address;
+  name: string;
+  symbol: string;
+  links: TokenReport["links"];
+  createdAt: number | null;
+  launch: null | { progressPct: number; graduated: boolean; quoteSymbol: string };
+  market: null | { source: "curve" | "dexscreener"; mcapUsd: number | null; liquidityUsd: number | null };
+}
+
 export interface ApiError {
   error: string;
   message: string;

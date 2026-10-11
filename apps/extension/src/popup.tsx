@@ -162,7 +162,7 @@ function Popup() {
       )}
 
       <div className="panel-body" aria-live="polite">
-        {state.status === "loading" && <ReportSkeleton />}
+        {state.status === "loading" && <ReportSkeleton quick={state.quick} apiBase={API} />}
         {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} quiet={state.notFound} />}
         {state.status === "ready" && (
           <Report report={state.report} onOpenToken={open} apiBase={API} shareUrl={`${SITE}/t/${state.report.address}`} openFull />

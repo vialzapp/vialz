@@ -7,8 +7,8 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { extractAddress, isPending, type TokenReport } from "@vialz/shared";
-import { analyzeToken, NotFound, withCreator } from "./analyze.js";
-import { requestDeadline } from "./rpc.js";
+import { analyzeToken, NotFound, quickToken, withCreator } from "./analyze.js";
+import { inUrgent, requestDeadline } from "./rpc.js";
 import { busiestLaunch } from "./latest.js";
 import { CID_RE, ImagesBusy, ipfsImage } from "./images.js";
 import { clientIp, refreshCloudflareRanges } from "./clientip.js";
@@ -196,6 +196,22 @@ app.get<{ Params: { address: string } }>("/v1/token/:address", perMinute(120), a
     if (e instanceof Busy) return reply.code(503).header("retry-after", "10").send({ error: "busy", message: "Lots of checks right now. Try again in a few seconds." });
     req.log.error(e);
     return reply.code(502).send({ error: "chain_unavailable", message: "Could not read the chain right now. Try again in a few seconds." });
+  }
+});
+
+// The first look at a token, in about two round trips: what the page shows while the full report is read. Cheap and
+// shared with the full read, so it only counts against the route limit.
+app.get<{ Params: { address: string } }>("/v1/token/:address/quick", perMinute(120), async (req, reply) => {
+  const address = extractAddress(req.params.address);
+  if (!address) return reply.code(400).send({ error: "bad_address", message: "Paste a contract address (0x… 40 hex characters)." });
+  try {
+    const q = await requestDeadline.run(Date.now() + 10_000, () => inUrgent(() => quickToken(address)));
+    reply.header("cache-control", "public, max-age=5");
+    return q;
+  } catch (e) {
+    if (e instanceof NotFound) return reply.code(404).send({ error: "not_found", message: e.message });
+    req.log.warn(e);
+    return reply.code(502).send({ error: "chain_unavailable", message: "Could not read the chain right now." });
   }
 });
 

@@ -23,7 +23,7 @@ export function TokenPage({ address }: { address: string }) {
             label="Check another token"
           />
         </div>
-        {state.status === "loading" && <ReportSkeleton />}
+        {state.status === "loading" && <ReportSkeleton quick={state.quick} apiBase={API_BASE} />}
         {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} quiet={state.notFound} />}
         {state.status === "ready" && (
           <>

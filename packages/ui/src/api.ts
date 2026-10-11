@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isPending, type ApiError, type TokenReport } from "@vialz/shared";
+import { isPending, type ApiError, type TokenQuick, type TokenReport } from "@vialz/shared";
 
 export type ReportState =
   | { status: "idle" }
-  | { status: "loading"; address: string }
+  | { status: "loading"; address: string; quick?: TokenQuick }
   | { status: "ready"; address: string; report: TokenReport; refreshing: boolean }
   | { status: "error"; address: string; message: string; notFound: boolean };
 
@@ -32,6 +32,16 @@ export async function fetchReport(apiBase: string, address: string, signal?: Abo
   return (await res.json()) as TokenReport;
 }
 
+/** The quick first look: a couple of round trips, shown while the full report is read. Null if it fails. */
+async function fetchQuick(apiBase: string, address: string, signal: AbortSignal): Promise<TokenQuick | null> {
+  try {
+    const res = await fetch(`${apiBase}/v1/token/${address}/quick`, { signal });
+    return res.ok ? ((await res.json()) as TokenQuick) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** A report that will not be read again: whatever is still pending is shown as not available. */
 const settled = (r: TokenReport): TokenReport => ({
   ...r,
@@ -53,6 +63,10 @@ export function useTokenReport(apiBase: string, address: string | null): ReportS
     const ctrl = new AbortController();
     let polls = 0;
     setState({ status: "loading", address });
+    // the first look arrives in a fraction of the full read: show it until the report replaces it
+    void fetchQuick(apiBase, address, ctrl.signal).then((quick) => {
+      if (quick) setState((s) => (s.status === "loading" && s.address === address ? { ...s, quick } : s));
+    });
 
     const load = async (refresh: boolean) => {
       if (refresh) setState((s) => (s.status === "ready" ? { ...s, refreshing: true } : s));

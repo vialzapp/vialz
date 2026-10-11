@@ -859,6 +859,24 @@
   margin-inline: -16px;
 }
 
+/* the first look is on screen: the readings still being read sit under it, inside the same sheet */
+.vz-skeleton-rest {
+  gap: 12px;
+  padding: 0 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.vz-skeleton .vz-skeleton-rest .strip,
+.vz-skeleton-rest .strip {
+  margin-inline: 0;
+}
+
+.vz-skeleton-rest .vz-loading-note {
+  padding-inline: 16px;
+}
+
 .vz-loading-note {
   margin: 0;
   font-size: 13px;

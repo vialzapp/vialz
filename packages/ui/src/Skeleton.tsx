@@ -1,17 +1,49 @@
 import { useEffect, useState } from "react";
+import type { TokenQuick } from "@vialz/shared";
+import { ReportTop, topOfQuick } from "./Report";
 import { Vessel } from "./Vessel";
 
 // what the API does while the popup waits, in the order it does it
 const STEPS = ["Reading every transfer", "Finding snipers and the bundle", "Looking for linked wallets", "Checking the creator's launches"];
 
 /** Placeholder in the shape of the report while the chain is read (5 to 15 seconds): six empty glasses on the shelf. */
-export function ReportSkeleton({ note }: { note?: string }) {
+export function ReportSkeleton({ note, quick, apiBase }: { note?: string; quick?: TokenQuick; apiBase?: string }) {
   const [step, setStep] = useState(0);
   useEffect(() => {
     if (note) return;
     const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 1800);
     return () => clearInterval(t);
   }, [note]);
+
+  const rest = (
+    <>
+      <div className="strip" aria-hidden>
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="strip-cell pad-none">
+            <Vessel className="strip-vial" level={0} glass="var(--glass)" stroke={16} />
+            <div className="sk" style={{ height: 9, width: 36, marginTop: 2 }} />
+            <div className="sk" style={{ height: 13, width: 26, marginTop: 6 }} />
+          </div>
+        ))}
+      </div>
+      <p className="vz-loading-note" role="status">
+        {note ?? (
+          <>
+            <span className="vz-loading-step">{STEPS[step]}</span>. Straight from the chain.
+          </>
+        )}
+      </p>
+    </>
+  );
+
+  // the first look is in: the real top, and the readings still being read under it
+  if (quick)
+    return (
+      <article className="vz-report vz-quick" aria-busy="true" aria-label={`Reading ${quick.name}`}>
+        <ReportTop top={topOfQuick(quick)} apiBase={apiBase} />
+        <div className="vz-skeleton vz-skeleton-rest">{rest}</div>
+      </article>
+    );
 
   return (
     <div className="vz-skeleton" aria-busy="true">
@@ -27,22 +59,7 @@ export function ReportSkeleton({ note }: { note?: string }) {
           <div key={i} className="sk" style={{ height: 30 }} />
         ))}
       </div>
-      <div className="strip" aria-hidden>
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="strip-cell pad-none">
-            <Vessel className="strip-vial" level={0} glass="var(--glass)" stroke={16} />
-            <div className="sk" style={{ height: 9, width: 36, marginTop: 2 }} />
-            <div className="sk" style={{ height: 13, width: 26, marginTop: 6 }} />
-          </div>
-        ))}
-      </div>
-      <p className="vz-loading-note" role="status">
-        {note ?? (
-          <>
-            <span className="vz-loading-step">{STEPS[step]}</span>. Straight from the chain, about 5 seconds.
-          </>
-        )}
-      </p>
+      {rest}
     </div>
   );
 }

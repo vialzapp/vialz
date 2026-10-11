@@ -27,7 +27,10 @@ interface RawLog {
   logIndex: string;
 }
 
-export class RpcError extends Error {}
+export class RpcError extends Error {
+  /** seconds the node asked us to wait (Retry-After on a 429) */
+  retryAfter?: number;
+}
 /** A log read ran past its time budget (a token with millions of transfers). */
 export class DeadlineError extends Error {}
 
@@ -37,26 +40,34 @@ export const requestDeadline = new AsyncLocalStorage<number>();
 const deadlineOf = (explicit: number) => Math.min(explicit, requestDeadline.getStore() ?? Infinity);
 
 let nextId = 1;
-export const rpcStats = { requests: 0, retries: 0 };
+export const rpcStats = { requests: 0, retries: 0, limited: 0 };
 const MAX_QUEUE = Number(process.env.RH_RPC_MAX_QUEUE ?? 200);
 // Two lanes to the node. Reports get CONCURRENCY slots; background reads (a creator's whole history) get their own
 // two. Neither waits on the other: a report never queues behind a long search, and a search is never starved by
 // reports.
 const BACKGROUND_SLOTS = 2;
-const background = new AsyncLocalStorage<true>();
+const URGENT_SLOTS = 2;
+const laneOf = new AsyncLocalStorage<"background" | "urgent">();
 
 /** Runs `fn` with its RPC requests in the background lane. */
-export const inBackground = <T>(fn: () => Promise<T>): Promise<T> => background.run(true, fn);
+export const inBackground = <T>(fn: () => Promise<T>): Promise<T> => laneOf.run("background", fn);
+/** Runs `fn` with its RPC requests in the urgent lane: a few light calls someone is looking at a blank card for. They
+ *  never queue behind a report's heavy log reads and do not sit out the shared pause after a 429. */
+export const inUrgent = <T>(fn: () => Promise<T>): Promise<T> => laneOf.run("urgent", fn);
 
 interface Lane {
   active: number;
   max: number;
   queue: (() => void)[];
 }
-const lanes = { report: { active: 0, max: CONCURRENCY, queue: [] } as Lane, background: { active: 0, max: BACKGROUND_SLOTS, queue: [] } as Lane };
+const lanes = {
+  report: { active: 0, max: CONCURRENCY, queue: [] } as Lane,
+  background: { active: 0, max: BACKGROUND_SLOTS, queue: [] } as Lane,
+  urgent: { active: 0, max: URGENT_SLOTS, queue: [] } as Lane,
+};
 
 async function slot<T>(fn: () => Promise<T>): Promise<T> {
-  const lane = background.getStore() === true ? lanes.background : lanes.report;
+  const lane = lanes[laneOf.getStore() ?? "report"];
   if (lane.active >= lane.max) {
     if (lane.queue.length >= MAX_QUEUE) throw new RpcError("rpc queue full");
     await new Promise<void>((r) => lane.queue.push(r));
@@ -70,7 +81,7 @@ async function slot<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-const agent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY + BACKGROUND_SLOTS });
+const agent = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY + BACKGROUND_SLOTS + URGENT_SLOTS });
 
 function postOnce(body: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -87,7 +98,12 @@ function postOnce(body: string): Promise<unknown> {
         res.on("data", (c: Buffer) => chunks.push(c));
         res.on("end", () => {
           const text = Buffer.concat(chunks).toString("utf8");
-          if (res.statusCode === 429 || (res.statusCode ?? 500) >= 500) return reject(new RpcError(`http ${res.statusCode}`));
+          if (res.statusCode === 429 || (res.statusCode ?? 500) >= 500) {
+            const err = new RpcError(`http ${res.statusCode}`);
+            const after = Number(res.headers["retry-after"]);
+            if (Number.isFinite(after) && after > 0) err.retryAfter = after;
+            return reject(err);
+          }
           try {
             resolve(JSON.parse(text));
           } catch {
@@ -102,12 +118,20 @@ function postOnce(body: string): Promise<unknown> {
   });
 }
 
+// When the node says "too many requests", every request waits out the same short pause instead of each one retrying on
+// its own schedule: a burst of retries is what keeps the limit tripped.
+let pauseUntil = 0;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function post(body: unknown, explicitDeadline = Infinity): Promise<unknown> {
   const deadline = deadlineOf(explicitDeadline);
   rpcStats.requests++;
   const text = JSON.stringify(body);
   let last: unknown;
-  for (let attempt = 0; attempt < 6; attempt++) {
+  const urgent = laneOf.getStore() === "urgent";
+  for (let attempt = 0; attempt < 7; attempt++) {
+    const wait = pauseUntil - Date.now();
+    if (wait > 0 && !urgent) await sleep(wait);
     if (Date.now() > deadline) throw new DeadlineError("request ran out of time");
     try {
       return await postOnce(text);
@@ -116,7 +140,14 @@ async function post(body: unknown, explicitDeadline = Infinity): Promise<unknown
       const limited = e instanceof RpcError && e.message === "http 429";
       if (!limited && attempt >= 3) break;
       rpcStats.retries++;
-      await new Promise((r) => setTimeout(r, (limited ? 1_000 : 300) * 2 ** Math.min(attempt, 3) * (0.75 + Math.random() / 2)));
+      if (limited) {
+        rpcStats.limited++;
+        if (process.env.RH_DEBUG_LIMITS) console.log("429 on", text.slice(0, 220));
+        // as long as the node asks; otherwise 250 ms, doubling, never more than 3 s
+        const ms = (e as RpcError).retryAfter ? (e as RpcError).retryAfter! * 1000 : Math.min(3_000, 250 * 2 ** attempt) * (0.8 + Math.random() * 0.4);
+        if (urgent) await sleep(Math.min(ms, 150 * 2 ** attempt));
+        else pauseUntil = Math.max(pauseUntil, Date.now() + ms);
+      } else await sleep(300 * 2 ** Math.min(attempt, 3) * (0.75 + Math.random() / 2));
     }
   }
   throw new RpcError(`rpc unreachable: ${String(last)}`);
@@ -160,11 +191,37 @@ function batchOnce(calls: [string, unknown[]][]): Promise<unknown[]> {
   });
 }
 
-export const head = async () => Number(await rpc<string>("eth_blockNumber", []));
+// The head moves every quarter second, but a report is fine with one up to a second old; reads at the same moment share it.
+let headMemo: { at: number; value: Promise<number> } | null = null;
+export function head(): Promise<number> {
+  if (headMemo && Date.now() - headMemo.at < 1_000) return headMemo.value;
+  const value = rpc<string>("eth_blockNumber", []).then(Number);
+  headMemo = { at: Date.now(), value };
+  value.catch(() => {
+    headMemo = null;
+  });
+  return value;
+}
+
+/** Remember a head read some other way (a batch), so the next head() can reuse it. */
+export function noteHead(h: number) {
+  headMemo = { at: Date.now(), value: Promise.resolve(h) };
+}
+
+// a block's time never changes
+const blockTimes = new Map<number, number>();
+export const knownBlockTime = (n: number) => blockTimes.get(n);
+export function noteBlockTime(n: number, ts: number) {
+  blockTimes.set(n, ts);
+  if (blockTimes.size > 20_000) blockTimes.delete(blockTimes.keys().next().value!);
+}
 
 export async function blockTimestamp(n: number): Promise<number> {
+  const known = blockTimes.get(n);
+  if (known != null) return known;
   const b = await rpc<{ timestamp: string } | null>("eth_getBlockByNumber", ["0x" + n.toString(16), false]);
   if (!b) throw new RpcError(`block ${n} not found`);
+  noteBlockTime(n, Number(b.timestamp));
   return Number(b.timestamp);
 }
 
@@ -201,6 +258,37 @@ async function logsSpan(filter: LogFilter, from: number, to: number, deadline: n
     const [a, b] = await Promise.all([logsSpan(filter, from, mid, deadline), logsSpan(filter, mid + 1, to, deadline)]);
     return a.concat(b);
   }
+}
+
+// ---- logs read once: a token's history up to a settled block is kept, and the next read asks only for what came after.
+// Blocks within REORG_MARGIN of the head are always read again, so nothing that could still change is kept. Bounded by a
+// total log count; the least recently used history goes first.
+const REORG_MARGIN = 64;
+const LOG_CACHE_MAX = Number(process.env.RH_LOG_CACHE ?? 250_000);
+const logCache = new Map<string, { from: number; settled: number; logs: Log[] }>();
+let logCacheSize = 0;
+
+export async function getLogsKept(key: string, filter: LogFilter, from: number, to: number, deadline = Infinity): Promise<Log[]> {
+  const hit = logCache.get(key);
+  const start = hit && hit.from === from ? hit.settled + 1 : from;
+  const fresh = start <= to ? await getLogs(filter, start, to, deadline) : [];
+  const all = hit && hit.from === from ? hit.logs.concat(fresh) : fresh;
+  const settled = Math.max(from - 1, to - REORG_MARGIN);
+  const keep = all.filter((l) => l.blockNumber <= settled);
+  if (hit) {
+    logCache.delete(key);
+    logCacheSize -= hit.logs.length;
+  }
+  if (keep.length <= LOG_CACHE_MAX / 4) {
+    logCache.set(key, { from, settled, logs: keep });
+    logCacheSize += keep.length;
+    while (logCacheSize > LOG_CACHE_MAX) {
+      const [k, v] = logCache.entries().next().value!;
+      logCache.delete(k);
+      logCacheSize -= v.logs.length;
+    }
+  }
+  return all;
 }
 
 /** Walks back from `to` one span at a time; stops once `done` says the logs seen so far are enough, or at `floor`.

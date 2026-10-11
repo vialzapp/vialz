@@ -100,7 +100,7 @@ export function Landing() {
                 ) : mine.status === "error" ? (
                   <ReportError message={mine.message} onRetry={mine.retry} quiet={mine.notFound} />
                 ) : (
-                  <ReportSkeleton />
+                  <ReportSkeleton quick={mine.status === "loading" ? mine.quick : undefined} apiBase={API_BASE} />
                 )}
               </>
             ) : (
@@ -113,7 +113,7 @@ export function Landing() {
                 ) : live.failed || live.state.status === "error" ? (
                   <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address on the left."} />
                 ) : (
-                  <ReportSkeleton note="Reading it from the chain." />
+                  <ReportSkeleton note="Reading it from the chain." quick={live.state.status === "loading" ? live.state.quick : undefined} apiBase={API_BASE} />
                 )}
               </>
             )}
@@ -212,7 +212,7 @@ export function FullReportPage() {
         ) : live.failed || live.state.status === "error" ? (
           <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address above."} />
         ) : (
-          <ReportSkeleton />
+          <ReportSkeleton quick={live.state.status === "loading" ? live.state.quick : undefined} apiBase={API_BASE} />
         )}
       </div>
     </div>

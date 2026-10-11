@@ -12,6 +12,7 @@ import {
   tallyFlags,
   type Flag,
   type HolderLabel,
+  type TokenQuick,
   type TokenReport,
 } from "@vialz/shared";
 import { Strip } from "./Strip";
@@ -60,42 +61,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
 
   return (
     <article className={compact ? "vz-report vz-compact" : "vz-report"} aria-label={`Vialz report on ${r.name}`}>
-      <div className="vz-top">
-        <header className="vz-head">
-          <TokenImage src={r.links.image} symbol={r.symbol} address={r.address} apiBase={apiBase} />
-          <div className="vz-title">
-            <Title className="vz-name">{r.name}</Title>
-            <div className="vz-meta">
-              <span className="vz-ticker">${r.symbol}</span>
-              <CopyAddress address={r.address} />
-            </div>
-          </div>
-          <Links links={r.links} />
-        </header>
-
-        <dl className="vz-stats">
-          <Stat label="MCap" value={formatUsd(r.market?.mcapUsd)} />
-          <Stat label={r.market?.source === "dexscreener" ? "Liquidity" : "In curve"} value={formatUsd(r.market?.liquidityUsd)} />
-          <Stat label="Holders" value={r.holders.partial ? "n/a" : r.holders.count.toLocaleString("en-US")} />
-          <Stat label="Age" value={age != null ? formatAge(age) : "n/a"} />
-        </dl>
-
-        {r.launch && (
-          <div
-            className="vz-progress"
-            role="progressbar"
-            aria-label="Curve progress to graduation"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(r.launch.progressPct)}
-          >
-            <div className="vz-progress-bar">
-              <span style={{ width: `${Math.max(1, Math.min(100, r.launch.progressPct))}%` }} />
-            </div>
-            <span>{onCurve ? <><b>{r.launch.progressPct.toFixed(0)}%</b> to graduation on Pons</> : venue(r)}</span>
-          </div>
-        )}
-      </div>
+      <ReportTop top={topOf(r)} apiBase={apiBase} headingLevel={headingLevel} />
 
       {compact ? (
         <>
@@ -372,6 +338,105 @@ function CreatorSection({ r, onOpenToken }: { r: TokenReport; onOpenToken?: (add
         </dl>
       )}
     </Section>
+  );
+}
+
+/** What the top of a report shows: enough to know which token this is and how big it is. */
+export interface Top {
+  address: string;
+  name: string;
+  symbol: string;
+  links: TokenReport["links"];
+  createdAt: number | null;
+  mcapUsd: number | null | undefined; // undefined: still being read
+  liquidityUsd: number | null | undefined;
+  liquidityLabel: string;
+  holders: number | null | undefined;
+  progress: null | { pct: number; onCurve: boolean; label: string };
+}
+
+function topOf(r: TokenReport): Top {
+  return {
+    address: r.address,
+    name: r.name,
+    symbol: r.symbol,
+    links: r.links,
+    createdAt: r.createdAt,
+    mcapUsd: r.market?.mcapUsd ?? null,
+    liquidityUsd: r.market?.liquidityUsd ?? null,
+    liquidityLabel: r.market?.source === "dexscreener" ? "Liquidity" : "In curve",
+    holders: r.holders.partial ? null : r.holders.count,
+    progress: r.launch
+      ? { pct: r.launch.progressPct, onCurve: r.launch.graduatedBlock == null && r.launch.phase === "curve", label: venue(r) }
+      : null,
+  };
+}
+
+/** The top from the quick first look: market cap on a curve and the holder count come with the full report. */
+export function topOfQuick(q: TokenQuick): Top {
+  return {
+    address: q.address,
+    name: q.name,
+    symbol: q.symbol,
+    links: q.links,
+    createdAt: q.createdAt,
+    mcapUsd: q.market?.mcapUsd ?? (q.market?.source === "curve" ? undefined : null),
+    liquidityUsd: q.market?.liquidityUsd ?? null,
+    liquidityLabel: q.market?.source === "dexscreener" ? "Liquidity" : "In curve",
+    holders: undefined,
+    progress: q.launch ? { pct: q.launch.progressPct, onCurve: !q.launch.graduated, label: q.launch.graduated ? "Pons, graduated" : "Pons curve" } : null,
+  };
+}
+
+export function ReportTop({ top: t, apiBase = "", headingLevel = 2 }: { top: Top; apiBase?: string; headingLevel?: 1 | 2 }) {
+  const Title = headingLevel === 1 ? "h1" : "h2";
+  const age = t.createdAt != null ? nowSec() - t.createdAt : null;
+  const later = (v: number | null | undefined, f: (n: number) => string) => (v === undefined ? "…" : v == null ? "n/a" : f(v));
+  return (
+    <div className="vz-top">
+      <header className="vz-head">
+        <TokenImage src={t.links.image} symbol={t.symbol} address={t.address} apiBase={apiBase} />
+        <div className="vz-title">
+          <Title className="vz-name">{t.name}</Title>
+          <div className="vz-meta">
+            <span className="vz-ticker">${t.symbol}</span>
+            <CopyAddress address={t.address} />
+          </div>
+        </div>
+        <Links links={t.links} />
+      </header>
+
+      <dl className="vz-stats">
+        <Stat label="MCap" value={later(t.mcapUsd, formatUsd)} />
+        <Stat label={t.liquidityLabel} value={later(t.liquidityUsd, formatUsd)} />
+        <Stat label="Holders" value={later(t.holders, (n) => n.toLocaleString("en-US"))} />
+        <Stat label="Age" value={age != null ? formatAge(age) : "n/a"} />
+      </dl>
+
+      {t.progress && (
+        <div
+          className="vz-progress"
+          role="progressbar"
+          aria-label="Curve progress to graduation"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(t.progress.pct)}
+        >
+          <div className="vz-progress-bar">
+            <span style={{ width: `${Math.max(1, Math.min(100, t.progress.pct))}%` }} />
+          </div>
+          <span>
+            {t.progress.onCurve ? (
+              <>
+                <b>{t.progress.pct.toFixed(0)}%</b> to graduation on Pons
+              </>
+            ) : (
+              t.progress.label
+            )}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
