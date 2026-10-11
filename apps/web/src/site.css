@@ -964,11 +964,19 @@ html {
 }
 
 /* ---- the extension in use: a browser window over a token page, the Vialz popup hanging from its toolbar icon ---- */
+/* The browser around the popup is lighter, a slate blue like a wallet's dark theme, so the black popup (the product)
+   stands out from it instead of melting into the black page. */
 .ext-window {
+  --w-bg: oklch(0.31 0.032 268);
+  --w-bar: oklch(0.35 0.034 268);
+  --w-field: oklch(0.25 0.028 268);
+  --w-block: oklch(0.41 0.034 268);
+  --w-line: oklch(0.46 0.036 268);
+  --w-ink: oklch(0.76 0.03 268);
   margin: 0;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--w-line);
   border-radius: 14px;
-  background: var(--sheet);
+  background: var(--w-bg);
   overflow: hidden;
 }
 
@@ -978,8 +986,8 @@ html {
   gap: 12px;
   height: 42px;
   padding: 0 12px;
-  border-bottom: 1px solid var(--rule);
-  background: var(--well);
+  border-bottom: 1px solid var(--w-line);
+  background: var(--w-bar);
 }
 
 .ext-dots {
@@ -991,7 +999,7 @@ html {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--rule-strong);
+  background: var(--w-line);
 }
 
 .ext-url {
@@ -1003,15 +1011,15 @@ html {
   height: 26px;
   padding: 0 12px;
   border-radius: 999px;
-  background: var(--bg);
-  color: var(--ink-3);
+  background: var(--w-field);
+  color: var(--w-ink);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .ext-url span:first-of-type {
-  color: var(--ink-2);
+  color: var(--ink);
 }
 
 .ext-url-path {
@@ -1026,7 +1034,7 @@ html {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--ink-3);
+  color: var(--w-ink);
 }
 
 /* the pressed Vialz icon the popup hangs from */
@@ -1036,8 +1044,8 @@ html {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: var(--raise);
-  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--w-line);
   color: var(--ink);
 }
 
@@ -1053,7 +1061,6 @@ html {
   position: absolute;
   inset: 0;
   padding: 20px 18px;
-  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -1068,7 +1075,7 @@ html {
   height: 12px;
   width: 38%;
   border-radius: 3px;
-  background: var(--raise);
+  background: var(--w-block);
 }
 
 .ext-page-title span + span {
@@ -1083,7 +1090,7 @@ html {
 }
 
 .ext-chart polyline {
-  stroke: var(--ink-3);
+  stroke: var(--w-ink);
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
@@ -1098,7 +1105,7 @@ html {
   display: block;
   height: 8px;
   border-radius: 3px;
-  background: var(--raise);
+  background: var(--w-block);
 }
 
 .ext-page-rows span:nth-child(1) {
