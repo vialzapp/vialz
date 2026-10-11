@@ -163,7 +163,7 @@ function placeholderPage(): string {
   const assets = [join(dirname(fileURLToPath(import.meta.url)), "../../web/dist/assets"), join(dirname(fileURLToPath(import.meta.url)), "../web/dist/assets")].find((d) => existsSync(d));
   const fontFile = assets && readdirSync(assets).find((f) => /^archivo-latin-standard-normal-.*\.woff2$/.test(f));
   const font = fontFile ? `@font-face{font-family:A;src:url(data:font/woff2;base64,${readFileSync(join(assets!, fontFile)).toString("base64")}) format("woff2");font-weight:100 900;font-stretch:62% 125%}` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Soon</title><style>${font}
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>soon</title><style>${font}
 html,body{height:100%;margin:0;background:#0b0c10;overflow:hidden}
 body{display:grid;place-items:center;font-family:A,"Arial Narrow",system-ui,sans-serif}
 body::before{content:"";position:fixed;inset:0;background-image:${STARS_IMAGE};background-size:${STARS_SIZE};animation:sky 2.4s ease-out both}
@@ -171,7 +171,7 @@ h1{position:relative;margin:0;color:#f3f4f6;font-size:clamp(84px,19vw,280px);fon
 @keyframes rise{from{opacity:0}}
 @keyframes sky{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){h1,body::before{animation:none}}
-</style></head><body><h1>Soon</h1></body></html>`;
+</style></head><body><h1>soon</h1></body></html>`;
 }
 const PLACEHOLDER = PREVIEW_KEY ? placeholderPage() : "";
 const PLACEHOLDER_CSP = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
