@@ -41,7 +41,7 @@ const FAQ = [
   },
   {
     q: "How long does a check take?",
-    a: "Usually 3 to 15 seconds. Vialz reads the token's history from the chain on every check instead of keeping a stale copy. Tokens with millions of transfers show market data and skip the holder breakdown for now.",
+    a: "Usually one to three seconds: the token's name and numbers show first, the readings follow. The first check of a token with a long history can take a few seconds more. Vialz reads the chain on every check instead of keeping a stale copy. Tokens with millions of transfers show market data and skip the holder breakdown for now.",
   },
   {
     q: "Does it work on fomo, gmgn and X?",

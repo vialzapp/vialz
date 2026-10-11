@@ -169,7 +169,7 @@ function HoldersSection({ r }: { r: TokenReport }) {
         ))}
       </ol>
       <p className="vz-foot-note">
-        Top 10 wallets hold <b className="num">{formatPct(r.holders.top10Pct)}</b>, not counting the curve, pools and burn address.
+        Top 10 wallets hold <b className="num">{formatPct(r.holders.top10Pct)}</b>, not counting the curve, pools, contracts and burn address.
       </p>
     </Section>
   );
@@ -446,6 +446,7 @@ const LABEL: Record<HolderLabel, string> = {
   pool: "pool",
   burn: "burn",
   launchpad: "locker",
+  contract: "contract",
   bundle: "bundle",
   sniper: "sniper",
 };
@@ -496,6 +497,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 /** The findings counted by level. A count of facts, not a score. */
 function Tally({ flags }: { flags: Flag[] }) {
+  if (flags.length === 0) return null;
   const t = tallyFlags(flags);
   const word: Record<Flag["level"], [string, string]> = { danger: ["high", "high"], warn: ["watch", "watch"], info: ["note", "notes"], good: ["clear", "clear"] };
   return (
@@ -547,7 +549,7 @@ function Distribution({ report: r }: { report: TokenReport }) {
   let wallets = 0;
   for (const h of r.holders.top) {
     const l = h.labels;
-    if (l.includes("curve") || l.includes("pool") || l.includes("launchpad")) sum.contract += h.pct;
+    if (l.includes("curve") || l.includes("pool") || l.includes("launchpad") || l.includes("contract")) sum.contract += h.pct;
     else if (l.includes("burn")) sum.burn += h.pct;
     else if (l.includes("creator")) sum.creator += h.pct;
     else if (l.includes("bundle") || l.includes("sniper")) sum.flagged += h.pct;
@@ -557,7 +559,11 @@ function Distribution({ report: r }: { report: TokenReport }) {
   sum.flagged = Math.max(sum.flagged, (r.bundle?.holdPct ?? 0) + (r.snipers?.holdPct ?? 0));
   const rest = Math.max(0, 100 - sum.contract - sum.burn - sum.flagged - sum.creator - sum.top);
   const parts = [
-    { key: "contract", label: r.launch && r.launch.graduatedBlock == null ? "Curve" : "Pools", pct: sum.contract },
+    {
+      key: "contract",
+      label: r.holders.top.some((h) => h.labels.includes("contract")) ? "Contracts" : r.launch && r.launch.graduatedBlock == null ? "Curve" : "Pools",
+      pct: sum.contract,
+    },
     { key: "flagged", label: "Bundle and snipers", pct: sum.flagged },
     { key: "creator", label: "Creator", pct: sum.creator },
     { key: "top", label: "Other top 10", pct: sum.top },

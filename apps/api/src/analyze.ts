@@ -339,9 +339,18 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     if (a === FACTORY || a === LOCKER || a === ROUTER || a === FOMO_ROUTER) return "launchpad";
     return null;
   };
+  // The biggest holders that are contracts (another launchpad's factory, a pool we do not know, a vault) are not
+  // wallets: one getCode batch over the top holders tells them apart. An EIP-7702 delegation (code 0xef0100…) is a
+  // wallet with a delegate, so it stays a wallet.
+  const ranked = [...balances.entries()].filter(([a, v]) => v > 0n && a !== ZERO && systemLabel(a) == null).sort((a, b) => (b[1] > a[1] ? 1 : b[1] < a[1] ? -1 : 0));
+  const probe = ranked.slice(0, 15).map(([a]) => a);
+  const codes = probe.length ? await batch(probe.map((a) => ["eth_getCode", [a, "latest"]] as [string, unknown[]])).catch(() => [] as unknown[]) : [];
+  const contracts = new Set(probe.filter((_, i) => typeof codes[i] === "string" && codes[i] !== "0x" && !(codes[i] as string).startsWith("0xef0100")));
+  const holderLabel = (a: string): HolderLabel | null => systemLabel(a) ?? (contracts.has(a) ? "contract" : null);
+
   const labelsOf = (a: string): HolderLabel[] => {
     const out: HolderLabel[] = [];
-    const s = systemLabel(a);
+    const s = holderLabel(a);
     if (s) out.push(s);
     if (a === creator) out.push("creator");
     if (bundle.includes(a)) out.push("bundle");
@@ -351,11 +360,11 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
 
   const held = [...balances.entries()].filter(([a, v]) => v > 0n && a !== ZERO).sort((a, b) => (b[1] > a[1] ? 1 : b[1] < a[1] ? -1 : 0));
   const top: Holder[] = held.slice(0, 20).map(([a, v]) => ({ address: a as Address, pct: pct(v), labels: labelsOf(a) }));
-  const wallets = held.filter(([a]) => systemLabel(a) == null);
+  const wallets = held.filter(([a]) => holderLabel(a) == null);
   const top10Pct = wallets.slice(0, 10).reduce((s, [, v]) => s + pct(v), 0);
 
   // ---- clusters: one wallet handing the token out to several holders --------------------------------------------
-  const clusters: Cluster[] = partial ? [] : await distributionClusters(transfers, balances, systemLabel, pct);
+  const clusters: Cluster[] = partial ? [] : await distributionClusters(transfers, balances, holderLabel, pct);
   lap("clusters");
   let fundingStatus: TokenReport["fundingStatus"] = "off";
   if (fundingEnabled() && !partial) {
@@ -795,7 +804,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
   }
   if (r.launch) {
     if (r.launch.devBuy === 0) f.push({ level: "good", text: "No dev buy at launch" });
-    else if (r.launch.devBuy != null) f.push({ level: "info", text: `Dev bought ${r.launch.devBuy.toFixed(3)} ${quote} at launch` });
+    else if (r.launch.devBuy != null) f.push({ level: "info", text: `Dev bought ${trimQuote(r.launch.devBuy)} ${quote} at launch` });
     if (r.launch.creatorTaxBps) f.push({ level: r.launch.creatorTaxBps >= 500 ? "warn" : "info", text: `Creator tax ${(r.launch.creatorTaxBps / 100).toFixed(1)}%` });
     if (r.launch.graduatedBlock != null) f.push({ level: "good", text: "Graduated to Uniswap" });
   }

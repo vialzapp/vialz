@@ -64,11 +64,24 @@ const MENU: [string, string][] = [
   ["/docs", "Docs"],
 ];
 
+function NotFoundPage() {
+  return (
+    <div className="page page-missing">
+      <div className="wrap">
+        <h1>Nothing here.</h1>
+        <p>
+          This page does not exist. <Link href="/">Check a token</Link> or read the <Link href="/docs">docs</Link>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   const path = usePath();
   const token = path.startsWith("/t/") ? extractAddress(path.slice(3)) : null;
   const [menuOpen, setMenuOpen] = useState(false);
-  const Page = PAGES[path] ?? Landing;
+  const Page = path === "/" ? Landing : (PAGES[path] ?? NotFoundPage);
 
   // links from before the split pointed at sections of the home page
   useEffect(() => {
@@ -82,6 +95,18 @@ export function App() {
     if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 30);
   }, [path]);
   useEffect(() => setMenuOpen(false), [path]);
+  // one title per section; token pages set their own once the report is in
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      "/": "Vialz · Robinhood Chain token checker",
+      "/how": "How it reads · Vialz",
+      "/report": "Full report · Vialz",
+      "/faq": "FAQ · Vialz",
+      "/docs": "Docs · Vialz",
+      "/privacy": "Privacy · Vialz",
+    };
+    if (!token) document.title = titles[path] ?? "Not found · Vialz";
+  }, [path, token]);
 
   return (
     <>

@@ -1182,7 +1182,10 @@ html {
     margin: 0;
   }
   .ext-chart,
-  .ext-page-rows {
+  .ext-page-rows,
+  .ext-dots,
+  .ext-url span:first-of-type,
+  .ext-icons > svg {
     display: none;
   }
   .ext-stage {
@@ -1237,4 +1240,19 @@ html {
   font-size: 12px;
   color: var(--ink);
   pointer-events: auto;
+}
+
+/* ---- not found ---- */
+.page-missing {
+  padding-block: clamp(56px, 8vw, 120px);
+}
+
+.page-missing h1 {
+  margin: 0 0 12px;
+  font-size: clamp(40px, 5vw, 64px);
+}
+
+.page-missing p {
+  margin: 0;
+  color: var(--ink-2);
 }

@@ -4,7 +4,7 @@ export const CHAIN_ID = 4663;
 
 export type Address = `0x${string}`;
 
-export type HolderLabel = "creator" | "curve" | "pool" | "burn" | "launchpad" | "bundle" | "sniper";
+export type HolderLabel = "creator" | "curve" | "pool" | "burn" | "launchpad" | "contract" | "bundle" | "sniper";
 
 export interface Holder {
   address: Address;
@@ -76,7 +76,7 @@ export interface TokenReport {
 
   holders: {
     count: number;
-    top10Pct: number; // wallets only: curve, pool, burn and launchpad contracts excluded
+    top10Pct: number; // wallets only: curve, pools, burn, launchpad and other contracts excluded
     top: Holder[];
     creatorPct: number;
     partial: boolean; // transfer history too large to read completely

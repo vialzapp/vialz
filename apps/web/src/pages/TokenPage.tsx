@@ -9,7 +9,7 @@ export function TokenPage({ address }: { address: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    document.title = state.status === "ready" ? `$${state.report.symbol} on Vialz` : "Vialz";
+    document.title = state.status === "ready" ? `$${state.report.symbol} · Vialz` : "Reading · Vialz";
   }, [state]);
 
   return (
