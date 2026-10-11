@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { extractAddress, isPending, type TokenReport } from "@vialz/shared";
@@ -140,6 +141,43 @@ const SITE_CSP = [
   "frame-ancestors 'none'",
   "form-action 'none'",
 ].join("; ");
+// ---- before launch: the site is closed --------------------------------------------------------------------------------
+// With PREVIEW_KEY set, strangers get a blank "Soon." page and a 404 from the API, so the domain cannot be tied to the
+// project by scanning it. Opening any page once with ?preview=<key> sets a cookie that opens the real site for 30 days.
+// The extension (chrome-extension:// origin) keeps working, and so do the health check and the image proxy (which only
+// serves images of tokens already read). Unset PREVIEW_KEY on launch day and everything is public again.
+const PREVIEW_KEY = process.env.PREVIEW_KEY ?? "";
+const PREVIEW_COOKIE = "vz_preview";
+const digest = (v: string) => createHash("sha256").update(v).digest();
+const isKey = (v: string | null | undefined) => Boolean(PREVIEW_KEY && v && timingSafeEqual(digest(v), digest(PREVIEW_KEY)));
+const cookieOf = (header: string | undefined, name: string) =>
+  header
+    ?.split(";")
+    .map((c) => c.trim().split("="))
+    .find(([k]) => k === name)?.[1];
+const PLACEHOLDER = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Soon</title><style>html,body{height:100%;margin:0;background:#0b0c0f;color:#8b8f99;font:500 15px/1.5 system-ui,sans-serif}body{display:grid;place-items:center}</style></head><body><p>Soon.</p></body></html>`;
+
+app.addHook("onRequest", async (req, reply) => {
+  if (!PREVIEW_KEY) return;
+  reply.header("x-robots-tag", "noindex, nofollow");
+  const url = new URL(req.url, "http://local");
+  if (url.pathname === "/v1/health") return;
+  if (isKey(url.searchParams.get("preview"))) {
+    url.searchParams.delete("preview");
+    reply.header("set-cookie", `${PREVIEW_COOKIE}=${encodeURIComponent(PREVIEW_KEY)}; Max-Age=2592000; Path=/; HttpOnly; Secure; SameSite=Lax`);
+    return reply.code(302).header("cache-control", "no-store").redirect(url.pathname + url.search);
+  }
+  const cookie = cookieOf(req.headers.cookie, PREVIEW_COOKIE);
+  if (isKey(cookie ? decodeURIComponent(cookie) : null)) return;
+  if (url.pathname.startsWith("/v1/")) {
+    if ((req.headers.origin ?? "").startsWith("chrome-extension://") || url.pathname.startsWith("/v1/img/")) return;
+    return reply.code(404).header("cache-control", "no-store").send({ error: "not_found", message: "Not found." });
+  }
+  if (url.pathname === "/robots.txt") return reply.type("text/plain").header("cache-control", "no-store").send("User-agent: *\nDisallow: /\n");
+  if (url.pathname.startsWith("/assets/") || /\.[a-z0-9]+$/i.test(url.pathname)) return reply.code(404).header("cache-control", "no-store").send("Not found.");
+  return reply.code(200).type("text/html; charset=utf-8").header("cache-control", "no-store").send(PLACEHOLDER);
+});
+
 app.addHook("onSend", async (req, reply) => {
   reply.header("x-content-type-options", "nosniff");
   reply.header("referrer-policy", "no-referrer");
@@ -151,7 +189,8 @@ app.addHook("onSend", async (req, reply) => {
     // hashed build files never change; the page itself is always revalidated
     // no-transform: Cloudflare may not rewrite our pages, so it injects no analytics beacon (our CSP would block it anyway,
     // and the privacy page promises no third-party analytics)
-    reply.header("cache-control", req.url.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache, no-transform");
+    if (!reply.getHeader("cache-control"))
+      reply.header("cache-control", req.url.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache, no-transform");
   }
 });
 await app.register(cors, { origin: true, methods: ["GET"] });
