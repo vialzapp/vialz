@@ -194,6 +194,13 @@ html {
   .nav-links.nav-open a:last-child {
     border-bottom: 0;
   }
+  /* the store button keeps its pill shape at the end of the open list */
+  .nav-links.nav-open .nav-cta {
+    justify-self: start;
+    margin-top: 14px;
+    padding: 0 18px;
+    border-bottom: 0;
+  }
   /* in the open list the current section is marked by its weight alone */
   .nav-links.nav-open a[aria-current="page"]::after {
     display: none;
