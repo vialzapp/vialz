@@ -149,7 +149,9 @@ app.addHook("onSend", async (req, reply) => {
   else if (!req.url.startsWith("/v1/")) {
     reply.header("content-security-policy", SITE_CSP);
     // hashed build files never change; the page itself is always revalidated
-    reply.header("cache-control", req.url.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache");
+    // no-transform: Cloudflare may not rewrite our pages, so it injects no analytics beacon (our CSP would block it anyway,
+    // and the privacy page promises no third-party analytics)
+    reply.header("cache-control", req.url.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache, no-transform");
   }
 });
 await app.register(cors, { origin: true, methods: ["GET"] });
