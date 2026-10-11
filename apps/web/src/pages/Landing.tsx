@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
 import { Link, navigate, Out } from "../App";
+import { ExtensionShowcase } from "../Showcase";
 import { API_BASE, REPO_URL } from "../brand";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
@@ -87,36 +88,37 @@ export function Landing() {
           </div>
 
           <div className="hero-live" aria-live="polite">
-            {checked ? (
-              <>
-                <p className="hero-live-label">
-                  {mine.status === "ready" ? `Your check: $${mine.report.symbol}` : "Reading your token from the chain"}
-                  <button type="button" className="hero-live-back" onClick={() => setChecked(null)}>
-                    Show the live launch
-                  </button>
-                </p>
-                {mine.status === "ready" ? (
+            <p className="hero-live-label">
+              {checked
+                ? mine.status === "ready"
+                  ? `Your check: $${mine.report.symbol}`
+                  : "Reading your token from the chain"
+                : r
+                  ? `Live: $${r.symbol}, the busiest Pons launch of the last hour`
+                  : "Reading the busiest Pons launch of the last hour"}
+              {checked && (
+                <button type="button" className="hero-live-back" onClick={() => setChecked(null)}>
+                  Show the live launch
+                </button>
+              )}
+            </p>
+            <ExtensionShowcase address={checked ?? r?.address ?? live.token}>
+              {checked ? (
+                mine.status === "ready" ? (
                   <Report report={mine.report} compact={{ href: `/t/${mine.report.address}` }} apiBase={API_BASE} />
                 ) : mine.status === "error" ? (
                   <ReportError message={mine.message} onRetry={mine.retry} quiet={mine.notFound} />
                 ) : (
                   <ReportSkeleton quick={mine.status === "loading" ? mine.quick : undefined} apiBase={API_BASE} />
-                )}
-              </>
-            ) : (
-              <>
-                <p className="hero-live-label" role="status">
-                  {r ? `Read just now: $${r.symbol}, the busiest Pons launch of the last hour` : "Reading the busiest Pons launch of the last hour"}
-                </p>
-                {r ? (
-                  <Report report={r} compact={{ href: `/t/${r.address}` }} apiBase={API_BASE} />
-                ) : live.failed || live.state.status === "error" ? (
-                  <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address on the left."} />
-                ) : (
-                  <ReportSkeleton note="Reading it from the chain." quick={live.state.status === "loading" ? live.state.quick : undefined} apiBase={API_BASE} />
-                )}
-              </>
-            )}
+                )
+              ) : r ? (
+                <Report report={r} compact={{ href: `/t/${r.address}` }} apiBase={API_BASE} />
+              ) : live.failed || live.state.status === "error" ? (
+                <ReportError message={live.state.status === "error" ? live.state.message : "No live example right now. Paste any address on the left."} />
+              ) : (
+                <ReportSkeleton note="Reading it from the chain." quick={live.state.status === "loading" ? live.state.quick : undefined} apiBase={API_BASE} />
+              )}
+            </ExtensionShowcase>
           </div>
         </div>
       </section>

@@ -214,8 +214,8 @@ html {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr);
-  gap: clamp(40px, 5vw, 80px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: clamp(40px, 5vw, 72px);
   align-items: start;
 }
 
@@ -960,5 +960,228 @@ html {
   }
   .doc-legend {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---- the extension in use: a browser window over a token page, the Vialz popup hanging from its toolbar icon ---- */
+.ext-window {
+  margin: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  background: var(--sheet);
+  overflow: hidden;
+}
+
+.ext-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 42px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--well);
+}
+
+.ext-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.ext-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--rule-strong);
+}
+
+.ext-url {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ext-url span:first-of-type {
+  color: var(--ink-2);
+}
+
+.ext-url-path {
+  font-family: var(--font-data);
+  font-stretch: 87.5%;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ext-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-3);
+}
+
+/* the pressed Vialz icon the popup hangs from */
+.ext-vialz {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--raise);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+  color: var(--ink);
+}
+
+.ext-stage {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 8px 14px;
+}
+
+/* the page the popup opens over: only the shape of a token page, kept quiet */
+.ext-page {
+  position: absolute;
+  inset: 0;
+  padding: 20px 18px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ext-page-title {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.ext-page-title span {
+  display: block;
+  height: 12px;
+  width: 38%;
+  border-radius: 3px;
+  background: var(--raise);
+}
+
+.ext-page-title span + span {
+  width: 22%;
+  height: 8px;
+}
+
+.ext-chart {
+  display: block;
+  width: 100%;
+  height: 150px;
+}
+
+.ext-chart polyline {
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.ext-page-rows {
+  display: grid;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.ext-page-rows span {
+  display: block;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--raise);
+}
+
+.ext-page-rows span:nth-child(1) {
+  width: 46%;
+}
+.ext-page-rows span:nth-child(2) {
+  width: 34%;
+}
+.ext-page-rows span:nth-child(3) {
+  width: 40%;
+}
+
+.ext-popup {
+  position: relative;
+  width: min(380px, 100%);
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+/* the little notch pointing up at the icon */
+.ext-caret {
+  position: absolute;
+  top: -6px;
+  right: 14px;
+  width: 11px;
+  height: 11px;
+  border-top: 1px solid var(--rule-strong);
+  border-left: 1px solid var(--rule-strong);
+  background: var(--bg);
+  transform: rotate(45deg);
+}
+
+.ext-popup-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 10px 0 14px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14px;
+}
+
+.ext-popup-head b {
+  font-weight: 800;
+  font-stretch: 125%;
+  letter-spacing: -0.02em;
+}
+
+.ext-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* inside the popup the report runs edge to edge, as in the extension */
+.ext-popup-body .vz-report,
+.ext-popup-body .vz-skeleton {
+  border: 0;
+  border-radius: 0 0 12px 12px;
+  background: transparent;
+}
+
+.ext-popup-body .vz-error {
+  margin: 12px;
+}
+
+@media (max-width: 560px) {
+  .ext-page {
+    display: none;
+  }
+  .ext-stage {
+    padding: 10px 6px 8px;
+  }
+  .ext-popup {
+    width: 100%;
   }
 }
