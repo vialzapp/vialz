@@ -3,7 +3,7 @@ export function Privacy() {
     <section className="prose-page">
       <div className="wrap prose">
         <h1>Privacy</h1>
-        <p className="prose-date">Last updated 10 October 2026</p>
+        <p className="prose-date">Last updated 11 October 2026</p>
 
         <h2>What Vialz does</h2>
         <p>
@@ -36,11 +36,17 @@ export function Privacy() {
         <h2>Third parties</h2>
         <p>
           Market data for tokens trading on Uniswap comes from DexScreener and the ETH price from Coinbase. Those requests are made by the Vialz server, not by
-          your browser. Token images load from public IPFS gateways.
+          your browser. Token images are fetched from public IPFS gateways by the Vialz server too, so your browser only talks to Vialz.
         </p>
 
         <h2>Contact</h2>
-        <p>Questions about this policy: reach the Vialz team on X.</p>
+        <p>
+          Questions about this policy: reach the Vialz team on X,{" "}
+          <a href="https://x.com/vialzapp" target="_blank" rel="noopener noreferrer">
+            @vialzapp
+          </a>
+          , or write to <a href="mailto:hello@vialz.xyz">hello@vialz.xyz</a>.
+        </p>
       </div>
     </section>
   );
