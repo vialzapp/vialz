@@ -9,5 +9,6 @@
     "start": "npm run start -w @vialz/api",
     "typecheck": "tsc -p apps/api && tsc -p apps/web && tsc -p apps/extension"
   },
-  "engines": { "node": ">=22" }
+  "engines": { "node": ">=22" },
+  "overrides": { "fflate": "0.7.5" }
 }
