@@ -22,7 +22,7 @@ Open a token on gmgn, fomo, DexScreener or a block explorer and click the Vialz 
 
 What you see:
 
-• Snipers: wallets that bought in the launch block and the two after it, and how much they still hold
+• Snipers: wallets that bought in the first 3 seconds after launch, and how much they still hold
 • Bundle: the wallets the creator set up at launch, and what they hold now
 • Top 10: how much of the supply the ten biggest wallets control, with the curve, pools, burn address and contracts left out
 • Linked wallets: one wallet handing the token out to a group of holders who still hold it

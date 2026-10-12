@@ -21,7 +21,7 @@ function useLiveExample() {
 // the reference ranges, as on a lab sheet: what each check reads, and the reading at each level
 type Scale = [clear: string | null, note: string | null, watch: string | null, high: string | null];
 const CHECKS: { key: string; name: string; reads: string; scale: Scale }[] = [
-  { key: "snipers", name: "Snipers", reads: "Buys in the launch block and the two after it, by anyone but the creator and the bundle.", scale: ["none", "hold under 3%", "hold 3%+", "hold 10%+"] },
+  { key: "snipers", name: "Snipers", reads: "Buys in the first 3 seconds after launch, by anyone but the creator and the bundle.", scale: ["none", "hold under 3%", "hold 3%+", "hold 10%+"] },
   { key: "bundle", name: "Bundle", reads: "Wallets the creator declared exempt from the opening tax.", scale: ["none", "hold under 1%", "hold 1%+", "hold 5%+"] },
   { key: "holders", name: "Top 10", reads: "Supply in the ten largest wallets. The curve, pools and burn address are left out.", scale: ["under 15%", "15%+", "30%+", "50%+"] },
   { key: "linked", name: "Linked", reads: "Holders fed the token by one sender, or their first ETH by one funder.", scale: ["none", "a group under 3%", "a group 3%+", "a group 10%+"] },

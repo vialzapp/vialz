@@ -23,7 +23,10 @@ const heavyUntil = new Map<string, number>();
 
 export class NotFound extends Error {}
 
-const SNIPE_BLOCKS = 2; // launch block and the two after it
+// Snipers are the buys of the first seconds after launch, by anyone but the creator and the declared bundle. Robinhood
+// Chain makes a block about every 0.1 s, so the window is set in seconds and turned into blocks from the chain's own pace.
+const SNIPE_SECONDS = 3;
+const SNIPE_SCAN_BLOCKS = 150; // what is read for the launch window when the full trade history is not; covers 3 s at any pace seen
 const PRIOR_SOLD_CHECKS = 8;
 const DEV_SAMPLE = 60; // most recent launches whose phase is read
 const HISTORY_BUDGET_MS = 15_000; // past this a token's transfer history is too large to read per request
@@ -271,7 +274,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
           heavyP
             .then((heavy) =>
               heavy
-                ? readCurveTrades(curve, launchLog.blockNumber, launchLog.blockNumber + SNIPE_BLOCKS, started + 2 * HISTORY_BUDGET_MS, false)
+                ? readCurveTrades(curve, launchLog.blockNumber, launchLog.blockNumber + SNIPE_SCAN_BLOCKS, started + 2 * HISTORY_BUDGET_MS, false)
                 : gradP.then((g) => readCurveTrades(curve, launchLog.blockNumber, Math.min(h, g[0]?.blockNumber ?? h), started + 2 * HISTORY_BUDGET_MS)),
             )
             .catch(() => null),
@@ -337,7 +340,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const idx = partial && indexerEnabled() ? await tag("indexer", indexedHolders(token)).catch(() => null) : null;
   const launchTrades =
     idx && curve && launchLog
-      ? (tradesRead ?? (await readCurveTrades(curve, launchLog.blockNumber, launchLog.blockNumber + SNIPE_BLOCKS, deadline + 15_000, false).catch(() => null)))
+      ? (tradesRead ?? (await readCurveTrades(curve, launchLog.blockNumber, launchLog.blockNumber + SNIPE_SCAN_BLOCKS, deadline + 15_000, false).catch(() => null)))
       : null;
   const PENDING = Symbol("pending");
   const devRead = devP ? await Promise.race([devP, new Promise<typeof PENDING>((r) => setTimeout(() => r(PENDING), CREATOR_WAIT_MS))]) : null;
@@ -348,6 +351,11 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
 
   const tsOf = (b: number) =>
     tsCreated == null || createdBlock == null || h === createdBlock ? tsHead : tsCreated + ((b - createdBlock) * (tsHead - tsCreated)) / (h - createdBlock);
+  // the sniper window in blocks, from the chain's average pace since launch (about 30 blocks at 0.1 s a block)
+  const snipeBlocks =
+    tsCreated != null && createdBlock != null && tsHead > tsCreated + 10
+      ? Math.min(SNIPE_SCAN_BLOCKS, Math.max(2, Math.round((SNIPE_SECONDS * (h - createdBlock)) / (tsHead - tsCreated))))
+      : 30;
 
   const launchCall = decodeLaunchAndBuy(f.launchInput ?? undefined);
   const bundle = launchCall?.exempt.filter((a) => a !== creator) ?? [];
@@ -372,7 +380,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
 
   const snipeWallets = new Set(
     snipeQ
-      .filter((t) => t.side === "buy" && launchBlock != null && t.block <= launchBlock + SNIPE_BLOCKS && t.wallet !== creator && !bundle.includes(t.wallet))
+      .filter((t) => t.side === "buy" && launchBlock != null && t.block <= launchBlock + snipeBlocks && t.wallet !== creator && !bundle.includes(t.wallet))
       .map((t) => t.wallet),
   );
   // the index lists only the biggest balances: the snipers', the bundle's and the creator's are read from the token
@@ -883,7 +891,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     const level = s.wallets === 0 ? "good" : s.holdPct >= 10 ? "danger" : s.holdPct >= 3 ? "warn" : "info";
     f.push({
       level,
-      text: s.wallets === 0 ? "No snipers in the first blocks" : `${s.wallets} snipers took ${fmt(s.boughtPct)}% at launch, ${s.holdPct >= 0.05 ? `still hold ${fmt(s.holdPct)}%` : "all sold"}`,
+      text: s.wallets === 0 ? "No snipers in the first 3 seconds" : `${s.wallets} snipers took ${fmt(s.boughtPct)}% at launch, ${s.holdPct >= 0.05 ? `still hold ${fmt(s.holdPct)}%` : "all sold"}`,
     });
   }
   if (r.bundle) {

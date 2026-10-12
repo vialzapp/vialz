@@ -52,7 +52,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 const VIALS = [
   {
     name: "Snipers",
-    reads: "Buys in the launch block and the two blocks after it, by any wallet except the creator and the declared bundle. Shows how much of the supply they still hold.",
+    reads: "Buys in the first 3 seconds after launch, by any wallet except the creator and the declared bundle. Shows how much of the supply they still hold.",
     levels: "Clear: none. Note: under 3% still held. Watch: 3% or more. High: 10% or more.",
   },
   {
@@ -316,7 +316,7 @@ export function Docs() {
             <div>
               <dt>Snipers</dt>
               <dd>
-                Buys on the curve in the launch block and the two blocks after it, by wallets other than the creator and the declared bundle (the
+                Buys on the curve in the first 3 seconds after launch (about 30 blocks: Robinhood Chain makes a block every 0.1 s), by wallets other than the creator and the declared bundle (the
                 bundle has its own vial). Their current balances give "still hold".
               </dd>
             </div>
