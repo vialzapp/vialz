@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckIcon, LinkSimpleIcon } from "@phosphor-icons/react";
-import { CheckInput, CopySummary, Report, ReportError, ReportSkeleton, useTokenReport } from "@vialz/ui";
+import { CheckInput, CopySummary, Report, ReportError, ReportSkeleton, ShareOnX, useTokenReport } from "@vialz/ui";
 import { navigate } from "../App";
 import { API_BASE } from "../brand";
 
@@ -46,6 +46,7 @@ export function TokenPage({ address }: { address: string }) {
                 {copied ? "Link copied" : "Copy link"}
               </button>
               <CopySummary report={state.report} url={`${location.origin}/t/${state.report.address}`} />
+              <ShareOnX report={state.report} url={`${location.origin}/t/${state.report.address}`} />
               {state.refreshing && <span className="token-refresh">Checking where top holders got their ETH</span>}
             </div>
           </>

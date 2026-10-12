@@ -311,6 +311,32 @@
   font-weight: 500;
 }
 
+/* what the levels mean, right under the shelf */
+.strip-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 8px 16px 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.strip-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.strip-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--pad);
+}
+.strip-legend-note {
+  margin-left: auto;
+}
+
 /* ---- sections ---- */
 .vz-section {
   padding-block: 16px;

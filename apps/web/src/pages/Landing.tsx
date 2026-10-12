@@ -44,8 +44,8 @@ const FAQ = [
     a: "Usually one to three seconds: the token's name and numbers show first, the readings follow. The first check of a token with a long history can take a few seconds more. Vialz reads the chain on every check instead of keeping a stale copy. Tokens with millions of transfers show market data and skip the holder breakdown for now.",
   },
   {
-    q: "Does it work on fomo, gmgn and X?",
-    a: "Yes. Click the Vialz icon on a token page and that token is read straight away. On any other page, paste an address or a link.",
+    q: "Which pages does it read by itself?",
+    a: "Token pages on gmgn, fomo, DexScreener and the block explorer: click the Vialz icon and that token is read straight away. A post on X carries no contract in its link, so there you paste the address.",
   },
   {
     q: "Does it need my wallet?",

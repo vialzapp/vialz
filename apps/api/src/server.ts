@@ -16,7 +16,11 @@ import { clientIp, refreshCloudflareRanges } from "./clientip.js";
 import { tokenCard } from "./og.js";
 
 const TTL_MS = 15_000;
-const cache = new Map<string, { at: number; report: Promise<TokenReport>; value?: TokenReport }>();
+// A report older than TTL but younger than this is still answered at once, while a fresh read runs behind it: a token
+// everyone is checking (a link going round on X) answers instantly, a few seconds to minutes old.
+const STALE_MS = 5 * 60_000;
+type Entry = { at: number; report: Promise<TokenReport>; value?: TokenReport; refreshing?: boolean };
+const cache = new Map<string, Entry>();
 
 // Fresh reads of the chain are the expensive part. A few run at once, a short queue waits, the rest are told to retry:
 // one busy client can slow the service down but cannot pile up unbounded work or memory.
@@ -42,10 +46,10 @@ async function gated<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
-/** True when a request for this address is answered from memory (a fresh report, or a read already running). */
+/** True when a request for this address is answered from memory (a fresh or recent report, or a read already running). */
 const cached = (address: string) => {
   const hit = cache.get(address);
-  return hit != null && Date.now() - hit.at < TTL_MS;
+  return hit != null && (Date.now() - hit.at < TTL_MS || (hit.value != null && !isPending(hit.value) && Date.now() - hit.at < STALE_MS));
 };
 
 // Reads that go to the chain are limited per client; answers from memory (repeat checks, the polls that wait for the
@@ -91,8 +95,29 @@ function report(address: string): Promise<TokenReport> {
     }
     return hit.report;
   }
+  // a recent settled report is answered now; one fresh read runs behind it and replaces it when done
+  if (hit?.value && !isPending(hit.value) && Date.now() - hit.at < STALE_MS) {
+    if (!hit.refreshing) {
+      hit.refreshing = true;
+      gated(() => requestDeadline.run(Date.now() + REPORT_BUDGET_MS, () => analyzeToken(address as `0x${string}`))).then(
+        (r) => {
+          if (cache.get(address) !== hit) return;
+          hit.value = r;
+          hit.report = Promise.resolve(r);
+          hit.at = Date.now();
+          hit.refreshing = false;
+          noteImage(r.links.image);
+        },
+        () => {
+          hit.refreshing = false;
+          hit.at = Date.now() - TTL_MS; // keep the old report, try again on the next request
+        },
+      );
+    }
+    return Promise.resolve(hit.value);
+  }
   const p = gated(() => requestDeadline.run(Date.now() + REPORT_BUDGET_MS, () => analyzeToken(address as `0x${string}`)));
-  const entry: { at: number; report: Promise<TokenReport>; value?: TokenReport } = { at: Date.now(), report: p };
+  const entry: Entry = { at: Date.now(), report: p };
   cache.set(address, entry);
   // the entry may have been replaced by a newer read while this one ran; only ever update our own
   const mine = () => cache.get(address) === entry;

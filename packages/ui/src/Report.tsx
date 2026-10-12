@@ -8,6 +8,7 @@ import {
   formatUsd,
   padsFor,
   shortAddress,
+  shareText,
   summaryText,
   tallyFlags,
   type Flag,
@@ -15,7 +16,7 @@ import {
   type TokenQuick,
   type TokenReport,
 } from "@vialz/shared";
-import { Strip } from "./Strip";
+import { Strip, StripLegend } from "./Strip";
 
 interface Props {
   report: TokenReport;
@@ -41,6 +42,7 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
     <>
       <Tally flags={r.flags} />
       <Strip pads={padsFor(r)} />
+      <StripLegend />
       <Findings flags={r.flags} />
       {!compact && shareUrl && <Actions report={r} url={shareUrl} openFull={openFull} />}
     </>
@@ -87,7 +89,8 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
 
           <footer className="vz-footer">
             <span>
-              Read from block <span className="num">{r.head.toLocaleString("en-US")}</span> in {(r.tookMs / 1000).toFixed(1)}s.
+              Read from block <span className="num">{r.head.toLocaleString("en-US")}</span> in {(r.tookMs / 1000).toFixed(1)}s
+              {nowSec() - r.generatedAt >= 30 ? `, ${formatAge(nowSec() - r.generatedAt)} ago` : ""}.
             </span>
             <span>Facts from the chain, not advice.</span>
           </footer>
@@ -141,7 +144,11 @@ function HoldersSection({ r }: { r: TokenReport }) {
   return (
     <Section title="Holders" note={`${r.holders.count.toLocaleString("en-US")} ${r.holders.count === 1 ? "holder" : "holders"}`}>
       {r.holders.partial ? (
-        <p className="vz-empty vz-dist-note">Too many transfers to split the supply in one read. The list below is the biggest balances seen.</p>
+        <p className="vz-empty vz-dist-note">
+          {r.holders.top.length > 0
+            ? "A busy token: the supply split needs its whole history. The biggest balances below come from Blockscout's index."
+            : "Too many transfers to read the holders in one pass."}
+        </p>
       ) : (
         <Distribution report={r} />
       )}
@@ -365,7 +372,7 @@ function topOf(r: TokenReport): Top {
     mcapUsd: r.market?.mcapUsd ?? null,
     liquidityUsd: r.market?.liquidityUsd ?? null,
     liquidityLabel: r.market?.source === "dexscreener" ? "Liquidity" : "In curve",
-    holders: r.holders.partial ? null : r.holders.count,
+    holders: r.holders.partial && r.holders.top.length === 0 ? null : r.holders.count,
     progress: r.launch
       ? { pct: r.launch.progressPct, onCurve: r.launch.graduatedBlock == null && r.launch.phase === "curve", label: venue(r) }
       : null,
@@ -612,10 +619,21 @@ export function CopySummary({ report, url }: { report: TokenReport; url: string 
   );
 }
 
+/** Opens a post on X with the six readings; the link unfolds into the token's card. */
+export function ShareOnX({ report, url }: { report: TokenReport; url: string }) {
+  const href = `https://x.com/intent/post?text=${encodeURIComponent(shareText(report))}&url=${encodeURIComponent(url)}`;
+  return (
+    <a className="btn btn-quiet" href={href} target="_blank" rel="noopener noreferrer">
+      <XLogoIcon size={16} /> Share on X
+    </a>
+  );
+}
+
 function Actions({ report, url, openFull }: { report: TokenReport; url: string; openFull?: boolean }) {
   return (
     <div className="vz-actions">
       <CopySummary report={report} url={url} />
+      <ShareOnX report={report} url={url} />
       {openFull && (
         <a className="btn btn-quiet" href={url} target="_blank" rel="noreferrer">
           Open on vialz.xyz <ArrowUpRightIcon size={16} />

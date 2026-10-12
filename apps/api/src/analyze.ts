@@ -13,6 +13,13 @@ import {
 } from "./pons.js";
 import { dexPairs, quoteUsd, type DexPair } from "./market.js";
 import { cachedFunder, fundingEnabled, queueFunders } from "./funding.js";
+import { indexedCreatorTransfers, indexedHolders, indexedInfo, indexerEnabled } from "./blockscout.js";
+
+// A busy token has too many transfers to read inside a report. It is told apart before the read (its holder count in
+// Blockscout's index) or by the read timing out, and then remembered, so it never pays for the doomed read again.
+const HEAVY_HOLDERS = Number(process.env.HEAVY_HOLDERS ?? 4_000);
+const HEAVY_MS = 6 * 3_600_000;
+const heavyUntil = new Map<string, number>();
 
 export class NotFound extends Error {}
 
@@ -245,11 +252,32 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
 
   // Everything that needs only the launch starts now and runs while the transfer history is read: the curve trades,
   // graduation, prices. Secondary reads fail soft: the report goes out without that part.
+  const graduated = record?.phase === "pool" || record?.phase === "swept";
+  const heavyP: Promise<boolean> =
+    (heavyUntil.get(token) ?? 0) > Date.now()
+      ? Promise.resolve(true)
+      : indexerEnabled() && (graduated || !launchLog)
+        ? tag("holder count", indexedInfo(token)).then((i) => i.count >= HEAVY_HOLDERS).catch(() => false)
+        : Promise.resolve(false);
+  const gradP: Promise<Log[]> = launchLog
+    ? tag("graduation", getLogsKept(`grad:${token}`, { address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[]))
+    : Promise.resolve([]);
   const early = Promise.all([
-    curve && launchLog ? tag("curve trades", readCurveTrades(curve, launchLog.blockNumber, h, started + 2 * HISTORY_BUDGET_MS).catch(() => null)) : Promise.resolve(null),
-    launchLog
-      ? tag("graduation", getLogsKept(`grad:${token}`, { address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[]))
-      : [],
+    // a graduated token has no curve trades after its graduation block: the read stops there
+    curve && launchLog
+      ? tag(
+          "curve trades",
+          // a busy token needs only the launch blocks, for the snipers
+          heavyP
+            .then((heavy) =>
+              heavy
+                ? readCurveTrades(curve, launchLog.blockNumber, launchLog.blockNumber + SNIPE_BLOCKS, started + 2 * HISTORY_BUDGET_MS, false)
+                : gradP.then((g) => readCurveTrades(curve, launchLog.blockNumber, Math.min(h, g[0]?.blockNumber ?? h), started + 2 * HISTORY_BUDGET_MS)),
+            )
+            .catch(() => null),
+        )
+      : Promise.resolve(null),
+    gradP,
     tag("dexscreener", pairsP),
     launchLog ? tag("eth price", quoteUsd(quoteAddr)) : Promise.resolve(null),
   ]);
@@ -268,7 +296,10 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
       : null;
 
   let partial = false;
-  const transfers = await (launchLog
+  const heavy = await heavyP;
+  const transfers = await (heavy
+    ? Promise.reject(new DeadlineError("busy token: read through the index"))
+    : launchLog
     ? getLogsKept(`transfers:${token}`, { address: token, topics: [TRANSFER] }, launchLog.blockNumber, h, deadline)
     : getLogsBackward(
         { address: token, topics: [TRANSFER] },
@@ -284,6 +315,8 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   ).catch((e) => {
     if (!(e instanceof DeadlineError)) throw e;
     partial = true;
+    heavyUntil.set(token, Date.now() + HEAVY_MS);
+    if (heavyUntil.size > 5_000) heavyUntil.delete(heavyUntil.keys().next().value!);
     return [] as Log[];
   });
   lap(`transfers (${transfers.length})`);
@@ -299,6 +332,13 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   ]);
   // a partial history has no reliable trade picture either
   const trades = partial ? null : tradesRead;
+  // A token too big to read here: its biggest balances and the creator's transfers come from Blockscout's index, the
+  // snipers from the launch blocks alone, and the balances that matter from the token itself.
+  const idx = partial && indexerEnabled() ? await tag("indexer", indexedHolders(token)).catch(() => null) : null;
+  const launchTrades =
+    idx && curve && launchLog
+      ? (tradesRead ?? (await readCurveTrades(curve, launchLog.blockNumber, launchLog.blockNumber + SNIPE_BLOCKS, deadline + 15_000, false).catch(() => null)))
+      : null;
   const PENDING = Symbol("pending");
   const devRead = devP ? await Promise.race([devP, new Promise<typeof PENDING>((r) => setTimeout(() => r(PENDING), CREATOR_WAIT_MS))]) : null;
   const devRaw = devRead === PENDING ? null : devRead;
@@ -312,6 +352,9 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const launchCall = decodeLaunchAndBuy(f.launchInput ?? undefined);
   const bundle = launchCall?.exempt.filter((a) => a !== creator) ?? [];
   const tradesQ = trades?.map((t) => ({ ...t, quote: t.quote / 10 ** quoteDecimals, tokens: t.tokens / unit })) ?? [];
+  // the trades the sniper reading uses: all of them, or only the launch blocks of a token read through the index
+  const snipeSource = trades ?? launchTrades;
+  const snipeQ = snipeSource?.map((t) => ({ ...t, quote: t.quote / 10 ** quoteDecimals, tokens: t.tokens / unit })) ?? [];
 
   // ---- holders -------------------------------------------------------------------------------------------------
   const balances = new Map<string, bigint>();
@@ -323,14 +366,30 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     if (from !== ZERO) balances.set(from, (balances.get(from) ?? 0n) - v);
     balances.set(to, (balances.get(to) ?? 0n) + v);
   }
+  for (const t of idx?.top ?? []) balances.set(t.address, t.value);
   const pct = (raw: bigint) => (supplyRaw > 0n ? Number((raw * 1_000_000n) / supplyRaw) / 10_000 : 0);
   const balancePct = (a: string) => pct(balances.get(a) ?? 0n);
 
   const snipeWallets = new Set(
-    tradesQ
+    snipeQ
       .filter((t) => t.side === "buy" && launchBlock != null && t.block <= launchBlock + SNIPE_BLOCKS && t.wallet !== creator && !bundle.includes(t.wallet))
       .map((t) => t.wallet),
   );
+  // the index lists only the biggest balances: the snipers', the bundle's and the creator's are read from the token
+  let exact = !idx;
+  if (idx) {
+    const want = [...new Set([...snipeWallets, ...bundle, ...(creator ? [creator] : [])])].filter((a) => !balances.has(a)).slice(0, 80);
+    const res = want.length
+      ? await batch(want.map((a) => ["eth_call", [{ to: token, data: "0x70a08231" + topicAddress(a).slice(2) }, "latest"]] as [string, unknown[]])).catch(() => null)
+      : [];
+    if (res) {
+      want.forEach((a, i) => {
+        const v = res[i];
+        if (typeof v === "string" && v.startsWith("0x") && v.length > 2) balances.set(a, BigInt(v));
+      });
+      exact = want.every((a) => balances.has(a));
+    }
+  }
   const pairAddresses = new Set(pairs.map((p) => p.pairAddress.toLowerCase()));
   const systemLabel = (a: string): HolderLabel | null => {
     if (a === curve) return "curve";
@@ -346,6 +405,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const probe = ranked.slice(0, 15).map(([a]) => a);
   const codes = probe.length ? await batch(probe.map((a) => ["eth_getCode", [a, "latest"]] as [string, unknown[]])).catch(() => [] as unknown[]) : [];
   const contracts = new Set(probe.filter((_, i) => typeof codes[i] === "string" && codes[i] !== "0x" && !(codes[i] as string).startsWith("0xef0100")));
+  for (const t of idx?.top ?? []) if (t.contract) contracts.add(t.address);
   const holderLabel = (a: string): HolderLabel | null => systemLabel(a) ?? (contracts.has(a) ? "contract" : null);
 
   const labelsOf = (a: string): HolderLabel[] => {
@@ -368,7 +428,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   lap("clusters");
   let fundingStatus: TokenReport["fundingStatus"] = "off";
   if (fundingEnabled() && !partial) {
-    const r = fundingClusters(wallets.slice(0, 25).map(([a]) => a), balances, pct);
+    const r = await fundingClusters(wallets.slice(0, 25).map(([a]) => a), balances, pct);
     fundingStatus = r.status;
     clusters.push(...r.clusters);
   }
@@ -434,15 +494,15 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   // Unknown must never read as clear: without the trades there is no sniper reading, without the launch call or the
   // holders there is no bundle reading.
   const snipers =
-    launch && trades != null && !partial && supply > 0
+    launch && snipeSource != null && (!partial || (idx && exact)) && supply > 0
       ? {
           wallets: snipeWallets.size,
-          boughtPct: (tradesQ.filter((t) => t.side === "buy" && snipeWallets.has(t.wallet)).reduce((s, t) => s + t.tokens, 0) / supply) * 100,
+          boughtPct: (snipeQ.filter((t) => t.side === "buy" && snipeWallets.has(t.wallet)).reduce((s, t) => s + t.tokens, 0) / supply) * 100,
           holdPct: [...snipeWallets].reduce((s, a) => s + balancePct(a), 0),
         }
       : null;
   const bundleInfo =
-    launch && launchCall != null && !partial ? { wallets: bundle.length, holdPct: bundle.reduce((s, a) => s + balancePct(a), 0) } : null;
+    launch && launchCall != null && (!partial || (idx && exact)) ? { wallets: bundle.length, holdPct: bundle.reduce((s, a) => s + balancePct(a), 0) } : null;
 
   // ---- volume quality -------------------------------------------------------------------------------------------
   let volume: TokenReport["volume"] = null;
@@ -472,19 +532,31 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   // Read from the transfers, so it covers the dev buy, later buys, sells into the curve or a pool, and tokens moved
   // to other wallets (a common way to make the creator look clean).
   let creatorPosition: TokenReport["creatorPosition"] = null;
-  if (creator && !partial && transfers.length > 0) {
+  // the creator's own transfers: from the history read here, or from the index for a token too big to read
+  const creatorTx =
+    creator && !partial
+      ? transfers.flatMap((l) => {
+          if (l.data.length < 66) return [];
+          const from = addressFromTopic(l.topics[1]!);
+          const to = addressFromTopic(l.topics[2]!);
+          return from === creator || to === creator ? [{ from, to, v: BigInt(l.data.slice(0, 66)) }] : [];
+        })
+      : creator && idx && exact
+        ? // a short wait: the read goes on in the background and the next report finds it in memory
+          await tag(
+            "creator transfers",
+            Promise.race([indexedCreatorTransfers(creator, token).catch(() => null), new Promise<null>((ok) => setTimeout(() => ok(null), 2_500))]),
+          )
+        : null;
+  if (creator && creatorTx && creatorTx.length > 0) {
     let bought = 0n, received = 0n, sold = 0n, sent = 0n, burned = 0n, locked = 0n, poolSell = false;
     // where a transfer went decides what it was: a sale (curve, pool, router), a burn, a lock, or a hand-off
     const market = (a: string) => {
       const l = systemLabel(a);
       return l === "curve" || l === "pool" || a === ROUTER || a === FOMO_ROUTER || a === FACTORY;
     };
-    for (const l of transfers) {
-      if (l.data.length < 66) continue;
-      const from = addressFromTopic(l.topics[1]!);
-      const to = addressFromTopic(l.topics[2]!);
+    for (const { from, to, v } of creatorTx) {
       if (from === to) continue;
-      const v = BigInt(l.data.slice(0, 66));
       if (to === creator) {
         if (market(from)) bought += v;
         else received += v;
@@ -529,7 +601,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     links: { x: safeUrl(info?.x), telegram: safeUrl(info?.telegram), website: safeUrl(info?.website), image: ipfsCid(info?.image) },
     launch,
     market,
-    holders: { count: held.length, top10Pct, top, creatorPct: creator && !partial ? balancePct(creator) : 0, partial },
+    holders: { count: idx ? idx.count : held.length, top10Pct, top, creatorPct: creator && (!partial || (idx && exact)) ? balancePct(creator) : 0, partial },
     snipers,
     bundle: bundleInfo,
     clusters,
@@ -555,8 +627,10 @@ const num = (v: string | undefined) => {
   return Number.isFinite(n) ? n : null;
 };
 
-async function readCurveTrades(curve: string, from: number, to: number, deadline: number): Promise<Trade[]> {
-  const logs = await getLogsKept(`trades:${curve}`, { address: curve, topics: [[CURVE_BUY, CURVE_SELL]] }, from, to, deadline);
+async function readCurveTrades(curve: string, from: number, to: number, deadline: number, kept = true): Promise<Trade[]> {
+  const filter = { address: curve, topics: [[CURVE_BUY, CURVE_SELL]] };
+  // a short window (the launch blocks) is read as is: storing it would replace the kept history of the curve
+  const logs = kept ? await getLogsKept(`trades:${curve}`, filter, from, to, deadline) : await getLogs(filter, from, to, deadline);
   return logs.map((l) => {
     const w = words(l.data);
     return l.topics[0] === CURVE_BUY
@@ -597,7 +671,11 @@ async function distributionClusters(
 
 /** Top holders grouped by the wallet that sent them their first ETH. The API is rate-limited, so unknown wallets are
  *  queued in the background and the report says "pending" until they are all known. */
-function fundingClusters(holders: string[], balances: Map<string, bigint>, pct: (raw: bigint) => number): { status: "pending" | "done"; clusters: Cluster[] } {
+// A funder with this many transactions is a service (an exchange's or a bridge's hot wallet), not one person's wallet
+const SERVICE_NONCE = 500;
+const personal = new Map<string, boolean>(); // funder -> a plain wallet with few transactions
+
+async function fundingClusters(holders: string[], balances: Map<string, bigint>, pct: (raw: bigint) => number): Promise<{ status: "pending" | "done"; clusters: Cluster[] }> {
   const known = holders.map((a) => [a, cachedFunder(a)] as const);
   const missing = known.filter(([, f]) => f === undefined).map(([a]) => a);
   if (missing.length > 0) {
@@ -606,9 +684,23 @@ function fundingClusters(holders: string[], balances: Map<string, bigint>, pct: 
   }
   const groups = new Map<string, string[]>();
   for (const [a, f] of known) if (f) groups.set(f, [...(groups.get(f) ?? []), a]);
+  const candidates = [...groups].filter(([, m]) => m.length >= 3);
+  // thousands of people get their first ETH from an exchange or a bridge: only a plain wallet with few transactions is a
+  // sign of one hand behind the group
+  const unknown = candidates.map(([s]) => s).filter((s) => !personal.has(s));
+  if (unknown.length > 0) {
+    const res = await batch(unknown.flatMap((a) => [["eth_getCode", [a, "latest"]], ["eth_getTransactionCount", [a, "latest"]]] as [string, unknown[]][])).catch(() => null);
+    if (!res) return { status: "done", clusters: [] };
+    unknown.forEach((a, i) => {
+      const code = res[2 * i], nonce = res[2 * i + 1];
+      const plain = typeof code === "string" && (code === "0x" || code.startsWith("0xef0100"));
+      personal.set(a, plain && typeof nonce === "string" && Number(BigInt(nonce)) < SERVICE_NONCE);
+    });
+    if (personal.size > 20_000) personal.delete(personal.keys().next().value!);
+  }
   const clusters: Cluster[] = [];
-  for (const [source, members] of groups) {
-    if (members.length < 3) continue;
+  for (const [source, members] of candidates) {
+    if (!personal.get(source)) continue;
     const raw = members.reduce((s, a) => s + (balances.get(a) ?? 0n), 0n);
     if (pct(raw) < 0.5) continue; // same floor as distribution groups: three dust holders funded by an exchange are not a signal
     clusters.push({ kind: "funding", source: source as Address, wallets: members.length, pct: pct(raw), members: members as Address[] });
@@ -827,7 +919,13 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
       text: `Creator moved ${Math.round(share)}% of their tokens (${fmt(cp.sentPct)}% of supply) to other wallets`,
     });
   }
-  if (r.holders.partial) f.push({ level: "info", text: "Too many transfers to read holders in one pass" });
+  if (r.holders.partial)
+    f.push({
+      level: "info",
+      text: r.holders.count > 0 && r.holders.top.length > 0
+        ? "Busy token: holders from Blockscout's index, linked wallets and volume not read"
+        : "Too many transfers to read holders in one pass",
+    });
   if (r.holders.creatorPct >= 5) f.push({ level: "warn", text: `Creator holds ${fmt(r.holders.creatorPct)}%` });
   if (r.holders.top10Pct >= 50) f.push({ level: "danger", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });
   else if (r.holders.top10Pct >= 30) f.push({ level: "warn", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });

@@ -239,7 +239,8 @@ export function padsFor(r: TokenReport): Pad[] {
       };
 
   const t = r.holders.top10Pct;
-  const holders: Pad = r.holders.partial || r.holders.count === 0
+  // a busy token read through the index has its biggest balances, so a top 10, but not the history linked wallets need
+  const holders: Pad = (r.holders.partial && r.holders.top.length === 0) || r.holders.count === 0
     ? na("holders", "Top 10")
     : { key: "holders", label: "Top 10", level: t >= 50 ? "danger" : t >= 30 ? "warn" : t >= 15 ? "info" : "good", reading: `hold ${pct(t)}`, short: pct(t) };
 
@@ -269,7 +270,8 @@ export function padsFor(r: TokenReport): Pad[] {
         key: "creator",
         label: "Creator",
         level: worst(
-          d.launches >= 50 ? "danger" : d.launches >= 10 ? "warn" : "good",
+          // a fresh wallet has no record to judge: serial launchers use a new one each time, so it is a note, not clear
+          d.launches >= 50 ? "danger" : d.launches >= 10 ? "warn" : d.launches === 1 ? "info" : "good",
           d.checked >= 3 && d.sold / d.checked >= 0.5 ? "danger" : "good",
           r.holders.creatorPct >= 5 ? "warn" : "good",
         ),
@@ -279,9 +281,9 @@ export function padsFor(r: TokenReport): Pad[] {
 
   const v = r.volume;
   const volume: Pad = !v
-    ? na("volume", "Volume")
+    ? na("volume", "Top 5 vol")
     : v.trades < 30
-      ? { key: "volume", label: "Volume", level: "info", reading: `${v.trades} trades so far`, short: `${v.trades} tx` }
+      ? { key: "volume", label: "Top 5 vol", level: "info", reading: `${v.trades} trades so far`, short: `${v.trades} tx` }
       : {
           key: "volume",
           label: "Top 5 vol",
@@ -310,8 +312,17 @@ export function summaryText(r: TokenReport, url: string): string {
       .filter(Boolean)
       .join(" · "),
     `Snipers: ${pad("snipers").reading} · Bundle: ${pad("bundle").reading}`,
-    `Creator: ${pad("creator").reading}`,
+    `Linked: ${pad("linked").reading} · Creator: ${pad("creator").reading}`,
+    `Top 5 wallets' volume: ${pad("volume").reading}`,
     `Read on chain by Vialz: ${url}`,
   ];
   return lines.join("\n");
+}
+
+/** A post for X: the six short readings, short enough to leave room for the link and a comment. */
+export function shareText(r: TokenReport): string {
+  const line = padsFor(r)
+    .map((p) => `${p.label} ${p.short}`)
+    .join(" · ");
+  return `$${r.symbol} read on chain by Vialz\n${line}`;
 }

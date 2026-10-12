@@ -8,6 +8,21 @@ export const READ: Record<Pad["level"], string> = { danger: "high", warn: "watch
  *  square of its level, so these steps (a tenth, a quarter, a half, all of it by volume) read apart at a glance. */
 export const FILL: Record<Pad["level"], number> = { none: 0, good: 0.3, info: 0.5, warn: 0.75, danger: 1 };
 
+/** What the levels mean, under the shelf: a fuller vial is a stronger reading, never a healthier one. */
+export function StripLegend() {
+  return (
+    <p className="strip-legend">
+      {(["good", "info", "warn", "danger"] as const).map((l) => (
+        <span key={l} className={`pad-${l}`}>
+          <i aria-hidden />
+          {READ[l]}
+        </span>
+      ))}
+      <span className="strip-legend-note">the fuller, the stronger</span>
+    </p>
+  );
+}
+
 /** Six vials on one shelf, one per check. Each fills with the colour and level of its reading. */
 export function Strip({ pads, size = "m" }: { pads: Pad[]; size?: "m" | "l" }) {
   return (
