@@ -14,12 +14,17 @@ interface Props {
   glass?: string; // wall colour
   surface?: string; // meniscus colour; none when left out
   stroke?: number;
+  /** graduation marks on the glass, at these levels (0..1), like the enamel marks on lab glassware */
+  ticks?: number[];
   className?: string;
   style?: CSSProperties;
   title?: string;
 }
 
-export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentColor", surface, stroke = 26, className, style, title }: Props) {
+/** Where a level sits in the vessel's box, from the top, as a share of its height: for labels set beside the glass. */
+export const vesselTop = (level: number) => (TOP + H - H * level - 106) / 204;
+
+export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentColor", surface, stroke = 26, ticks, className, style, title }: Props) {
   const lip = stroke * 0.85;
   const l = CX - W / 2;
   const r = CX + W / 2;
@@ -38,6 +43,11 @@ export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentCol
           )}
         </g>
       )}
+      {ticks?.map((t) => {
+        const y = by - H * t;
+        const x = CX + (W / 2 / H) * (by - y) - stroke * 0.55;
+        return <path key={t} className="vessel-tick" d={`M${x - stroke * 1.3},${y} H${x}`} strokeWidth={stroke * 0.32} strokeLinecap="round" />;
+      })}
       <path
         d={`M${l - lip},${TOP} H${l} L${CX},${by} L${r},${TOP} H${r + lip}`}
         fill="none"
@@ -45,6 +55,13 @@ export function Vessel({ level = 0.5, fill = "currentColor", glass = "currentCol
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+      {/* light caught on the outer edge of the left wall, upper half: shown only where a page turns it on */}
+      <path
+        className="vessel-specular"
+        d={`M${l + W * 0.05 - stroke * 0.17},${TOP + H * 0.1 + stroke * 0.1} L${l + W * 0.25 - stroke * 0.17},${TOP + H * 0.5 + stroke * 0.1}`}
+        strokeWidth={stroke * 0.16}
+        strokeLinecap="round"
       />
     </svg>
   );

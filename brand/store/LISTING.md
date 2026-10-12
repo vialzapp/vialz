@@ -79,7 +79,7 @@ When the user clicks the Vialz toolbar icon, the extension reads the address bar
 
 **Permission justification, storage:**
 ```
-Keeps the user's last checked tokens (contract address, symbol and the six readings) on the device so they can open them again from the popup. This list never leaves the device and the user can clear it.
+Keeps the user's last checked tokens (contract address, symbol and the six readings) on the device so they can open them again from the popup. It also remembers whether the user hid the tip about pinning the icon. Nothing stored leaves the device, and the user can clear the list.
 ```
 
 **Remote code:** No, I am not using remote code. All JavaScript ships in the package. The extension only fetches JSON reports from https://vialz.xyz.

@@ -3,7 +3,7 @@ export function Privacy() {
     <section className="prose-page">
       <div className="wrap prose">
         <h1>Privacy</h1>
-        <p className="prose-date">Last updated 11 October 2026</p>
+        <p className="prose-date">Last updated 12 October 2026</p>
 
         <h2>What Vialz does</h2>
         <p>
@@ -29,7 +29,7 @@ export function Privacy() {
             which never leaves your device unless you check that token. Page content, other tabs and your browsing history are never read.
           </li>
           <li>
-            <b>Storage</b>, to keep your last checked tokens on your device. They never leave it.
+            <b>Storage</b>, to keep your last checked tokens and whether you hid the pin tip on your device. They never leave it.
           </li>
         </ul>
 

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { CheckInput, FILL, Report, ReportError, ReportSkeleton, Vessel, useTokenReport } from "@vialz/ui";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { padsFor, type Pad, type TokenReport } from "@vialz/shared";
+import { CheckInput, FILL, READ, Report, ReportError, ReportSkeleton, Vessel, useTokenReport, vesselTop } from "@vialz/ui";
 import { Link, navigate, Out } from "../App";
 import { ExtensionShowcase } from "../Showcase";
 import { API_BASE, REPO_URL } from "../brand";
@@ -41,11 +42,11 @@ const FAQ = [
   },
   {
     q: "How long does a check take?",
-    a: "Usually one to three seconds: the token's name and numbers show first, the readings follow. The first check of a token with a long history can take a few seconds more. Vialz reads the chain on every check instead of keeping a stale copy. Tokens with millions of transfers show market data and skip the holder breakdown for now.",
+    a: "Usually one to three seconds: the token's name and numbers show first, the readings follow. The first check of a token with a long history can take a few seconds more. Vialz reads the chain on every check instead of keeping a stale copy. A busy token with hundreds of thousands of transfers gets its holders from Blockscout's index and skips linked wallets and volume.",
   },
   {
     q: "Which pages does it read by itself?",
-    a: "Token pages on gmgn, fomo, DexScreener and the block explorer: click the Vialz icon and that token is read straight away. A post on X carries no contract in its link, so there you paste the address.",
+    a: "Token pages on gmgn, fomo, DexScreener and the block explorer: click the Vialz icon and that token is read straight away. Anywhere else, paste the address.",
   },
   {
     q: "Does it need my wallet?",
@@ -61,6 +62,83 @@ const FAQ = [
   },
 ];
 
+// The marks on each vial's glass: where a reading turns note, watch and high. The same thresholds the vials use.
+const RACK: { key: Pad["key"]; label: string; marks: [note: string | null, watch: string | null, high: string | null] }[] = [
+  { key: "snipers", label: "Snipers", marks: ["<3%", "3%", "10%"] },
+  { key: "bundle", label: "Bundle", marks: ["<1%", "1%", "5%"] },
+  { key: "holders", label: "Top 10", marks: ["15%", "30%", "50%"] },
+  { key: "linked", label: "Linked", marks: ["<3%", "3%", "10%"] },
+  { key: "creator", label: "Creator", marks: ["1st", "10", "50"] },
+  { key: "volume", label: "Top 5 vol", marks: ["<30 tx", "60%", null] },
+];
+const MARK_LEVELS = [FILL.info, FILL.warn, FILL.danger];
+
+/** The six vials at full size, graduated like lab glass, filled once when they come into view. */
+function Rack({ report, caption }: { report: TokenReport | null; caption: string }) {
+  const pads = report ? padsFor(report) : null;
+  const ref = useRef<HTMLDivElement>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return setSeen(true);
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) {
+          setSeen(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <section className="rack-band" aria-label="The six vials">
+      <div className="wrap rack-grid">
+        <div className="rack-head">
+          <h2>Six vials, filled by the chain.</h2>
+          <p>
+            {caption} The marks on the glass are the thresholds: the further a reading goes, the higher the vial fills.
+          </p>
+          <Link href="/how" className="text-link">
+            How each one reads
+          </Link>
+        </div>
+        <div ref={ref} className={`rack${seen && pads ? " rack-on" : ""}`} role="list">
+          {RACK.map(({ key, label, marks }, i) => {
+            const p = pads?.find((x) => x.key === key);
+            const level = p?.level ?? "none";
+            return (
+              <div
+                key={key}
+                role="listitem"
+                className={`rack-cell pad-${level}`}
+                style={{ "--i": i } as CSSProperties}
+                aria-label={p ? `${p.label}: ${READ[level]}, ${p.reading}` : label}
+              >
+                <div className="rack-glass">
+                  <Vessel className="rack-vial" level={FILL[level]} fill="var(--pad)" glass="var(--glass)" surface="var(--surface)" stroke={13} ticks={MARK_LEVELS.slice(0, 2)} />
+                  {marks.map((m, j) =>
+                    m ? (
+                      <span key={j} className="rack-mark" style={{ top: `${vesselTop(MARK_LEVELS[j]!) * 100}%` }} aria-hidden>
+                        {m}
+                      </span>
+                    ) : null,
+                  )}
+                </div>
+                <b className="rack-label">{p?.label ?? label}</b>
+                <span className="rack-reading">{p?.short ?? "…"}</span>
+                <span className="rack-level">{p ? READ[level] : "reading"}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Landing() {
   const live = useLiveExample();
   const r = live.state.status === "ready" ? live.state.report : null;
@@ -73,14 +151,12 @@ export function Landing() {
       <section className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
-            <h1>Check any token before you buy it.</h1>
-            <p className="lede">
-              Paste a Robinhood Chain contract address. Vialz reads the token's whole history on chain and shows who really holds it.
-            </p>
+            <h1>Read the chain before you ape.</h1>
+            <p className="lede">Snipers, the bundle, top holders and the dev's own bag, read live from Robinhood Chain.</p>
             <CheckInput size="l" onCheck={(a) => (a === checked ? mine.retry() : setChecked(a))} busy={mine.status === "loading"} />
             <ul className="hero-facts">
               <li>Free</li>
-              <li>No wallet</li>
+              <li>Never asks for a wallet</li>
               <li>
                 <Out href={REPO_URL}>Open source</Out>
               </li>
@@ -180,13 +256,21 @@ export function FaqPage() {
     <div className="page">
       <section className="band band-faq" id="faq">
         <div className="wrap faq">
-          <h1>Questions</h1>
-          {FAQ.map((f) => (
-            <section key={f.q} className="faq-item">
-              <h2>{f.q}</h2>
-              <p>{f.a}</p>
-            </section>
-          ))}
+          <div className="faq-head">
+            <h1>Questions</h1>
+            <p>
+              Anything else: ask <Out href="https://x.com/vialzapp">@vialzapp</Out> on X, or read how every reading is worked out in the{" "}
+              <Link href="/docs">docs</Link>.
+            </p>
+          </div>
+          <div className="faq-list">
+            {FAQ.map((f) => (
+              <section key={f.q} className="faq-item">
+                <h2>{f.q}</h2>
+                <p>{f.a}</p>
+              </section>
+            ))}
+          </div>
         </div>
       </section>
     </div>

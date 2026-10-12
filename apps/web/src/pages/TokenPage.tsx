@@ -9,7 +9,7 @@ export function TokenPage({ address }: { address: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    document.title = state.status === "ready" ? `$${state.report.symbol} · Vialz` : "Reading · Vialz";
+    document.title = state.status === "ready" ? `$${state.report.symbol} | Vialz` : "Reading | Vialz";
   }, [state]);
 
   return (
@@ -27,7 +27,6 @@ export function TokenPage({ address }: { address: string }) {
         {state.status === "error" && <ReportError message={state.message} onRetry={state.retry} quiet={state.notFound} />}
         {state.status === "ready" && (
           <>
-            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} />
             <div className="token-share">
               <button
                 type="button"
@@ -49,6 +48,7 @@ export function TokenPage({ address }: { address: string }) {
               <ShareOnX report={state.report} url={`${location.origin}/t/${state.report.address}`} />
               {state.refreshing && <span className="token-refresh">Checking where top holders got their ETH</span>}
             </div>
+            <Report report={state.report} onOpenToken={(a) => navigate(`/t/${a}`)} apiBase={API_BASE} headingLevel={1} />
           </>
         )}
       </div>

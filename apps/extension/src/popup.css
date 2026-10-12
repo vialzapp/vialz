@@ -121,11 +121,11 @@ body {
 
 .panel-intro h1 {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.15;
-  font-weight: 700;
-  font-stretch: 85%;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -321,4 +321,37 @@ body {
 .panel-body {
   --vz-sticky-top: 52px;
   --vz-tabs-bg: var(--bg);
+}
+
+/* first run only: where the icon lives, since Chrome hides new extensions in the puzzle menu */
+.panel-pin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--sheet);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.panel-pin b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.panel-pin button {
+  margin-left: auto;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.panel-pin button:hover {
+  color: var(--ink);
 }

@@ -1,3 +1,4 @@
+import { XLogoIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type AnchorHTMLAttributes, type ReactElement } from "react";
 import { extractAddress } from "@vialz/shared";
 import { Mark } from "@vialz/ui";
@@ -98,14 +99,14 @@ export function App() {
   // one title per section; token pages set their own once the report is in
   useEffect(() => {
     const titles: Record<string, string> = {
-      "/": "Vialz · Robinhood Chain token checker",
-      "/how": "How it reads · Vialz",
-      "/report": "Full report · Vialz",
-      "/faq": "FAQ · Vialz",
-      "/docs": "Docs · Vialz",
-      "/privacy": "Privacy · Vialz",
+      "/": "Vialz, the Robinhood Chain token checker",
+      "/how": "How it reads | Vialz",
+      "/report": "Full report | Vialz",
+      "/faq": "FAQ | Vialz",
+      "/docs": "Docs | Vialz",
+      "/privacy": "Privacy | Vialz",
     };
-    if (!token) document.title = titles[path] ?? "Not found · Vialz";
+    if (!token) document.title = titles[path] ?? "Not found | Vialz";
   }, [path, token]);
 
   return (
@@ -126,7 +127,9 @@ export function App() {
               </Link>
             ))}
             <Out href={REPO_URL}>GitHub</Out>
-            <Out href={X_URL}>X</Out>
+            <Out href={X_URL} className="nav-x" aria-label="Vialz on X">
+              <XLogoIcon size={17} aria-hidden />
+            </Out>
             <Link className="btn btn-act nav-cta" href={CHROME_URL}>
               {CHROME_LABEL}
             </Link>

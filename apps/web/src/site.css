@@ -1,5 +1,30 @@
-/* Site layout on top of the shared tokens. Dark and quiet; the live report and the vials carry the colour.
-   Type: headings in Archivo condensed, like the labels on lab vials; only the wordmark is set wide. */
+/* Site layout on top of the shared tokens. The world is lab glassware: borosilicate-tinted neutrals, white enamel
+   lettering in a DIN-like condensed face (Barlow Condensed), graduation marks that are the real thresholds. The night
+   sky stays behind it. Only the vials and the readings carry colour. */
+
+:root {
+  scrollbar-color: var(--rule-strong) var(--bg);
+}
+
+::selection {
+  background: oklch(0.6 0.022 185 / 0.45);
+  color: var(--ink);
+}
+
+input {
+  caret-color: var(--ink);
+}
+
+/* the footer sits at the bottom of the screen even on a short page */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+#main {
+  flex: 1;
+}
 
 .wrap {
   width: min(1180px, 100% - 40px);
@@ -22,14 +47,19 @@
 
 h1,
 h2 {
-  font-weight: 700;
-  font-stretch: 78%;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.005em;
   text-wrap: balance;
 }
 
-/* ---- the night sky: a sparse field of fixed stars behind everything, one per tile per layer. Tile sizes are primes
-   so the pattern never visibly repeats; no motion, no glow. ---- */
+/* ---- the night sky: one drawn field of fixed stars in three magnitudes and two temperatures (public/sky.svg), never
+   tiled small and never moving. It thins out behind the content column, so no star lands between two words. ---- */
+/* the faintest light falling from the top of the page, as from the sky; under the stars, never behind a block */
+html {
+  background: linear-gradient(180deg, oklch(0.172 0.01 200) 0, var(--bg) 680px) var(--bg);
+}
+
 body {
   background: transparent;
 }
@@ -40,24 +70,22 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image:
-    radial-gradient(circle at 165px 77px, oklch(0.97 0.01 250 / 0.23) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 48px 187px, oklch(0.97 0.01 250 / 0.47) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 109px 19px, oklch(0.97 0.01 250 / 0.6) 0 1.1px, transparent 1.7px),
-    radial-gradient(circle at 123px 46px, oklch(0.97 0.01 250 / 0.24) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 289px 63px, oklch(0.97 0.01 250 / 0.4) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 298px 31px, oklch(0.97 0.01 250 / 0.33) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 113px 23px, oklch(0.97 0.01 250 / 0.26) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 214px 73px, oklch(0.97 0.01 250 / 0.38) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 573px 185px, oklch(0.97 0.01 250 / 0.65) 0 1.1px, transparent 1.7px),
-    radial-gradient(circle at 192px 381px, oklch(0.97 0.01 250 / 0.7) 0 1.1px, transparent 1.7px),
-    radial-gradient(circle at 577px 61px, oklch(0.97 0.01 250 / 0.36) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 544px 437px, oklch(0.97 0.01 250 / 0.35) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 464px 370px, oklch(0.97 0.01 250 / 0.44) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 715px 249px, oklch(0.97 0.01 250 / 0.56) 0 1.1px, transparent 1.7px),
-    radial-gradient(circle at 506px 351px, oklch(0.97 0.01 250 / 0.3) 0 0.7px, transparent 1.3px),
-    radial-gradient(circle at 74px 120px, oklch(0.97 0.01 250 / 0.27) 0 0.7px, transparent 1.3px);
-  background-size: 263px 263px, 263px 263px, 331px 331px, 331px 331px, 409px 409px, 409px 409px, 487px 487px, 487px 487px, 577px 577px, 577px 577px, 661px 661px, 661px 661px, 743px 743px, 743px 743px, 853px 853px, 853px 853px;
+  background: url("/sky.svg") center top / 1600px 1000px repeat;
+  --sky-clear: rgb(0 0 0 / 0.28);
+  mask-image: linear-gradient(
+    90deg,
+    #000 calc(50% - 680px),
+    var(--sky-clear) calc(50% - 560px),
+    var(--sky-clear) calc(50% + 560px),
+    #000 calc(50% + 680px)
+  );
+}
+
+@media (max-width: 860px) {
+  body::before {
+    mask-image: none;
+    opacity: 0.45;
+  }
 }
 
 /* anchors land below the sticky bar */
@@ -221,9 +249,9 @@ html {
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(52px, 6.6vw, 96px);
-  line-height: 0.94;
-  max-width: 11ch;
+  font-size: clamp(48px, 5.8vw, 82px);
+  line-height: 0.96;
+  max-width: 10ch;
 }
 
 .lede {
@@ -504,41 +532,77 @@ html {
 }
 
 /* faq: one reading column, on the same left edge as everything else */
-.faq > * {
-  max-width: 760px;
+/* two columns: the heading stays put on the left, the questions sit in a grid on the right, grouped by space, not rules */
+.faq {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 2fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: start;
 }
 
-.faq h1,
-.faq h2 {
-  margin-bottom: 28px;
+.faq-head {
+  position: sticky;
+  top: 108px;
 }
 
-/* every answer open: the question in white over its answer in grey, a rule between pairs */
+.faq-head h1 {
+  margin: 0 0 16px;
+}
+
+.faq-head p {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.faq-head a {
+  color: var(--ink-2);
+}
+
+.faq-list {
+  columns: 2 30ch;
+  column-gap: clamp(32px, 4vw, 64px);
+  padding-top: 10px;
+}
+
 .faq-item {
-  padding: 22px 0 24px;
-  border-top: 1px solid var(--rule);
-}
-
-.faq-item:last-child {
-  border-bottom: 1px solid var(--rule);
+  break-inside: avoid;
+  margin-bottom: 44px;
 }
 
 .band .faq-item h2 {
-  margin: 0 0 8px;
-  font-size: 21px;
-  line-height: 1.3;
-  font-weight: 650;
-  font-stretch: 100%;
-  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+  font-size: 24px;
+  line-height: 1.15;
   color: var(--ink);
 }
 
 .faq-item p {
   margin: 0;
-  max-width: 68ch;
+  max-width: 52ch;
   font-size: 16px;
   line-height: 1.6;
   color: var(--ink-2);
+}
+
+@media (max-width: 860px) {
+  .faq {
+    grid-template-columns: 1fr;
+  }
+
+  .faq-list {
+    columns: 1;
+  }
+
+  .faq-head {
+    position: static;
+  }
+
+  .faq-list {
+    gap: 32px;
+  }
 }
 
 /* ---- token page ---- */
@@ -562,6 +626,7 @@ html {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+  margin-bottom: 14px;
   font-size: 13px;
   color: var(--ink-2);
 }
@@ -951,20 +1016,32 @@ html {
 }
 
 /* ---- the extension in use: a browser window over a token page, the Vialz popup hanging from its toolbar icon ---- */
-/* The browser around the popup is lighter, a slate blue like a wallet's dark theme, so the black popup (the product)
-   stands out from it instead of melting into the black page. */
+/* The browser around the popup sits a few steps up the site's own ladder, so the black popup (the product) stands
+   out from it, without a second colour family. Depth comes from the steps and a lit top edge, not from glow. */
 .ext-window {
-  --w-bg: oklch(0.31 0.032 268);
-  --w-bar: oklch(0.35 0.034 268);
-  --w-field: oklch(0.25 0.028 268);
-  --w-block: oklch(0.41 0.034 268);
-  --w-line: oklch(0.46 0.036 268);
-  --w-ink: oklch(0.76 0.03 268);
+  --w-bg: oklch(0.225 0.009 205);
+  --w-bar: oklch(0.255 0.01 205);
+  --w-field: oklch(0.185 0.008 205);
+  --w-block: oklch(0.3 0.01 205);
+  --w-line: oklch(0.34 0.012 205);
+  --w-ink: oklch(0.7 0.012 190);
   margin: 0;
   border: 1px solid var(--w-line);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--w-bg);
   overflow: hidden;
+  position: relative;
+}
+
+/* light along the top edge of the window, brightest in the middle, gone at the corners */
+.ext-window::before {
+  content: "";
+  position: absolute;
+  inset: 0 10% auto;
+  z-index: 1;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, oklch(0.92 0.02 185 / 0.3), transparent);
 }
 
 .ext-bar {
@@ -1078,6 +1155,7 @@ html {
 
 .ext-chart polyline {
   stroke: var(--w-ink);
+  opacity: 0.6;
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
@@ -1197,17 +1275,14 @@ html {
 }
 
 /* the pointer at the pressed icon, inside the toolbar */
+/* a label lettered beside the pressed icon, like the name printed on a vial */
 .ext-callout {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 8px 0 10px;
-  border-radius: 999px;
-  background: var(--act);
-  color: var(--act-ink);
-  font-size: 11.5px;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
   white-space: nowrap;
 }
 
@@ -1255,4 +1330,262 @@ html {
 .page-missing p {
   margin: 0;
   color: var(--ink-2);
+}
+
+/* ---- the rack: six vials at full size under the hero, graduated at their real thresholds ---- */
+.rack-band {
+  padding-block: clamp(56px, 7vw, 104px) clamp(56px, 7vw, 96px);
+}
+
+.rack-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 2fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: end;
+}
+
+.rack-head h2 {
+  margin: 0 0 14px;
+  font-size: clamp(34px, 3.4vw, 46px);
+  line-height: 1;
+}
+
+.rack-head p {
+  margin: 0 0 18px;
+  max-width: 36ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.rack {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 32px 28px 24px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--sheet);
+}
+
+.rack-cell {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
+}
+
+.rack-glass {
+  position: relative;
+  width: min(78%, 112px);
+  margin-bottom: 14px;
+}
+
+.rack-vial {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 276 / 204;
+  overflow: visible;
+}
+
+.rack-vial .vessel-tick {
+  stroke: var(--ink);
+  opacity: 0.55;
+}
+
+/* the threshold lettered at each mark, right of the glass */
+.rack-mark {
+  position: absolute;
+  left: 100%;
+  translate: 2px -50%;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.rack-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.rack-reading {
+  font-size: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.rack-level {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.pad-warn .rack-reading,
+.pad-warn .rack-level {
+  color: var(--warn);
+}
+
+.pad-danger .rack-reading,
+.pad-danger .rack-level {
+  color: var(--danger);
+}
+
+.pad-none .rack-reading {
+  color: var(--ink-3);
+}
+
+/* the liquid rises once, the first time the rack is seen; with reduced motion it simply appears */
+.rack-vial .vessel-liquid {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(0);
+  transition: transform 760ms var(--ease-author) calc(var(--i) * 60ms);
+}
+
+.rack-on .rack-vial .vessel-liquid {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rack-vial .vessel-liquid {
+    transform: none;
+    opacity: 0;
+    transition: opacity 300ms ease calc(var(--i) * 40ms);
+  }
+
+  .rack-on .rack-vial .vessel-liquid {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 960px) {
+  .rack-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .rack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 28px;
+    padding-inline: 4px;
+  }
+
+  .rack-glass {
+    width: 64%;
+  }
+}
+
+/* ---- the report on the site: the vials bigger ---- */
+@media (min-width: 641px) {
+  .page .strip-vial,
+  .token-page .strip-vial {
+    width: 58px;
+    height: 43px;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .page .strip-label,
+  .token-page .strip-label,
+  .hero .strip-label {
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+  }
+}
+
+/* ---- the report on the site: the vials and findings run across the top, the detail sits below in two columns, so
+   no column runs empty under the other ---- */
+@container (min-width: 980px) {
+  .page .vz-panel-all,
+  .token-page .vz-panel-all {
+    display: block;
+  }
+
+  .page .vz-panel-all > .vz-col-a,
+  .token-page .vz-panel-all > .vz-col-a {
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .page .vz-col-b,
+  .token-page .vz-col-b {
+    columns: 2;
+    column-gap: 0;
+    column-rule: 1px solid var(--rule);
+  }
+
+  .page .vz-col-b > *,
+  .token-page .vz-col-b > * {
+    break-inside: avoid;
+  }
+
+  .page .vz-col-a .strip-vial,
+  .token-page .vz-col-a .strip-vial {
+    width: 76px;
+    height: 56px;
+  }
+
+  .page .vz-col-a .strip::before,
+  .token-page .vz-col-a .strip::before {
+    top: calc(16px + 56px);
+  }
+}
+
+/* glass catches light: a thin streak on the upper wall of the bigger vials (not the popup's small ones) */
+.page .vessel-specular,
+.token-page .vessel-specular,
+.ranges-vial .vessel-specular {
+  display: inline;
+  stroke: oklch(0.97 0.01 185 / 0.4);
+}
+
+/* the X mark in the bar, sized like the text beside it */
+.nav-x {
+  display: inline-grid;
+  place-items: center;
+}
+
+/* phones: the three share buttons stay on one row */
+@media (max-width: 640px) {
+  .token-share {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .token-share .btn {
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  .token-share .btn svg {
+    display: none;
+  }
+}
+
+/* the shelf runs under the feet of the bigger vials, never through the glass */
+@media (min-width: 641px) {
+  .page .strip::before,
+  .token-page .strip::before {
+    top: calc(16px + 43px);
+  }
+}
+
+/* the window only as wide as the popup needs, with a strip of the token page beside it */
+@media (min-width: 961px) {
+  .hero-live .ext-window {
+    max-width: 560px;
+    margin-left: auto;
+  }
 }

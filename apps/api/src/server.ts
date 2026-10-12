@@ -208,13 +208,13 @@ main{max-width:680px;margin:0 auto;padding:56px 20px 80px}
 h1{color:#f3f4f6;font-size:34px;line-height:1.1;margin:0 0 6px}h2{color:#f3f4f6;font-size:19px;margin:34px 0 8px}
 .date{color:#8b8f99;font-size:14px;margin:0 0 8px}b{color:#f3f4f6}a{color:#f3f4f6}ul{padding-left:20px}li{margin:6px 0}
 </style></head><body><main>
-<h1>Vialz privacy policy</h1><p class="date">Last updated 11 October 2026</p>
+<h1>Vialz privacy policy</h1><p class="date">Last updated 12 October 2026</p>
 <h2>What Vialz does</h2><p>Vialz reads public data from Robinhood Chain and shows it as a report about a token. It never connects to a wallet, never asks for a private key or signature, and has no accounts.</p>
 <h2>What leaves your device</h2><p>When you check a token, its contract address is sent to the Vialz server, which reads the chain and returns the report. Nothing else about you is sent: no wallet address, no browsing history, no identifiers.</p>
 <p>The server keeps ordinary request logs (time, requested token, IP address) for up to 14 days to keep the service running and to stop abuse. They are not sold or shared.</p>
 <h2>The Chrome extension</h2><p>The extension asks for two permissions:</p><ul>
 <li><b>Active tab</b>, only at the moment you click the Vialz icon and only for that tab: its address bar is read to find a contract address, which never leaves your device unless you check that token. Page content, other tabs and your browsing history are never read.</li>
-<li><b>Storage</b>, to keep your last checked tokens on your device. They never leave it.</li></ul>
+<li><b>Storage</b>, to keep your last checked tokens and whether you hid the pin tip on your device. They never leave it.</li></ul>
 <h2>Third parties</h2><p>Market data for tokens trading on Uniswap comes from DexScreener and the ETH price from Coinbase. Those requests are made by the Vialz server, not by your browser. Token images are fetched from public IPFS gateways by the Vialz server too, so your browser only talks to Vialz.</p>
 <h2>Contact</h2><p>Questions about this policy: reach the Vialz team on X, <a href="https://x.com/vialzapp">@vialzapp</a>, or write to <a href="mailto:hello@vialz.xyz">hello@vialz.xyz</a>.</p>
 </main></body></html>`;
@@ -407,7 +407,7 @@ async function tokenPage(address: `0x${string}`, crawler: boolean, base: string)
     symbol = q?.symbol ?? null;
     name = q?.name ?? null;
   }
-  const title = symbol ? `$${symbol} on Vialz` : "Token check · Vialz";
+  const title = symbol ? `$${symbol} on Vialz` : "Token check | Vialz";
   const desc = symbol
     ? `${name ?? symbol}, read from Robinhood Chain: snipers, bundle, top 10, linked wallets, the creator and the volume.`
     : "Snipers, bundle, top 10, linked wallets, the creator and the volume, read from Robinhood Chain.";

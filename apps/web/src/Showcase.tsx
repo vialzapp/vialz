@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowRightIcon, LockSimpleIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
+import { LockSimpleIcon, MagnifyingGlassIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
 import { shortAddress } from "@vialz/shared";
 import { Mark } from "@vialz/ui";
 
@@ -38,10 +38,7 @@ export function ExtensionShowcase({ address, title, children }: { address: strin
           <span className="ext-icons">
             <PuzzlePieceIcon size={15} />
             {/* a pointer at the pressed icon, so the popup reads as the extension and not as part of the site */}
-            <span className="ext-callout">
-              Vialz extension
-              <ArrowRightIcon size={12} weight="bold" />
-            </span>
+            <span className="ext-callout">Vialz extension</span>
             <span className="ext-vialz">
               <Mark size={10} />
             </span>
@@ -55,11 +52,6 @@ export function ExtensionShowcase({ address, title, children }: { address: strin
             <svg className="ext-chart" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden>
               <polyline points={line(address)} fill="none" />
             </svg>
-            <div className="ext-page-rows" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </div>
           </div>
 
           <div className="ext-popup">

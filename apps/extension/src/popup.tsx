@@ -1,8 +1,10 @@
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ArrowLeftIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, MagnifyingGlassIcon, PushPinIcon, XIcon } from "@phosphor-icons/react";
 import "@fontsource-variable/archivo/standard.css";
 import "@fontsource-variable/martian-mono/standard.css";
+import "@fontsource/barlow-condensed/500.css";
+import "@fontsource/barlow-condensed/600.css";
 import "@vialz/ui";
 import "./popup.css";
 import { extractAddress, formatAge, padsFor, shortAddress, type PadLevel } from "@vialz/shared";
@@ -13,6 +15,7 @@ const API = __API_URL__;
 const SITE = API; // the API serves the site too
 const RECENT_KEY = "recent";
 const RECENT_MAX = 12;
+const PIN_KEY = "pinTipDismissed";
 
 interface Recent {
   address: string;
@@ -84,6 +87,19 @@ function Popup() {
   const pageAddress = usePageAddress();
   const state = useTokenReport(API, address);
 
+  // the pin tip shows only while Chrome keeps the icon in the puzzle menu, and until it is dismissed
+  const [pinned, setPinned] = useState(true);
+  useEffect(() => {
+    if (!inExtension) return;
+    void Promise.all([chrome.action?.getUserSettings?.().catch(() => null), chrome.storage.local.get(PIN_KEY).catch(() => ({}))]).then(
+      ([settings, stored]) => setPinned(settings?.isOnToolbar !== false || Boolean((stored as Record<string, unknown>)[PIN_KEY])),
+    );
+  }, []);
+  const dismissPin = () => {
+    setPinned(true);
+    if (inExtension) void chrome.storage.local.set({ [PIN_KEY]: true }).catch(() => {});
+  };
+
   useEffect(() => {
     void loadRecent().then(setRecent);
   }, []);
@@ -146,9 +162,21 @@ function Popup() {
       {!address && (
         <section className="panel-intro">
           <Vessel className="panel-intro-mark" level={0.5} />
-          <h1>Open a token on gmgn or fomo, then click the icon.</h1>
+          <h1>Open a token on gmgn, fomo or DexScreener, then click the icon.</h1>
           <p>Or paste a contract address. Every reading comes straight from Robinhood Chain.</p>
         </section>
+      )}
+
+      {!address && !pinned && (
+        <p className="panel-pin">
+          <PushPinIcon size={16} aria-hidden />
+          <span>
+            Pin Vialz to the toolbar: open the <b>puzzle icon</b> and click the pin next to Vialz.
+          </span>
+          <button type="button" aria-label="Hide this tip" onClick={dismissPin}>
+            <XIcon size={14} />
+          </button>
+        </p>
       )}
 
       {(!address || state.status === "error") && (

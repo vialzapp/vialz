@@ -3,7 +3,7 @@
   "name": "Vialz: token check for Robinhood Chain",
   "short_name": "Vialz",
   "description": "Click the icon on a token page to see snipers, the bundle, linked wallets and the dev's bag, read from Robinhood Chain.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minimum_chrome_version": "110",
   "icons": {
     "16": "icons/icon-16.png",

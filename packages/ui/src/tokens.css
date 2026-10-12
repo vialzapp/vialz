@@ -1,26 +1,26 @@
-/* Vialz design tokens. One dark theme, designed as such: near-black surfaces with the faintest cool tint, white for
-   actions, and reading colours that only ever mean a reading. Signal red-orange is the brand's single accent and
-   belongs to the rug. No glows. */
+/* Vialz design tokens. One dark theme, designed as such: near-black surfaces with the faint green-grey of borosilicate
+   glass, enamel white for actions and text, and reading colours that only ever mean a reading. Signal red-orange is
+   the brand's single accent and belongs to the rug. No glows. */
 
 :root {
   color-scheme: dark;
 
-  --bg: oklch(0.135 0.004 265);
-  --sheet: oklch(0.172 0.005 265);
-  --well: oklch(0.205 0.006 265);
-  --raise: oklch(0.24 0.007 265);
-  --ink: oklch(0.96 0.003 265);
-  --ink-2: oklch(0.76 0.006 265);
-  --ink-3: oklch(0.62 0.006 265);
-  --rule: oklch(0.265 0.006 265);
-  --rule-strong: oklch(0.345 0.008 265);
-  --glass: oklch(0.5 0.006 265);
+  --bg: oklch(0.14 0.006 205);
+  --sheet: oklch(0.185 0.008 205);
+  --well: oklch(0.222 0.009 205);
+  --raise: oklch(0.26 0.01 205);
+  --ink: oklch(0.955 0.005 130);
+  --ink-2: oklch(0.78 0.008 170);
+  --ink-3: oklch(0.645 0.01 185);
+  --rule: oklch(0.285 0.01 205);
+  --rule-strong: oklch(0.44 0.012 200);
+  --glass: oklch(0.6 0.022 185);
 
   /* actions are white: the quietest way to be the loudest thing on a dark page */
-  --act: oklch(0.965 0.003 265);
+  --act: oklch(0.955 0.005 130);
   --act-hover: oklch(1 0 0);
-  --act-ink: oklch(0.15 0.004 265);
-  --focus: oklch(0.86 0.005 265);
+  --act-ink: oklch(0.15 0.006 205);
+  --focus: oklch(0.86 0.008 170);
   --signal: oklch(0.68 0.2 36);
 
   /* readings */
@@ -36,9 +36,11 @@
   --danger: oklch(0.76 0.15 32);
   --danger-pad: oklch(0.66 0.21 34);
   --danger-wash: oklch(0.29 0.07 32);
-  --none-pad: oklch(0.33 0.006 265);
+  --none-pad: oklch(0.38 0.01 200);
 
   --font-ui: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  /* lettering on glass: names of checks, small labels, headings */
+  --font-display: "Barlow Condensed", "Archivo Variable", system-ui, sans-serif;
   --font-data: "Martian Mono Variable", "Martian Mono", ui-monospace, monospace;
 
   --r-s: 6px;
@@ -74,7 +76,7 @@ body {
 }
 
 ::selection {
-  background: oklch(0.96 0.003 265 / 0.22);
+  background: oklch(0.6 0.022 185 / 0.45);
   color: var(--ink);
 }
 

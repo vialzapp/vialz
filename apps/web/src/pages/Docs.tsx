@@ -105,7 +105,7 @@ export function Docs() {
   const [active, setActive] = useState("overview");
 
   useEffect(() => {
-    document.title = "Docs · Vialz";
+    document.title = "Docs | Vialz";
     const sections = [...document.querySelectorAll<HTMLElement>(".doc-section")];
     // the current section is the last one whose heading has passed the top band of the viewport
     const pick = () => {

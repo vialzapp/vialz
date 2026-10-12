@@ -16,7 +16,7 @@ import {
   type TokenQuick,
   type TokenReport,
 } from "@vialz/shared";
-import { Strip, StripLegend } from "./Strip";
+import { Strip } from "./Strip";
 
 interface Props {
   report: TokenReport;
@@ -42,7 +42,6 @@ export function Report({ report: r, onOpenToken, apiBase = "", compact, shareUrl
     <>
       <Tally flags={r.flags} />
       <Strip pads={padsFor(r)} />
-      <StripLegend />
       <Findings flags={r.flags} />
       {!compact && shareUrl && <Actions report={r} url={shareUrl} openFull={openFull} />}
     </>
