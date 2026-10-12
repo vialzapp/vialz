@@ -13,6 +13,7 @@ import { inUrgent, requestDeadline } from "./rpc.js";
 import { busiestLaunch } from "./latest.js";
 import { CID_RE, ImagesBusy, ipfsImage } from "./images.js";
 import { clientIp, refreshCloudflareRanges } from "./clientip.js";
+import { tokenCard } from "./og.js";
 
 const TTL_MS = 15_000;
 const cache = new Map<string, { at: number; report: Promise<TokenReport>; value?: TokenReport }>();
@@ -316,6 +317,94 @@ app.get<{ Params: { address: string } }>("/v1/token/:address/quick", perMinute(1
   }
 });
 
+// The link card of a token page. Drawn once and kept: ten minutes for a settled report, half a minute while parts
+// of it are still being read.
+const cards = new Map<string, { at: number; ttl: number; png: Promise<Buffer> }>();
+async function cardImage(r: TokenReport) {
+  const cid = r.links.image;
+  if (!cid || !CID_RE.test(cid)) return null;
+  // the card waits a moment for the token's picture, never long: a crawler gives up on slow images
+  const slow = new Promise<null>((ok) => setTimeout(() => ok(null), 2_500));
+  return Promise.race([ipfsImage(cid).catch(() => null), slow]);
+}
+app.get<{ Params: { file: string } }>("/og/:file", perMinute(60), async (req, reply) => {
+  const m = /^(0x[0-9a-fA-F]{40})\.png$/.exec(req.params.file);
+  const address = m ? extractAddress(m[1]!) : null;
+  if (!address) return reply.code(404).send({ error: "not_found", message: "Not a token card." });
+  let hit = cards.get(address);
+  if (!hit || Date.now() - hit.at > hit.ttl) {
+    if (!cached(address)) {
+      const wait = allowRead(clientIp(req, CLIENT_IP_HEADER), address);
+      if (wait > 0) return reply.code(429).header("retry-after", String(wait)).send({ error: "rate_limited", message: `Try again in ${wait} seconds.` });
+    }
+    let r: TokenReport;
+    try {
+      r = await report(address);
+    } catch (e) {
+      if (e instanceof NotFound) return reply.code(404).send({ error: "not_found", message: e.message });
+      if (e instanceof Busy) return reply.code(503).header("retry-after", "10").send({ error: "busy", message: "Try again in a few seconds." });
+      req.log.warn(e);
+      return reply.code(502).send({ error: "chain_unavailable", message: "Could not read the chain right now." });
+    }
+    // a crawler keeps the first card it sees for days: give the creator's record a few seconds to come in
+    for (let waited = 0; isPending(r) && waited < 8_000; waited += 1_000) {
+      await new Promise((ok) => setTimeout(ok, 1_000));
+      r = await report(address).catch(() => r);
+    }
+    const img = await cardImage(r);
+    const settled = !isPending(r) && (img != null || !r.links.image);
+    const done = r;
+    hit = { at: Date.now(), ttl: settled ? 600_000 : 30_000, png: tokenCard(done, img) };
+    cards.set(address, hit);
+    hit.png.catch(() => cards.delete(address));
+    if (cards.size > 300) cards.delete(cards.keys().next().value!);
+  }
+  const png = await hit.png;
+  reply.header("content-type", "image/png").header("cache-control", "public, max-age=600");
+  return reply.send(png);
+});
+
+// Link previews: a token page's HTML names that token and its card, so a link to it shows the token, not the site.
+// Crawlers get the token's name even on a first look; people get it only when it is already known, so the page never
+// waits on the chain.
+const CRAWLER = /bot|crawler|spider|facebookexternalhit|embedly|preview|whatsapp|telegram|discord|slack|linkedin/i;
+const esc = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+let indexHtml: string | null = null;
+async function tokenPage(address: `0x${string}`, crawler: boolean, base: string): Promise<string> {
+  const known = cache.get(address)?.value;
+  let symbol = known?.symbol ?? null;
+  let name = known?.name ?? null;
+  if (!symbol && (crawler || quickCached(address))) {
+    const q = await Promise.race([
+      requestDeadline.run(Date.now() + 4_000, () => inUrgent(() => quickToken(address))).catch(() => null),
+      new Promise<null>((ok) => setTimeout(() => ok(null), 4_000)),
+    ]);
+    symbol = q?.symbol ?? null;
+    name = q?.name ?? null;
+  }
+  const title = symbol ? `$${symbol} on Vialz` : "Token check · Vialz";
+  const desc = symbol
+    ? `${name ?? symbol}, read from Robinhood Chain: snipers, bundle, top 10, linked wallets, the creator and the volume.`
+    : "Snipers, bundle, top 10, linked wallets, the creator and the volume, read from Robinhood Chain.";
+  const url = `${base}/t/${address}`;
+  const img = `${base}/og/${address}.png`;
+  const set = (html: string, attr: "property" | "name", key: string, value: string) =>
+    html.replace(new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`), `$1${esc(value)}$2`);
+  let html = indexHtml!;
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
+  html = set(html, "property", "og:title", title);
+  html = set(html, "property", "og:description", desc);
+  html = set(html, "property", "og:url", url);
+  html = set(html, "property", "og:image", img);
+  html = set(html, "property", "og:image:width", "1200");
+  html = set(html, "property", "og:image:height", "630");
+  html = set(html, "property", "og:image:alt", symbol ? `Vialz readings for $${symbol}` : "Vialz readings for a token");
+  html = set(html, "name", "twitter:title", title);
+  html = set(html, "name", "twitter:description", desc);
+  html = set(html, "name", "twitter:image", img);
+  return html;
+}
+
 // the site, built by apps/web
 const here = dirname(fileURLToPath(import.meta.url));
 const site = [join(here, "../../web/dist"), join(here, "../web/dist")].find((p) => existsSync(p));
@@ -324,6 +413,13 @@ if (site) {
   app.setNotFoundHandler((req, reply) => {
     const isPage = (req.method === "GET" || req.method === "HEAD") && !req.url.startsWith("/v1") && !req.url.startsWith("/assets/");
     if (!isPage) return reply.code(404).send({ error: "not_found", message: "Unknown endpoint." });
+    const t = /^\/t\/(0x[0-9a-fA-F]{40})\/?(?:[?#].*)?$/.exec(req.url);
+    const address = t ? extractAddress(t[1]!) : null;
+    if (address) {
+      indexHtml ??= readFileSync(join(site, "index.html"), "utf8");
+      const base = process.env.PUBLIC_URL ?? "https://vialz.xyz";
+      return tokenPage(address, CRAWLER.test(req.headers["user-agent"] ?? ""), base).then((html) => reply.type("text/html; charset=utf-8").send(html));
+    }
     return reply.sendFile("index.html");
   });
 }
