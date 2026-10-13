@@ -42,7 +42,7 @@ const FAQ = [
   },
   {
     q: "How long does a check take?",
-    a: "Usually one to three seconds: the token's name and numbers show first, the readings follow. The first check of a token with a long history can take a few seconds more. Vialz reads the chain on every check instead of keeping a stale copy. A busy token with hundreds of thousands of transfers gets its holders from Blockscout's index and skips linked wallets and volume.",
+    a: "Usually a few seconds: the token's name and numbers show first, the readings follow. The first check of a token with a long history can take up to 15 seconds. Vialz reads the chain on every check instead of keeping a stale copy. A busy token with hundreds of thousands of transfers gets its holders from Blockscout's index and skips linked wallets and volume.",
   },
   {
     q: "Which pages does it read by itself?",

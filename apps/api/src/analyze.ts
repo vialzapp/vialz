@@ -604,6 +604,12 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
         spent: trades ? mine("buy") : null,
         got: trades ? mine("sell") : null,
         poolSells: poolSell,
+        // buying back in after the launch: worth its own line, the dev buy alone does not show it
+        rebuys: (() => {
+          if (!trades || launchBlock == null || supply <= 0) return null;
+          const later = tradesQ.filter((t) => t.side === "buy" && t.wallet === creator && t.block > launchBlock);
+          return { count: later.length, pct: (later.reduce((s, t) => s + t.tokens, 0) / supply) * 100, spent: later.reduce((s, t) => s + t.quote, 0) };
+        })(),
       };
     }
   }
@@ -923,6 +929,13 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     if (r.launch.graduatedBlock != null) f.push({ level: "good", text: "Graduated to Uniswap" });
   }
   const cp = r.creatorPosition;
+  if (cp?.rebuys && cp.rebuys.count > 0) {
+    const rb = cp.rebuys;
+    f.push({
+      level: "info",
+      text: `Dev bought again after launch: ${rb.count} ${rb.count === 1 ? "buy" : "buys"}, ${trimQuote(rb.spent)} ${quote} (${rb.pct < 0.1 ? "under 0.1" : fmt(rb.pct)}% of supply)`,
+    });
+  }
   const took = cp ? cp.boughtPct + cp.receivedPct : 0;
   if (cp && took > 0 && cp.soldPct > 0) {
     const share = Math.min(100, (cp.soldPct / took) * 100);

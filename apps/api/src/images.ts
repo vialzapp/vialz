@@ -1,11 +1,15 @@
 // Token images live on IPFS. Public gateways rate-limit or block cross-origin loads, so the API fetches them once,
 // asks the gateways in parallel and serves the first good answer from memory.
 // Bounded everywhere: bytes per image (checked while streaming), fetches in flight, cache size, misses remembered.
+// Launchpads take full-size uploads (a 3.5 MB PNG for a 40 px avatar is common): big ones are shrunk once, here.
+import { Resvg } from "@resvg/resvg-js";
 
 const GATEWAYS = ["https://gateway.pinata.cloud/ipfs/", "https://ipfs.io/ipfs/", "https://dweb.link/ipfs/"];
-const MAX_BYTES = 3 * 1024 * 1024;
+const MAX_BYTES = 12 * 1024 * 1024; // what is downloaded
+const KEEP_BYTES = 400 * 1024; // bigger than this is shrunk before it is kept
+const SIZE_PX = 400;
 const MAX_CACHE_BYTES = 80 * 1024 * 1024;
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 30_000; // the one gateway that has a big file can take 20 s to send it; this runs in the background
 const MAX_FETCHING = 8;
 const MISS_TTL_MS = 10 * 60_000;
 export const CID_RE = /^(Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{20,100})$/;
@@ -48,13 +52,27 @@ async function fromGateway(gateway: string, cid: string, ctrl: AbortController):
   return { type, body };
 }
 
+/** A big image redrawn as a 400 px PNG, cropped to a square like every avatar slot that shows it; null if it cannot be
+ *  decoded (then the original is kept only when it is small enough). */
+function shrink(img: Img): Img | null {
+  try {
+    const href = `data:${img.type};base64,${img.body.toString("base64")}`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${SIZE_PX}" height="${SIZE_PX}"><image width="${SIZE_PX}" height="${SIZE_PX}" preserveAspectRatio="xMidYMid slice" xlink:href="${href}"/></svg>`;
+    const png = new Resvg(svg, { fitTo: { mode: "width", value: SIZE_PX } }).render().asPng();
+    return png.length > 0 && png.length < img.body.length ? { type: "image/png", body: png } : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchImage(cid: string): Promise<Img | null> {
   const ctrls = GATEWAYS.map(() => new AbortController());
   const timer = setTimeout(() => ctrls.forEach((c) => c.abort()), TIMEOUT_MS);
   try {
     const img = await Promise.any(GATEWAYS.map((g, i) => fromGateway(g, cid, ctrls[i]!)));
     ctrls.forEach((c) => c.abort()); // stop the slower gateways
-    return img;
+    if (img.body.length <= KEEP_BYTES) return img;
+    return shrink(img) ?? (img.body.length <= 3 * 1024 * 1024 ? img : null);
   } catch {
     return null;
   } finally {

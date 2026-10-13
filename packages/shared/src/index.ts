@@ -106,6 +106,7 @@ export interface TokenReport {
     spent: number | null; // quote paid on the curve (ETH)
     got: number | null; // quote received for curve sells
     poolSells: boolean; // some sells went into a pool, whose proceeds are not in `got`
+    rebuys?: { count: number; pct: number; spent: number } | null; // curve buys after the launch block; null when trades were not read
   };
 
   dev: null | {

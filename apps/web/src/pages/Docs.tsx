@@ -364,7 +364,7 @@ export function Docs() {
               <dt>Holders</dt>
               <dd>
                 Balances are rebuilt by replaying every Transfer event of the token from its first block. Busy tokens, with thousands of holders,
-                take their 50 biggest balances from Blockscout's index instead, and each is checked against the chain.
+                take their 50 biggest balances from Blockscout's index instead; the ten biggest are read again from the chain on every check.
               </dd>
             </div>
             <div>
