@@ -257,8 +257,12 @@ app.addHook("onSend", async (req, reply) => {
     // hashed build files never change; the page itself is always revalidated
     // no-transform: Cloudflare may not rewrite our pages, so it injects no analytics beacon (our CSP would block it anyway,
     // and the privacy page promises no third-party analytics)
+    // a missing build file is never kept: during a deploy the new page can ask the old server for a file it does not have yet
     if (!reply.getHeader("cache-control"))
-      reply.header("cache-control", req.url.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache, no-transform");
+      reply.header(
+        "cache-control",
+        reply.statusCode >= 400 ? "no-store" : req.url.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache, no-transform",
+      );
   }
 });
 await app.register(cors, { origin: true, methods: ["GET"] });
@@ -448,7 +452,9 @@ if (site) {
       const base = process.env.PUBLIC_URL ?? "https://vialz.xyz";
       return tokenPage(address, CRAWLER.test(req.headers["user-agent"] ?? ""), base).then((html) => reply.type("text/html; charset=utf-8").send(html));
     }
-    return reply.sendFile("index.html");
+    // the site's own pages; anything else still gets the app (it draws "Nothing here."), but with a 404 for crawlers
+    const known = /^\/(how|report|faq|docs|privacy|extension)?\/?(?:[?#].*)?$/.test(req.url);
+    return reply.code(known ? 200 : 404).sendFile("index.html");
   });
 }
 

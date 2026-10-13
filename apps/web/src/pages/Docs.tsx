@@ -2,7 +2,10 @@ import { Link, Out } from "../App";
 import { useEffect, useState, type ReactNode } from "react";
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { FILL, Vessel } from "@vialz/ui";
-import { REPO_URL, X_URL } from "../brand";
+import { CHROME_URL, REPO_URL, X_URL } from "../brand";
+
+// the store listing, once VITE_CHROME_URL points at it (until then CHROME_URL is this page's own install steps)
+const STORE_URL = CHROME_URL.startsWith("https://") ? CHROME_URL : null;
 
 // The documentation: how to use Vialz, how every reading is computed, and how to run and verify it yourself.
 // Thresholds here mirror packages/shared (padsFor) and apps/api (analyze.ts); change them together.
@@ -49,38 +52,48 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-const VIALS = [
+// each vial's reading at each level, clear to high; null where a level does not apply
+type Scale = [clear: string | null, note: string | null, watch: string | null, high: string | null];
+const VIALS: { name: string; reads: string; scale: Scale; extra?: string }[] = [
   {
     name: "Snipers",
     reads: "Buys in the first 3 seconds after launch, by any wallet except the creator and the declared bundle. Shows how much of the supply they still hold.",
-    levels: "Clear: none. Note: under 3% still held. Watch: 3% or more. High: 10% or more.",
+    scale: ["none", "under 3% still held", "3% or more", "10% or more"],
   },
   {
     name: "Bundle",
     reads: "Wallets the creator declared exempt from the opening tax in the launch transaction (Pons launchAndBuy).",
-    levels: "Clear: none declared. Note: they hold under 1%. Watch: 1% or more. High: 5% or more. No reading when the launch did not use launchAndBuy.",
+    scale: ["none declared", "they hold under 1%", "1% or more", "5% or more"],
+    extra: "No reading when the launch did not use launchAndBuy.",
   },
   {
     name: "Top 10",
     reads: "Share of supply in the ten largest wallets. The curve, pools, the burn address and launchpad contracts are left out.",
-    levels: "Clear: under 15%. Note: 15% or more. Watch: 30% or more. High: 50% or more.",
+    scale: ["under 15%", "15% or more", "30% or more", "50% or more"],
   },
   {
     name: "Linked",
     reads: "Groups of holders tied to one wallet: one sender handed the token straight to three or more wallets that still hold it. Read from the token's own transfers.",
-    levels: "Clear: no group found. Note: a group under 3%. Watch: 3% or more. High: 10% or more.",
+    scale: ["no group found", "a group under 3%", "3% or more", "10% or more"],
   },
   {
     name: "Creator",
     reads: "Every earlier Pons launch from the creator's wallet, whether they sold early on their recent launches, and what the creator holds now.",
-    levels: "Watch: 10 or more launches, or holds 5% or more. High: 50 or more launches, or sold early in at least half of the last 8 (with 3 or more to compare).",
+    scale: ["2 to 9 launches", "first launch", "10+ launches, or holds 5%+", "50+ launches, or sold early"],
+    extra: "Sold early: in at least half of the last 8 launches, with 3 or more to compare.",
   },
   {
     name: "Volume",
     reads: "How much of the curve volume the five busiest wallets made, and how many wallets keep buying and selling.",
-    levels: "Note: under 30 trades. Watch: five wallets make 60% or more, or 5 or more wallets flip. Clear otherwise.",
+    scale: ["spread out", "under 30 trades", "5 wallets make 60%+, or 5+ flip", null],
   },
 ];
+const LEVELS = [
+  ["good", "Clear"],
+  ["info", "Note"],
+  ["warn", "Watch"],
+  ["danger", "High"],
+] as const;
 
 const SETTINGS = [
   { name: "PORT", type: "number", def: "8787", text: "Port the API and the site listen on." },
@@ -109,7 +122,7 @@ export function Docs() {
     const sections = [...document.querySelectorAll<HTMLElement>(".doc-section")];
     // the current section is the last one whose heading has passed the top band of the viewport
     const pick = () => {
-      const passed = sections.filter((s) => s.getBoundingClientRect().top <= 140);
+      const passed = sections.filter((s) => s.getBoundingClientRect().top <= Math.min(innerHeight * 0.4, 300));
       setActive((passed[passed.length - 1] ?? sections[0])?.id ?? "overview");
     };
     const io = new IntersectionObserver(pick, { rootMargin: "-120px 0px -55% 0px", threshold: [0, 1] });
@@ -159,10 +172,17 @@ export function Docs() {
         </Section>
 
         <Section id="install" title="Install">
-          <p>
-            The Chrome Web Store listing is coming. Until it is live, you can load the extension from the source in about a minute. It works in
-            Chrome, Brave, Edge and Arc.
-          </p>
+          {STORE_URL ? (
+            <p>
+              Install it from the <Out href={STORE_URL}>Chrome Web Store</Out>. It works in Chrome, Brave, Edge and Arc. You can also load it from
+              the source in about a minute:
+            </p>
+          ) : (
+            <p>
+              The Chrome Web Store listing is coming. Until it is live, you can load the extension from the source in about a minute. It works in
+              Chrome, Brave, Edge and Arc.
+            </p>
+          )}
           <ol className="doc-steps">
             <li>
               Build it (see <a href="#run">Run it yourself</a>), or download the packaged build from the repository's releases once published.
@@ -212,7 +232,7 @@ export function Docs() {
               ["danger", FILL.danger, "High", "a pattern often seen before a rug"],
             ].map(([level, fill, name, text]) => (
               <div key={name as string} className={`pad-${level}`}>
-                <Vessel level={fill as number} fill="var(--pad)" glass="var(--ink-3)" className="doc-legend-vial" />
+                <Vessel level={fill as number} fill="var(--pad)" glass="var(--glass)" surface="var(--surface)" stroke={18} className="doc-legend-vial" />
                 <b>{name}</b>
                 <span>{text}</span>
               </div>
@@ -230,8 +250,18 @@ export function Docs() {
                   <b>{v.name}</b>
                 </span>
                 <span role="cell">{v.reads}</span>
-                <span role="cell" className="doc-levels">
-                  {v.levels}
+                <span role="cell">
+                  <ul className="doc-scale">
+                    {v.scale.map((value, i) =>
+                      value ? (
+                        <li key={i} className={`pad-${LEVELS[i]![0]}`}>
+                          <span>{LEVELS[i]![1]}</span>
+                          {value}
+                        </li>
+                      ) : null,
+                    )}
+                  </ul>
+                  {v.extra && <p className="doc-extra">{v.extra}</p>}
                 </span>
               </div>
             ))}
@@ -308,7 +338,10 @@ export function Docs() {
               <b>Blockscout</b>, when a key is set, for the biggest balances of busy tokens that are too long to read in one go.
             </li>
           </ul>
-          <p>Nothing is cached for long: a report is read at the current block, and a repeat request within 15 seconds gets the same read.</p>
+          <p>
+            Nothing is kept for long: a report is read at the current block. A repeat check within a few minutes is answered from memory at once
+            and read again in the background, so the next one is fresh.
+          </p>
         </Section>
 
         <Section id="method" title="How each check works">
@@ -329,7 +362,10 @@ export function Docs() {
             </div>
             <div>
               <dt>Holders</dt>
-              <dd>Balances are rebuilt by replaying every Transfer event of the token from its first block. No third-party holder list is used.</dd>
+              <dd>
+                Balances are rebuilt by replaying every Transfer event of the token from its first block. Busy tokens, with thousands of holders,
+                take their 50 biggest balances from Blockscout's index instead, and each is checked against the chain.
+              </dd>
             </div>
             <div>
               <dt>Linked by sender</dt>
@@ -475,10 +511,21 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
         <Section id="official" title="Official links">
           <ul className="doc-list">
             <li>
-              X: <Out href={X_URL}>@vialzapp</Out>
+              Site: <Out href="https://vialz.xyz">vialz.xyz</Out>
             </li>
             <li>
+              X: <Out href={X_URL}>@vialzapp</Out>
+            </li>
+            {STORE_URL && (
+              <li>
+                Extension: <Out href={STORE_URL}>Chrome Web Store</Out>
+              </li>
+            )}
+            <li>
               Code: <Out href={REPO_URL}>github.com/vialzapp/vialz</Out>
+            </li>
+            <li>
+              Email: <a href="mailto:hello@vialz.xyz">hello@vialz.xyz</a>
             </li>
           </ul>
           <p className="doc-note">

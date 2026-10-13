@@ -30,8 +30,12 @@ switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the t
 |---|---|---|
 | `PORT` | 8787 | |
 | `RH_RPC` | official Robinhood Chain RPC | must allow address-filtered `eth_getLogs` over wide ranges |
-| `ETHERSCAN_API_KEY` | none | turns on funding clusters (who sent top holders their first ETH) |
-| `ETHERSCAN_DAILY_BUDGET` | 80000 | Etherscan calls per day before funding switches off until tomorrow |
+| `BLOCKSCOUT_API_KEY` | none | Blockscout's index of the chain, for busy tokens: holder count, top 50 holders, the creator's transfers |
+| `BLOCKSCOUT_DAILY_CALLS` | 4500 | Blockscout calls per day (UTC) before the index switches off until tomorrow |
+| `HEAVY_HOLDERS` | 4000 | holder count from which a token is read from the index instead of its full transfer history |
+| `FUNDING` | off | `on` adds funding links (who sent top holders their first ETH); needs `ETHERSCAN_API_KEY` and a paid Etherscan plan for chain 4663 |
+| `ETHERSCAN_API_KEY` / `ETHERSCAN_DAILY_BUDGET` | none / 80000 | only with `FUNDING=on` |
+| `PUBLIC_URL` | https://vialz.xyz | origin used in link-card meta tags |
 | `CLIENT_IP_HEADER` | none | header the hosting edge sets to the connecting IP (`x-real-ip` on Railway). Behind the Cloudflare proxy the visitor's `CF-Connecting-IP` is used, only for connections from Cloudflare's ranges |
 | `TRUST_PROXY_HOPS` | 0 | trusted proxies in X-Forwarded-For, for hosts whose edge rewrites that header |
 | `TOKEN_PER_MINUTE` | 15 | token reports per client IP per minute |
@@ -52,4 +56,5 @@ License: MIT. See [SECURITY.md](SECURITY.md) and [NOTICE.md](NOTICE.md).
 - The official RPC sits behind Cloudflare: requests go through `node:https`, because `fetch` gets a challenge page.
 - It rate-limits heavy calls. Concurrency is 4, batches 40, 429s retried with backoff. A paid RPC removes the bottleneck.
 - No historical state on the node: creation blocks are found by walking logs back from the head.
-- Tokens with millions of transfers (PONS) hit a 15 s budget: market data only, holders marked as not read.
+- Busy tokens (4000+ holders) are not read transfer by transfer: holders come from Blockscout's index, snipers from the
+  launch window, and linked wallets and volume are marked as not read.

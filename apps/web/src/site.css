@@ -1595,3 +1595,77 @@ html {
     margin-left: auto;
   }
 }
+
+/* ---- How it reads: the live rack sits between the title and the ranges, inside the page's own column ---- */
+.band-ranges .rack-band {
+  padding-block: 0 clamp(40px, 5vw, 64px);
+}
+
+.band-ranges .rack-band > .wrap {
+  width: 100%;
+}
+
+.band-ranges .rack-head h2 {
+  font-size: clamp(28px, 2.6vw, 36px);
+}
+
+.rack-vial .vessel-specular {
+  display: inline;
+  stroke: oklch(0.97 0.01 185 / 0.4);
+}
+
+/* ---- Docs: the levels of each vial as a short graduated scale, not a run of mono text ---- */
+.doc-scale {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-scale li {
+  display: grid;
+  grid-template-columns: 9px 52px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.doc-scale li::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--pad);
+  translate: 0 -1px;
+}
+
+.doc-scale span {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.doc-scale .pad-warn {
+  color: var(--warn);
+}
+
+.doc-scale .pad-danger {
+  color: var(--danger);
+}
+
+.doc-extra {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.doc-legend-vial .vessel-specular {
+  display: inline;
+  stroke: oklch(0.97 0.01 185 / 0.4);
+}

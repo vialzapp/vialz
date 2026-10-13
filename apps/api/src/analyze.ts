@@ -20,6 +20,9 @@ import { indexedCreatorTransfers, indexedHolders, indexedInfo, indexerEnabled } 
 const HEAVY_HOLDERS = Number(process.env.HEAVY_HOLDERS ?? 4_000);
 const HEAVY_MS = 6 * 3_600_000;
 const heavyUntil = new Map<string, number>();
+// a token far below the line is not asked about again for hours: it cannot gather thousands of holders in minutes
+const LIGHT_MS = 6 * 3_600_000;
+const lightUntil = new Map<string, number>();
 
 export class NotFound extends Error {}
 
@@ -259,8 +262,16 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   const heavyP: Promise<boolean> =
     (heavyUntil.get(token) ?? 0) > Date.now()
       ? Promise.resolve(true)
-      : indexerEnabled() && (graduated || !launchLog)
-        ? tag("holder count", indexedInfo(token)).then((i) => i.count >= HEAVY_HOLDERS).catch(() => false)
+      : indexerEnabled() && (graduated || !launchLog) && !((lightUntil.get(token) ?? 0) > Date.now())
+        ? tag("holder count", indexedInfo(token))
+            .then((i) => {
+              if (i.count < HEAVY_HOLDERS / 2) {
+                lightUntil.set(token, Date.now() + LIGHT_MS);
+                if (lightUntil.size > 20_000) lightUntil.delete(lightUntil.keys().next().value!);
+              }
+              return i.count >= HEAVY_HOLDERS;
+            })
+            .catch(() => false)
         : Promise.resolve(false);
   const gradP: Promise<Log[]> = launchLog
     ? tag("graduation", getLogsKept(`grad:${token}`, { address: FACTORY, topics: [POOL_GRADUATED, topicAddress(token)] }, launchLog.blockNumber, h).catch(() => [] as Log[]))
@@ -383,10 +394,13 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
       .filter((t) => t.side === "buy" && launchBlock != null && t.block <= launchBlock + snipeBlocks && t.wallet !== creator && !bundle.includes(t.wallet))
       .map((t) => t.wallet),
   );
-  // the index lists only the biggest balances: the snipers', the bundle's and the creator's are read from the token
+  // the index gives who the biggest holders are (kept a while); the balances that drive the readings are read from the
+  // token now: the ten biggest (so the Top 10 share is current), and the snipers', the bundle's and the creator's
   let exact = !idx;
   if (idx) {
-    const want = [...new Set([...snipeWallets, ...bundle, ...(creator ? [creator] : [])])].filter((a) => !balances.has(a)).slice(0, 80);
+    const others = [...new Set([...snipeWallets, ...bundle, ...(creator ? [creator] : [])])].filter((a) => !balances.has(a)).slice(0, 80);
+    // the ten biggest only: the public node turns away bigger batches, and these ten make the Top 10 share
+    const want = [...new Set([...idx.top.slice(0, 10).map((t) => t.address), ...others])];
     const res = want.length
       ? await batch(want.map((a) => ["eth_call", [{ to: token, data: "0x70a08231" + topicAddress(a).slice(2) }, "latest"]] as [string, unknown[]])).catch(() => null)
       : [];
@@ -395,7 +409,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
         const v = res[i];
         if (typeof v === "string" && v.startsWith("0x") && v.length > 2) balances.set(a, BigInt(v));
       });
-      exact = want.every((a) => balances.has(a));
+      exact = others.every((a) => balances.has(a));
     }
   }
   const pairAddresses = new Set(pairs.map((p) => p.pairAddress.toLowerCase()));

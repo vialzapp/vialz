@@ -25,7 +25,7 @@ const CHECKS: { key: string; name: string; reads: string; scale: Scale }[] = [
   { key: "bundle", name: "Bundle", reads: "Wallets the creator declared exempt from the opening tax.", scale: ["none", "hold under 1%", "hold 1%+", "hold 5%+"] },
   { key: "holders", name: "Top 10", reads: "Supply in the ten largest wallets. The curve, pools and burn address are left out.", scale: ["under 15%", "15%+", "30%+", "50%+"] },
   { key: "linked", name: "Linked", reads: "Holders who got the token straight from one wallet, three or more of them still holding.", scale: ["none", "a group under 3%", "a group 3%+", "a group 10%+"] },
-  { key: "creator", name: "Creator", reads: "Every earlier Pons launch from the same wallet, and whether the creator sold early.", scale: ["under 10 launches", null, "10+ launches", "50+, or sold early"] },
+  { key: "creator", name: "Creator", reads: "Every earlier Pons launch from the same wallet, and whether the creator sold early.", scale: ["2 to 9 launches", "first launch", "10+ launches", "50+, or sold early"] },
   { key: "volume", name: "Volume", reads: "Curve volume made by the five busiest wallets, and wallets that keep flipping.", scale: ["spread out", "under 30 trades", "5 wallets make 60%+", null] },
 ];
 const LEVELS = [
@@ -74,7 +74,7 @@ const RACK: { key: Pad["key"]; label: string; marks: [note: string | null, watch
 const MARK_LEVELS = [FILL.info, FILL.warn, FILL.danger];
 
 /** The six vials at full size, graduated like lab glass, filled once when they come into view. */
-function Rack({ report, caption }: { report: TokenReport | null; caption: string }) {
+function Rack({ report, title, caption, more = true }: { report: TokenReport | null; title: string; caption: string; more?: boolean }) {
   const pads = report ? padsFor(report) : null;
   const ref = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(false);
@@ -97,13 +97,15 @@ function Rack({ report, caption }: { report: TokenReport | null; caption: string
     <section className="rack-band" aria-label="The six vials">
       <div className="wrap rack-grid">
         <div className="rack-head">
-          <h2>Six vials, filled by the chain.</h2>
+          <h2>{title}</h2>
           <p>
             {caption} The marks on the glass are the thresholds: the further a reading goes, the higher the vial fills.
           </p>
-          <Link href="/how" className="text-link">
-            How each one reads
-          </Link>
+          {more && (
+            <Link href="/how" className="text-link">
+              How each one reads
+            </Link>
+          )}
         </div>
         <div ref={ref} className={`rack${seen && pads ? " rack-on" : ""}`} role="list">
           {RACK.map(({ key, label, marks }, i) => {
@@ -203,6 +205,8 @@ export function Landing() {
 
 /** What each of the six vials reads, at each level. */
 export function HowItReads() {
+  const live = useLiveExample();
+  const r = live.state.status === "ready" ? live.state.report : null;
   return (
     <div className="page">
       <section className="band band-ranges" id="vials">
@@ -214,6 +218,18 @@ export function HowItReads() {
               brim. They state what the chain shows, never a verdict.
             </p>
           </div>
+          <Rack
+            report={r}
+            more={false}
+            title={r ? `$${r.symbol}, read just now.` : "A live launch, read now."}
+            caption={
+              r
+                ? "The busiest Pons launch this hour, straight from the chain."
+                : live.failed
+                  ? "No live launch to show right now."
+                  : "The busiest Pons launch this hour is being read."
+            }
+          />
           <div className="ranges" role="table" aria-label="What each vial reads at each level">
             <div className="ranges-row ranges-th" role="row">
               <span role="columnheader">Vial</span>

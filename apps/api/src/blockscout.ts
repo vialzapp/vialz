@@ -5,7 +5,11 @@
 const KEY = process.env.BLOCKSCOUT_API_KEY;
 const BASE = "https://api.blockscout.com/4663/api/v2";
 const MIN_GAP_MS = 250;
-const TTL_MS = 5 * 60_000;
+// How long answers are kept. Only busy tokens come here, and their top wallets change slowly: the list of who they are
+// is kept an hour, while each report still reads their balances from the chain, so the shares are always current.
+const HOLDERS_MS = 60 * 60_000;
+const INFO_MS = 60 * 60_000;
+const CREATOR_MS = 60 * 60_000;
 const MAX_CREATOR_PAGES = 4; // 200 transfers; a creator who moved more is not summed (the sum would be wrong)
 // the free plan's 100k daily credits are about 5000 calls: stop short of them, so the index fails quietly instead
 const DAILY_CALLS = Number(process.env.BLOCKSCOUT_DAILY_CALLS ?? 4_500);
@@ -29,9 +33,9 @@ async function call<T>(path: string, params: Record<string, string> = {}): Promi
   return (await r.json()) as T;
 }
 
-function memo<T>(cache: Map<string, { at: number; value: Promise<T> }>, key: string, read: () => Promise<T>): Promise<T> {
+function memo<T>(cache: Map<string, { at: number; value: Promise<T> }>, ttl: number, key: string, read: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.value;
+  if (hit && Date.now() - hit.at < ttl) return hit.value;
   const value = read();
   cache.set(key, { at: Date.now(), value });
   value.catch(() => cache.delete(key));
@@ -49,7 +53,7 @@ const holdersCache = new Map<string, { at: number; value: Promise<IndexedHolders
 
 /** How many wallets hold the token: one call, enough to tell a busy token before reading its history. */
 export function indexedInfo(token: string): Promise<{ count: number }> {
-  return memo(infoCache, token, async () => {
+  return memo(infoCache, INFO_MS, token, async () => {
     const info = await call<{ holders_count?: string; holders?: string }>(`/tokens/${token}`);
     return { count: Number(info.holders_count ?? info.holders ?? 0) || 0 };
   });
@@ -57,7 +61,7 @@ export function indexedInfo(token: string): Promise<{ count: number }> {
 
 /** The token's holder count and its 50 biggest balances. */
 export function indexedHolders(token: string): Promise<IndexedHolders> {
-  return memo(holdersCache, token, async () => {
+  return memo(holdersCache, HOLDERS_MS, token, async () => {
     type Item = { address: { hash: string; is_contract?: boolean }; value: string };
     const [info, page] = await Promise.all([indexedInfo(token), call<{ items?: Item[] }>(`/tokens/${token}/holders`)]);
     if (!Array.isArray(page.items)) throw new Error("blockscout: no holders list");
@@ -72,7 +76,7 @@ const creatorCache = new Map<string, { at: number; value: Promise<{ from: string
 
 /** Every transfer of `token` in or out of the creator's wallet; null when there are too many to read. */
 export function indexedCreatorTransfers(creator: string, token: string): Promise<{ from: string; to: string; v: bigint }[] | null> {
-  return memo(creatorCache, `${creator}:${token}`, async () => {
+  return memo(creatorCache, CREATOR_MS, `${creator}:${token}`, async () => {
     type Item = { from: { hash: string }; to: { hash: string }; total?: { value?: string } };
     const out: { from: string; to: string; v: bigint }[] = [];
     let next: Record<string, string> | null = { token };
