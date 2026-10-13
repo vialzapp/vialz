@@ -67,7 +67,7 @@ const VIALS = [
   },
   {
     name: "Linked",
-    reads: "Groups of holders tied to one wallet: one sender handed the token to three or more wallets that still hold it, or three or more top holders got their first ETH from one funder.",
+    reads: "Groups of holders tied to one wallet: one sender handed the token straight to three or more wallets that still hold it. Read from the token's own transfers.",
     levels: "Clear: no group found. Note: a group under 3%. Watch: 3% or more. High: 10% or more.",
   },
   {
@@ -93,10 +93,10 @@ const SETTINGS = [
   { name: "RH_LOGS_SPAN", type: "blocks", def: "9000000", text: "Widest block range asked for in one eth_getLogs call. Lower it if your node rejects wide ranges." },
   { name: "RH_RPC_CONCURRENCY", type: "number", def: "4", text: "Requests in flight at once. The public node rate-limits heavy calls; raise it only on a paid provider." },
   {
-    name: "ETHERSCAN_API_KEY",
+    name: "BLOCKSCOUT_API_KEY",
     type: "key, optional",
     def: "none",
-    text: "Turns on funding links: who sent each top holder their first ETH. Plain ETH transfers leave no logs, so this needs an indexed source. Keep it in your host's environment, never in the repository.",
+    text: "Lets busy tokens (thousands of holders) take their biggest balances from Blockscout's index instead of being read transfer by transfer. Keep it in your host's environment, never in the repository.",
   },
   { name: "VITE_API_URL", type: "url, build time", def: "same origin", text: "API origin the site and the extension call. Set it when building the extension." },
 ];
@@ -273,7 +273,7 @@ export function Docs() {
             </div>
             <div>
               <dt>Linked wallets</dt>
-              <dd>Groups of holders tied to one sender or one funder, with the share of supply they hold now.</dd>
+              <dd>Groups of holders who got the token from one sender, with the share of supply they hold now.</dd>
             </div>
             <div>
               <dt>Creator</dt>
@@ -305,7 +305,7 @@ export function Docs() {
               <b>Coinbase</b> for the ETH price in dollars.
             </li>
             <li>
-              <b>Etherscan</b>, when enabled, for the first ETH a holder received, which no chain log records.
+              <b>Blockscout</b>, when a key is set, for the biggest balances of busy tokens that are too long to read in one go.
             </li>
           </ul>
           <p>Nothing is cached for long: a report is read at the current block, and a repeat request within 15 seconds gets the same read.</p>
@@ -339,10 +339,6 @@ export function Docs() {
               </dd>
             </div>
             <div>
-              <dt>Linked by funder</dt>
-              <dd>The 25 largest holders are grouped by the wallet that sent them their first ETH. Three or more with the same funder form a group.</dd>
-            </div>
-            <div>
               <dt>Creator history</dt>
               <dd>
                 Every launch event from the creator's wallet on the Pons factory, across the chain's whole history. Graduation is read for the 60
@@ -362,11 +358,14 @@ export function Docs() {
               A read can be wrong, late or incomplete. Readings describe how a token was launched and who holds it; they say nothing certain about
               its price.
             </li>
-            <li>Tokens with millions of transfers are read for 15 seconds at most. Past that, the report shows market data and marks holders as not read.</li>
+            <li>
+              Busy tokens, with thousands of holders, take their biggest balances from Blockscout's index. Their linked wallets and volume are not
+              read.
+            </li>
             <li>Tokens that did not launch on Pons have no launch section, no snipers and no bundle. Holders, linked wallets and market still work.</li>
             <li>
-              A shared funder is a fact, not proof of one owner. Exchanges and bridges fund many unrelated wallets, so a funding group is a reason to
-              look closer.
+              A linked group is a fact, not proof of one owner. A wallet can hand tokens out for honest reasons, so a group is a reason to look
+              closer.
             </li>
             <li>The public RPC limits how fast it answers. Under heavy load a report can take longer.</li>
           </ul>

@@ -78,9 +78,12 @@ function allowRead(ip: string, address: string, kind: "report" | "quick" = "repo
 const knownImages = new Set<string>();
 function noteImage(cid: string | null | undefined) {
   if (!cid) return;
+  const fresh = !knownImages.has(cid);
   knownImages.delete(cid);
   knownImages.add(cid);
   if (knownImages.size > 20_000) knownImages.delete(knownImages.values().next().value!);
+  // fetched now, in the background: by the time a link card is drawn (or the page asks), the picture is in memory
+  if (fresh && CID_RE.test(cid)) void ipfsImage(cid).catch(() => null);
 }
 
 function report(address: string): Promise<TokenReport> {
@@ -349,7 +352,7 @@ async function cardImage(r: TokenReport) {
   const cid = r.links.image;
   if (!cid || !CID_RE.test(cid)) return null;
   // the card waits a moment for the token's picture, never long: a crawler gives up on slow images
-  const slow = new Promise<null>((ok) => setTimeout(() => ok(null), 2_500));
+  const slow = new Promise<null>((ok) => setTimeout(() => ok(null), 4_000));
   return Promise.race([ipfsImage(cid).catch(() => null), slow]);
 }
 app.get<{ Params: { file: string } }>("/og/:file", perMinute(60), async (req, reply) => {

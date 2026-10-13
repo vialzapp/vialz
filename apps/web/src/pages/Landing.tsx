@@ -24,7 +24,7 @@ const CHECKS: { key: string; name: string; reads: string; scale: Scale }[] = [
   { key: "snipers", name: "Snipers", reads: "Buys in the first 3 seconds after launch, by anyone but the creator and the bundle.", scale: ["none", "hold under 3%", "hold 3%+", "hold 10%+"] },
   { key: "bundle", name: "Bundle", reads: "Wallets the creator declared exempt from the opening tax.", scale: ["none", "hold under 1%", "hold 1%+", "hold 5%+"] },
   { key: "holders", name: "Top 10", reads: "Supply in the ten largest wallets. The curve, pools and burn address are left out.", scale: ["under 15%", "15%+", "30%+", "50%+"] },
-  { key: "linked", name: "Linked", reads: "Holders fed the token by one sender, or their first ETH by one funder.", scale: ["none", "a group under 3%", "a group 3%+", "a group 10%+"] },
+  { key: "linked", name: "Linked", reads: "Holders who got the token straight from one wallet, three or more of them still holding.", scale: ["none", "a group under 3%", "a group 3%+", "a group 10%+"] },
   { key: "creator", name: "Creator", reads: "Every earlier Pons launch from the same wallet, and whether the creator sold early.", scale: ["under 10 launches", null, "10+ launches", "50+, or sold early"] },
   { key: "volume", name: "Volume", reads: "Curve volume made by the five busiest wallets, and wallets that keep flipping.", scale: ["spread out", "under 30 trades", "5 wallets make 60%+", null] },
 ];

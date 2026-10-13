@@ -13,8 +13,13 @@ const DAILY_BUDGET = Number(process.env.ETHERSCAN_DAILY_BUDGET ?? 80_000);
 const budget = { day: "", used: 0 };
 let last = 0;
 
-/** Off without a key, and for the rest of the day once the budget is spent: reports then skip funding instead of waiting on it. */
-export const fundingEnabled = () => Boolean(KEY) && !(budget.day === new Date().toISOString().slice(0, 10) && budget.used >= DAILY_BUDGET);
+// Off unless FUNDING=on: Etherscan's free API stopped answering account queries on Robinhood Chain on 16 October 2026,
+// and a lookup that fails would keep reports waiting. Linked wallets then come from the token's own transfers only.
+const ON = process.env.FUNDING === "on";
+
+/** Off unless turned on with a key, and for the rest of the day once the budget is spent: reports then skip funding
+ *  instead of waiting on it. */
+export const fundingEnabled = () => ON && Boolean(KEY) && !(budget.day === new Date().toISOString().slice(0, 10) && budget.used >= DAILY_BUDGET);
 
 function spend(): boolean {
   const day = new Date().toISOString().slice(0, 10);
