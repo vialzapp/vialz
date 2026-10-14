@@ -12,4 +12,4 @@ export const REPO_URL = "https://github.com/vialzapp/vialz";
 export const X_URL = "https://x.com/vialzapp";
 // The project token, once it is launched: its ticker and contract, shown on the home page, the roadmap and in the docs'
 // official links. null hides all of them.
-export const TOKEN: { symbol: string; address: string } | null = null;
+export const TOKEN: { symbol: string; address: string } | null = { symbol: "VIALZ", address: "0xa02a53c5210e340850fa63c7c95144ceb8f73f1f" };
