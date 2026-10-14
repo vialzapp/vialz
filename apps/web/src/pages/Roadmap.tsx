@@ -50,14 +50,14 @@ const STEPS: Step[] = [
     state: "now",
     text: "The site and the extension open to everyone. Install Vialz from the Chrome Web Store, open any Robinhood Chain token and click the icon: snipers, bundle, holders, linked wallets, the creator and the volume in a few seconds. Free, no wallet, no account. Version 1.0.1 reaches every copy through the store by itself.",
   },
+  // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
+  { when: "Next", title: "", state: "next", text: null, sealed: true },
   {
     when: "Next",
     title: "Daily chain recap",
     state: "next",
     text: "Once a day on X, the chain in numbers: how many tokens launched in the last 24 hours, how many came with a big bundle or snipers still holding, and how many devs sold early. Taken from the same readings as the extension, so every number can be checked against a token's own report.",
   },
-  // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
-  { when: "Next", title: "", state: "next", text: null, sealed: true },
   {
     when: "Next",
     title: "Extension 1.0.2",
