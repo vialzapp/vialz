@@ -2,10 +2,7 @@ import { Link, Out } from "../App";
 import { useEffect, useState, type ReactNode } from "react";
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { FILL, Vessel } from "@vialz/ui";
-import { CHROME_URL, REPO_URL, X_URL } from "../brand";
-
-// the store listing, once VITE_CHROME_URL points at it (until then CHROME_URL is this page's own install steps)
-const STORE_URL = CHROME_URL.startsWith("https://") ? CHROME_URL : null;
+import { RELEASES_URL, REPO_URL, STORE_URL, X_URL, ZIP_URL } from "../brand";
 
 // The documentation: how to use Vialz, how every reading is computed, and how to run and verify it yourself.
 // Thresholds here mirror packages/shared (padsFor) and apps/api (analyze.ts); change them together.
@@ -125,11 +122,19 @@ export function Docs() {
       const passed = sections.filter((s) => s.getBoundingClientRect().top <= Math.min(innerHeight * 0.4, 300));
       setActive((passed[passed.length - 1] ?? sections[0])?.id ?? "overview");
     };
-    const io = new IntersectionObserver(pick, { rootMargin: "-120px 0px -55% 0px", threshold: [0, 1] });
-    sections.forEach((s) => io.observe(s));
+    // on every scroll, once a frame: an observer alone misses jumps (anchors, the back button, a hash on load)
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(pick);
+    };
+    addEventListener("scroll", onScroll, { passive: true });
     if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
     pick();
-    return () => io.disconnect();
+    return () => {
+      removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (
@@ -172,31 +177,45 @@ export function Docs() {
         </Section>
 
         <Section id="install" title="Install">
-          {STORE_URL ? (
-            <p>
-              Install it from the <Out href={STORE_URL}>Chrome Web Store</Out>. It works in Chrome, Brave, Edge and Arc. You can also load it from
-              the source in about a minute:
-            </p>
-          ) : (
-            <p>
-              The Chrome Web Store listing is coming. Until it is live, you can load the extension from the source in about a minute. It works in
-              Chrome, Brave, Edge and Arc.
-            </p>
-          )}
+          <p>
+            Vialz is on the <Out href={STORE_URL}>Chrome Web Store</Out>. It works in Chrome, Brave, Edge, Arc and other Chromium browsers.
+          </p>
           <ol className="doc-steps">
             <li>
-              Build it (see <a href="#run">Run it yourself</a>), or download the packaged build from the repository's releases once published.
+              Open the <Out href={STORE_URL}>Vialz listing</Out> and click <b>Add to Chrome</b>, then <b>Add extension</b>.
             </li>
             <li>
-              Open <code>chrome://extensions</code> and switch on <b>Developer mode</b> in the top right.
+              Pin it: open the <b>puzzle icon</b> in the toolbar and click the pin next to Vialz, so it is one click away.
             </li>
-            <li>
-              Click <b>Load unpacked</b> and pick the <code>apps/extension/dist</code> folder.
-            </li>
-            <li>Pin Vialz from the puzzle icon in the toolbar, so it is one click away.</li>
+            <li>Open a token on gmgn, fomo, DexScreener or the explorer and click the Vialz icon.</li>
           </ol>
+          <p>The store keeps it up to date by itself.</p>
+
+          <h3 id="manual">If the store does not work for you</h3>
+          <p>
+            Some browsers and work computers block the store. You can load the same build by hand. A hand-loaded copy does not update itself:
+            come back for a new one when a version is released.
+          </p>
+          <ol className="doc-steps">
+            <li>
+              Download <Out href={ZIP_URL}>vialz-extension.zip</Out> from the repository's <Out href={RELEASES_URL}>latest release</Out> and unzip it to a
+              folder you will keep (Chrome loads it from there every time).
+            </li>
+            <li>
+              Open <code>chrome://extensions</code> (in Edge <code>edge://extensions</code>) and switch on <b>Developer mode</b>.
+            </li>
+            <li>
+              Click <b>Load unpacked</b> and pick the unzipped folder, the one with <code>manifest.json</code> in it.
+            </li>
+            <li>Pin Vialz from the puzzle icon, as above.</li>
+          </ol>
+          <p>
+            Chrome may show a banner about developer-mode extensions on start; that is normal for anything loaded by hand. To build the package
+            yourself instead, see <a href="#run">Run it yourself</a>.
+          </p>
           <p className="doc-note">
-            <b>Only install Vialz</b> from the Chrome Web Store link posted on our X account, or build it from this repository yourself.
+            <b>Only install Vialz</b> from the Chrome Web Store listing or from the releases of <Out href={REPO_URL}>github.com/vialzapp/vialz</Out>.
+            Any other copy is not ours.
           </p>
         </Section>
 
@@ -429,7 +448,7 @@ cd vialz
 npm install
 npm run dev:api        # the API on http://localhost:8787
 npm run dev:web        # the site on http://localhost:5180`}</Code>
-          <p>Build the extension against your own API, then load it unpacked as in Install:</p>
+          <p>Build the extension against your own API, then load the <code>apps/extension/dist</code> folder as in <a href="#manual">installing by hand</a>:</p>
           <Code>{`cd apps/extension
 VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
           <p>
@@ -516,11 +535,9 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
             <li>
               X: <Out href={X_URL}>@vialzapp</Out>
             </li>
-            {STORE_URL && (
-              <li>
-                Extension: <Out href={STORE_URL}>Chrome Web Store</Out>
-              </li>
-            )}
+            <li>
+              Extension: <Out href={STORE_URL}>Chrome Web Store</Out>
+            </li>
             <li>
               Code: <Out href={REPO_URL}>github.com/vialzapp/vialz</Out>
             </li>

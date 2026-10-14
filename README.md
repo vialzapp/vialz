@@ -21,8 +21,9 @@ npm run dev:api        # http://localhost:8787
 npm run dev:web        # http://localhost:5180, proxies /v1 to the API
 ```
 
-Extension: `cd apps/extension && npx vite build --mode development`, then in Chrome open `chrome://extensions`,
-switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the toolbar icon to open Vialz.
+Extension: install it from the [Chrome Web Store](https://chromewebstore.google.com/detail/vialz-token-check-for-rob/fbnjfjdoddglgmpjfgcpfjdnobnddinb),
+or load `vialz-extension.zip` from the [latest release](https://github.com/vialzapp/vialz/releases/latest) by hand (unzip, `chrome://extensions`,
+Developer mode, Load unpacked). To build it yourself: `cd apps/extension && npx vite build --mode development`, then load `apps/extension/dist`.
 
 ## Environment (API)
 
@@ -47,7 +48,7 @@ switch on Developer mode, Load unpacked, pick `apps/extension/dist`. Click the t
 - Site: [vialz.xyz](https://vialz.xyz)
 - X: [@vialzapp](https://x.com/vialzapp)
 - Code: [github.com/vialzapp/vialz](https://github.com/vialzapp/vialz)
-- The extension is only published on the Chrome Web Store listing linked from the site and from X. Until it is live you can build it from this repository.
+- Extension: [Chrome Web Store](https://chromewebstore.google.com/detail/vialz-token-check-for-rob/fbnjfjdoddglgmpjfgcpfjdnobnddinb), or the zip in this repository's [releases](https://github.com/vialzapp/vialz/releases). Any other copy is not ours.
 
 License: MIT. See [SECURITY.md](SECURITY.md) and [NOTICE.md](NOTICE.md).
 

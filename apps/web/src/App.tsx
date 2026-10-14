@@ -130,9 +130,15 @@ export function App() {
             <Out href={X_URL} className="nav-x" aria-label="Vialz on X">
               <XLogoIcon size={17} aria-hidden />
             </Out>
-            <Link className="btn btn-act nav-cta" href={CHROME_URL}>
-              {CHROME_LABEL}
-            </Link>
+            {CHROME_URL.startsWith("/") ? (
+              <Link className="btn btn-act nav-cta" href={CHROME_URL}>
+                {CHROME_LABEL}
+              </Link>
+            ) : (
+              <Out className="btn btn-act nav-cta" href={CHROME_URL}>
+                {CHROME_LABEL}
+              </Out>
+            )}
           </nav>
           <button
             type="button"
