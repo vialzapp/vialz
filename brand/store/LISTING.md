@@ -1,10 +1,12 @@
-# Chrome Web Store listing: Vialz 1.0.0
+# Chrome Web Store listing: Vialz 1.0.1
+
+1.0.0 is published (2026-10-14). This file is the update to 1.0.1: new package, new images, and the privacy-tab fixes below.
 
 Everything below goes into the Chrome Web Store developer dashboard. The files sit next to this one.
 
 ## Package
 
-- `vialz-extension-1.0.0.zip`: upload on the **Package** tab. Built from `apps/extension`, manifest version 1.0.0, permissions `activeTab` and `storage` only.
+- `1.0.1/vialz-extension-1.0.1.zip`: upload on the **Package** tab. Built from `apps/extension`, manifest version 1.0.1, permissions `activeTab` and `storage` only (unchanged, so existing users see no new permission prompt). New in 1.0.1: Barlow display face, pin tip, Share on X, footer links to the site, docs and X, and `homepage_url`.
 
 ## Store listing tab
 
@@ -47,16 +49,16 @@ Free and open source.
 
 **Graphic assets:**
 - Store icon: taken from the package (`icons/icon-128.png`, 96 px artwork with 16 px transparent padding)
-- Screenshots, 1280x800, in this order:
+- Screenshots, 1280x800, from `1.0.1/`, in this order:
   1. `screenshot-1.png`: Read the chain before you ape
   2. `screenshot-2.png`: Six vials. One look.
   3. `screenshot-3.png`: Who really holds it
   4. `screenshot-4.png`: What the dev did with their own bag
-- Small promo tile 440x280: `promo-small-440x280.png`
-- Marquee promo tile 1400x560: `promo-marquee-1400x560.png`
+- Small promo tile 440x280: `1.0.1/promo-small-440x280.png`
+- Marquee promo tile 1400x560: `1.0.1/promo-marquee-1400x560.png`
 
 **Additional fields:**
-- Official URL / homepage: https://vialz.xyz (it shows a placeholder until launch)
+- Official URL / homepage: https://vialz.xyz
 - Support URL: https://x.com/vialzapp
 
 ## Account tab (developer profile)
@@ -82,7 +84,7 @@ When the user clicks the Vialz toolbar icon, the extension reads the address bar
 Keeps the user's last checked tokens (contract address, symbol and the six readings) on the device so they can open them again from the popup. It also remembers whether the user hid the tip about pinning the icon. Nothing stored leaves the device, and the user can clear the list.
 ```
 
-**Remote code:** No, I am not using remote code. All JavaScript ships in the package. The extension only fetches JSON reports from https://vialz.xyz.
+**Remote code:** No, I am not using remote code. All JavaScript ships in the package. The extension only fetches JSON reports and token images from https://vialz.xyz.
 
 **Data usage:**
 - Data collected: none of the listed categories. The only thing sent is the contract address of the token being checked, which is public on-chain data, not user data. No browsing history, page content, identifiers or location are sent or stored.

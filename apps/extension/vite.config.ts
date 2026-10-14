@@ -5,7 +5,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   base: "",
   define: {
-    __API_URL__: JSON.stringify(process.env.VITE_API_URL ?? (mode === "development" ? "http://localhost:8787" : "https://vialz.xyz")),
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || (mode === "development" ? "http://localhost:8787" : "https://vialz.xyz")),
   },
   build: {
     outDir: "dist",

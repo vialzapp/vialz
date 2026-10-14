@@ -231,6 +231,20 @@ function Popup() {
           </ul>
         </section>
       )}
+
+      {!address && (
+        <footer className="panel-foot">
+          <a href={SITE} target="_blank" rel="noreferrer">
+            {new URL(SITE).host}
+          </a>
+          <a href={`${SITE}/docs`} target="_blank" rel="noreferrer">
+            Docs
+          </a>
+          <a href="https://x.com/vialzapp" target="_blank" rel="noreferrer">
+            X
+          </a>
+        </footer>
+      )}
     </div>
   );
 }

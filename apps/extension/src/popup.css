@@ -355,3 +355,23 @@ body {
 .panel-pin button:hover {
   color: var(--ink);
 }
+
+/* the official links, on the first screen only: where the site, the docs and the account are */
+.panel-foot {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 4px;
+  font-size: 12.5px;
+}
+
+.panel-foot a {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.panel-foot a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

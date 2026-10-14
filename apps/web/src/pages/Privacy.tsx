@@ -3,7 +3,7 @@ export function Privacy() {
     <section className="prose-page">
       <div className="wrap prose">
         <h1>Privacy</h1>
-        <p className="prose-date">Last updated 12 October 2026</p>
+        <p className="prose-date">Last updated 14 October 2026</p>
 
         <h2>What Vialz does</h2>
         <p>
@@ -17,8 +17,9 @@ export function Privacy() {
           sent: no wallet address, no browsing history, no identifiers.
         </p>
         <p>
-          The server keeps ordinary request logs (time, requested token, IP address) for up to 14 days to keep the service running and to stop abuse. They are
-          not sold or shared.
+          The server keeps ordinary request logs (time and requested token) for up to 14 days to keep the service running. Your IP address is used only in
+          memory, to limit how many checks one visitor can run per minute, and is never written to the logs. The site runs behind Cloudflare and on Railway,
+          which see the connecting address as any web host does. Nothing is sold or shared.
         </p>
 
         <h2>The Chrome extension</h2>
