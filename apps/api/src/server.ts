@@ -487,7 +487,7 @@ if (site) {
       return tokenPage(address, CRAWLER.test(req.headers["user-agent"] ?? ""), base).then((html) => reply.type("text/html; charset=utf-8").send(html));
     }
     // the site's own pages; anything else still gets the app (it draws "Nothing here."), but with a 404 for crawlers
-    const known = /^\/(how|report|faq|docs|privacy|extension)?\/?(?:[?#].*)?$/.test(req.url);
+    const known = /^\/(how|report|faq|docs|privacy|roadmap|extension)?\/?(?:[?#].*)?$/.test(req.url);
     return reply.code(known ? 200 : 404).sendFile("index.html");
   });
 }

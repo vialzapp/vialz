@@ -5,6 +5,7 @@ import { Mark } from "@vialz/ui";
 import { FaqPage, FullReportPage, HowItReads, Landing } from "./pages/Landing";
 import { TokenPage } from "./pages/TokenPage";
 import { Privacy } from "./pages/Privacy";
+import { Roadmap } from "./pages/Roadmap";
 import { Docs } from "./pages/Docs";
 import { CHROME_LABEL, CHROME_URL, REPO_URL, X_URL } from "./brand";
 
@@ -57,11 +58,13 @@ const PAGES: Record<string, () => ReactElement> = {
   "/faq": FaqPage,
   "/docs": Docs,
   "/privacy": Privacy,
+  "/roadmap": Roadmap,
 };
 const MENU: [string, string][] = [
   ["/how", "How it reads"],
   ["/report", "Full report"],
   ["/faq", "FAQ"],
+  ["/roadmap", "Roadmap"],
   ["/docs", "Docs"],
 ];
 
@@ -105,6 +108,7 @@ export function App() {
       "/faq": "FAQ | Vialz",
       "/docs": "Docs | Vialz",
       "/privacy": "Privacy | Vialz",
+      "/roadmap": "Roadmap | Vialz",
     };
     if (!token) document.title = titles[path] ?? "Not found | Vialz";
   }, [path, token]);
@@ -160,6 +164,7 @@ export function App() {
           <p>Reads Robinhood Chain. Not affiliated with Robinhood. Open source, MIT. Nothing here is financial advice.</p>
           <nav aria-label="Footer">
             <Link href="/docs">Docs</Link>
+            <Link href="/roadmap">Roadmap</Link>
             <Out href={REPO_URL}>GitHub</Out>
             <Out href={X_URL}>X @vialzapp</Out>
             <Link href="/privacy">Privacy</Link>
