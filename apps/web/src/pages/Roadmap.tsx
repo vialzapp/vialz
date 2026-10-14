@@ -46,9 +46,9 @@ const STEPS: Step[] = [
   },
   {
     when: "Now",
-    title: "1.0.1 and a daily recap",
+    title: "Open to everyone",
     state: "now",
-    text: "Version 1.0.1 is in Chrome Web Store review and reaches every copy by itself once approved. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
+    text: "The site and the extension are open to everyone, and version 1.0.1 is live on the Chrome Web Store: it updates every copy by itself. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
   },
   // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
   { when: "Next", title: "", state: "next", text: null, sealed: true },
@@ -73,8 +73,7 @@ type Release = { version: string; when: string; status?: string; lead: string; i
 const RELEASES: Release[] = [
   {
     version: "1.0.1",
-    when: "Sent for review on 14 October 2026",
-    status: "in review",
+    when: "October 2026",
     lead: "The look of the site, and a few things that save a click.",
     items: [
       "The glass look of vialz.xyz: new type for the vials and headings, the same colours as the site.",
