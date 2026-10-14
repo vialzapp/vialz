@@ -3,7 +3,8 @@ import { padsFor, type Pad, type TokenReport } from "@vialz/shared";
 import { CheckInput, FILL, READ, Report, ReportError, ReportSkeleton, Vessel, useTokenReport, vesselTop } from "@vialz/ui";
 import { Link, navigate, Out } from "../App";
 import { ExtensionShowcase } from "../Showcase";
-import { API_BASE, REPO_URL } from "../brand";
+import { API_BASE, REPO_URL, TOKEN } from "../brand";
+import { TokenPill } from "../TokenContract";
 
 /** The busiest Pons launch of the last hour, read live: the page proves the product with a real token. */
 function useLiveExample() {
@@ -163,6 +164,7 @@ export function Landing() {
                 <Out href={REPO_URL}>Open source</Out>
               </li>
             </ul>
+            {TOKEN && <TokenPill symbol={TOKEN.symbol} address={TOKEN.address} />}
           </div>
 
           <div className="hero-live" aria-live="polite">

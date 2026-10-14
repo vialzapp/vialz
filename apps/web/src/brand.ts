@@ -10,3 +10,6 @@ export const CHROME_LABEL = "Add to Chrome";
 export const API_BASE = import.meta.env.VITE_API_URL ?? "";
 export const REPO_URL = "https://github.com/vialzapp/vialz";
 export const X_URL = "https://x.com/vialzapp";
+// The project token, once it is launched: its ticker and contract, shown on the home page, the roadmap and in the docs'
+// official links. null hides all of them.
+export const TOKEN: { symbol: string; address: string } | null = null;

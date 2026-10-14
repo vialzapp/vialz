@@ -2,7 +2,7 @@ import { Link, Out } from "../App";
 import { useEffect, useState, type ReactNode } from "react";
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { FILL, Vessel } from "@vialz/ui";
-import { RELEASES_URL, REPO_URL, STORE_URL, X_URL, ZIP_URL } from "../brand";
+import { RELEASES_URL, REPO_URL, STORE_URL, TOKEN, X_URL, ZIP_URL } from "../brand";
 
 // The documentation: how to use Vialz, how every reading is computed, and how to run and verify it yourself.
 // Thresholds here mirror packages/shared (padsFor) and apps/api (analyze.ts); change them together.
@@ -544,6 +544,11 @@ VITE_API_URL=http://localhost:8787 npx vite build --mode development`}</Code>
             <li>
               Email: <a href="mailto:hello@vialz.xyz">hello@vialz.xyz</a>
             </li>
+            {TOKEN && (
+              <li>
+                ${TOKEN.symbol} contract: <code>{TOKEN.address}</code> (<Link href={`/t/${TOKEN.address}`}>its report</Link>)
+              </li>
+            )}
           </ul>
           <p className="doc-note">
             <b>We never DM first.</b> Vialz will never ask you to connect a wallet, sign a message or share a seed phrase. Anything that does is not us.

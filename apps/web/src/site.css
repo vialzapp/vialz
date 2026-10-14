@@ -1908,3 +1908,144 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- the official token contract: the full address, copy, and our own report on it ---- */
+.token-ca {
+  display: grid;
+  gap: 10px;
+  max-width: 62ch;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  background: var(--sheet);
+}
+
+.token-ca-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.token-ca-address {
+  font-family: var(--font-data);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  background: none;
+  padding: 0;
+}
+
+.token-ca-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.token-ca-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.token-ca-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* our token, under the hero facts: a quiet line, well clear of the check field */
+.token-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 26px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.token-pill-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.token-pill-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--sheet);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.token-pill-copy:hover {
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+
+.token-pill-copy b {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.token-pill-copy code {
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: var(--ink-2);
+  background: none;
+  padding: 0;
+}
+
+.token-pill-report {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 3px;
+}
+
+.token-pill-report:hover {
+  color: var(--ink);
+}
+
+/* a sealed roadmap step: blurred bars where the text will be. There is no text behind them, in the page or the code */
+.road-seal {
+  padding: 2px 10px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+.road-veil {
+  display: grid;
+  gap: 10px;
+  max-width: 62ch;
+  padding: 6px 0 4px;
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.road-veil i {
+  display: block;
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--ink-3), var(--glass) 60%, var(--ink-3));
+  opacity: 0.55;
+}

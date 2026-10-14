@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { Vessel } from "@vialz/ui";
 import { Link, Out } from "../App";
-import { REPO_URL, STORE_URL, X_URL } from "../brand";
+import { REPO_URL, STORE_URL, TOKEN, X_URL } from "../brand";
+import { TokenContract } from "../TokenContract";
 
 // What is out, what is being built, and every release. Plain facts, no dates promised that are not set.
 
-type Step = { when: string; title: string; state: "done" | "now" | "next"; text: ReactNode; items?: ReactNode[] };
+type Step = { when: string; title: string; state: "done" | "now" | "next"; text: ReactNode; items?: ReactNode[]; contract?: boolean; sealed?: boolean };
 
 // oldest first: where we were, where we are, what comes
 const STEPS: Step[] = [
@@ -49,11 +50,13 @@ const STEPS: Step[] = [
     state: "now",
     text: "Version 1.0.1 is in Chrome Web Store review and reaches every copy by itself once approved. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
   },
+  // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
+  { when: "Next", title: "", state: "next", text: null, sealed: true },
   {
     when: "Next",
-    title: "Buy after the check",
+    title: "Vialz DEX",
     state: "next",
-    text: "A swap on vialz.xyz, right under the report: read the token, then buy it in the same place. Optional and only on the site: the check never asks for a wallet, and the extension stays read-only.",
+    text: "Our own exchange on vialz.xyz: check a token, then buy it right there, under its report, without leaving for another site. The check itself never asks for a wallet; you connect one only to trade, and the extension stays read-only.",
     items: ["Extension 1.0.2: a clearer report for the busiest tokens, bigger labels on small screens, recent tokens on the first screen"],
   },
   {
@@ -124,6 +127,23 @@ export function Roadmap() {
                 <span className="road-node" aria-hidden>
                   <Vessel className="road-vial" level={st.state === "done" ? 1 : st.state === "now" ? 0.55 : 0} fill="var(--node)" glass="var(--node-glass)" stroke={24} />
                 </span>
+                {st.sealed ? (
+                  <div className="road-body road-sealed">
+                    <p className="road-when">
+                      {st.when}
+                      <span className="road-seal">Sealed until it ships</span>
+                    </p>
+                    <div className="road-veil" aria-hidden>
+                      <i style={{ width: "46%", height: 26 }} />
+                      <i style={{ width: "92%" }} />
+                      <i style={{ width: "84%" }} />
+                      <i style={{ width: "58%" }} />
+                      <i style={{ width: "64%", marginTop: 10 }} />
+                      <i style={{ width: "52%" }} />
+                      <i style={{ width: "60%" }} />
+                    </div>
+                  </div>
+                ) : (
                 <div className="road-body">
                   <p className="road-when">
                     {st.when}
@@ -138,7 +158,9 @@ export function Roadmap() {
                       ))}
                     </ul>
                   )}
+                  {st.contract && TOKEN && <TokenContract address={TOKEN.address} />}
                 </div>
+                )}
               </li>
             ))}
           </ol>
