@@ -14,23 +14,23 @@ const STEPS: Step[] = [
     when: "10 October 2026",
     title: "First reads",
     state: "done",
-    text: "Vialz reads a Robinhood Chain token straight from the chain: snipers, the bundle, top holders, linked wallets and the creator's record. The first site and the extension go up the same day.",
+    text: "Vialz reads its first tokens straight from Robinhood Chain: who sniped the launch, the bundle the creator declared, the biggest holders, wallets fed by one sender and every earlier launch from the same creator. No database in between: each check replays the token's own history. The first site and the extension go up the same day.",
   },
   {
     when: "11 October 2026",
     title: "Ready for the store",
     state: "done",
-    text: "The extension opens from the toolbar and reads the token of the page you are on. Reads get faster, the privacy policy goes up, and version 1.0.0 is sent to the Chrome Web Store.",
+    text: "The extension moves into the toolbar: open a token on gmgn, fomo, DexScreener or the explorer, click the icon, and that token is read. The name and numbers show in a second while the rest loads. The privacy policy goes up, and version 1.0.0 goes to the Chrome Web Store.",
   },
   {
     when: "12–13 October 2026",
     title: "The glass look, sharper reads",
     state: "done",
-    text: "The site and the extension get the look they have now, and every token page a link card for X and Telegram.",
+    text: "Vialz gets the look it has now, and every token page gets a link card for X and Telegram. The readings get sharper:",
     items: [
-      "Snipers are the buys of the first 3 seconds after launch",
-      "The dev's own bag: bought, sold, moved, burned, bought back",
-      "Busy tokens with thousands of holders read through Blockscout's index",
+      "Snipers are the buys of the first 3 seconds after launch, measured by the chain's own block pace",
+      "The dev's own bag: what they bought, sold, moved to other wallets or burned",
+      "Busy tokens with thousands of holders are read through Blockscout's index in seconds",
     ],
   },
   {
@@ -39,8 +39,8 @@ const STEPS: Step[] = [
     state: "done",
     text: (
       <>
-        Vialz 1.0.0 passes the Chrome Web Store review. The code opens on <Out href={REPO_URL}>GitHub</Out> under MIT, with a free API anyone can
-        use.
+        Vialz 1.0.0 passes the Chrome Web Store review. The code opens on <Out href={REPO_URL}>GitHub</Out> under MIT, so anyone can see what the
+        extension does, and the API behind it is free to use with no key.
       </>
     ),
   },
@@ -48,13 +48,13 @@ const STEPS: Step[] = [
     when: "Now",
     title: "Launch",
     state: "now",
-    text: "The site and the extension open to everyone, with version 1.0.1 on the Chrome Web Store: it updates every copy by itself. Anyone can check any Robinhood Chain token, free, without a wallet.",
+    text: "The site and the extension open to everyone. Install Vialz from the Chrome Web Store, open any Robinhood Chain token and click the icon: snipers, bundle, holders, linked wallets, the creator and the volume in a few seconds. Free, no wallet, no account. Version 1.0.1 reaches every copy through the store by itself.",
   },
   {
     when: "Next",
     title: "Daily chain recap",
     state: "next",
-    text: "One post a day on X: how many tokens launched on Robinhood Chain, how many had a big bundle or snipers, and how many devs sold early. The whole chain at a glance, from the same readings.",
+    text: "Once a day on X, the chain in numbers: how many tokens launched in the last 24 hours, how many came with a big bundle or snipers still holding, and how many devs sold early. Taken from the same readings as the extension, so every number can be checked against a token's own report.",
   },
   // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
   { when: "Next", title: "", state: "next", text: null, sealed: true },
@@ -62,43 +62,43 @@ const STEPS: Step[] = [
     when: "Next",
     title: "Extension 1.0.2",
     state: "next",
-    text: "A clearer report for the busiest tokens, bigger labels on small screens, and your recent tokens with their vials on the first screen.",
+    text: "Polish from the first days of use. Busy tokens get a report that says plainly what was read and what was not, labels grow on small screens, and the first screen shows your recent tokens with their six vials, so a second look takes one click.",
   },
   {
     when: "Next",
     title: "Vialz DEX",
     state: "next",
-    text: "Our own exchange on vialz.xyz: check a token, then buy it right there, under its report, without leaving for another site. The check itself never asks for a wallet; you connect one only to trade, and the extension stays read-only.",
+    text: "Our own exchange on vialz.xyz. Read a token, then buy it in the same place, right under its report, instead of copying the address to another site. Trading is optional and only on the site: checking never asks for a wallet, you connect one only to trade, and the extension stays read-only.",
   },
   {
     when: "Later",
     title: "Watchlist and alerts",
     state: "next",
-    text: "Keep the tokens you checked on a list, and get a heads-up when something changes: the dev sells, the bundle dumps, a new wallet takes a big share.",
+    text: "Keep the tokens you hold or watch on a list in the extension. Vialz reads them again and tells you when something changes that you would want to know: the dev sells, the bundle starts dumping, one wallet takes a big share.",
   },
   {
     when: "Later",
     title: "Vialz on X",
     state: "next",
-    text: "Tag the account under a post with a contract address and get the readings back in the thread.",
+    text: "Tag @vialzapp under any post with a contract address and get the six vials back in the thread, so everyone reading that post sees them too.",
   },
   {
     when: "Later",
     title: "Vialz on Telegram",
     state: "next",
-    text: "The same check in a Telegram bot: send a contract or a link, get the six vials back, in a chat or in your group.",
+    text: "A Telegram bot with the same check: send it a contract or a link and get the report back. Add it to a group and it answers there, so the whole chat sees the readings before anyone apes.",
   },
   {
     when: "Later",
     title: "More chains",
     state: "next",
-    text: "The same six readings beyond Robinhood Chain: Solana first, then Base and BNB Chain.",
+    text: "The same six readings beyond Robinhood Chain: Solana first, where most launches happen today, then Base and BNB Chain.",
   },
   {
     when: "Later",
     title: "More browsers",
     state: "next",
-    text: "Vialz in the Firefox and Microsoft Edge add-on stores, next to the Chrome Web Store.",
+    text: "Vialz in the Firefox and Microsoft Edge add-on stores. It already runs in Brave, Arc and other Chromium browsers from the Chrome Web Store.",
   },
 ];
 
