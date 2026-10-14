@@ -62,7 +62,7 @@ const STEPS: Step[] = [
     when: "Next",
     title: "Extension 1.0.2",
     state: "next",
-    text: "Polish from the first days of use. Busy tokens get a report that says plainly what was read and what was not, labels grow on small screens, and the first screen shows your recent tokens with their six vials, so a second look takes one click.",
+    text: "Fixes and upgrades from the first days of use. Busy tokens get a report that says plainly what was read and what was not, labels grow on small screens, and the first screen shows your recent tokens with their six vials, so a second look takes one click.",
   },
   {
     when: "Next",
