@@ -45,15 +45,15 @@ const STEPS: Step[] = [
     ),
   },
   {
-    when: "15 October 2026",
+    when: "14 October 2026",
     title: "Launch",
     state: "done",
     text: "The site and the extension open to everyone. Install Vialz from the Chrome Web Store, open any Robinhood Chain token and click the icon: snipers, bundle, holders, linked wallets, the creator and the volume in a few seconds. Free, no wallet, no account. Version 1.0.1 reaches every copy through the store by itself.",
   },
   {
-    when: "15 October 2026",
+    when: "14 October 2026",
     title: "$VIALZ token launch",
-    state: "done",
+    state: "now",
     text: "The Vialz token launches on Pons, on Robinhood Chain, with no presale. Checking tokens stays free for everyone and never needs the token. The creator fees from $VIALZ trading go back into Vialz:",
     items: [
       "40% keeps Vialz running: servers, chain data and indexers",
