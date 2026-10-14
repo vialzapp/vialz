@@ -231,6 +231,12 @@ h1{color:#f3f4f6;font-size:34px;line-height:1.1;margin:0 0 6px}h2{color:#f3f4f6;
 </main></body></html>`;
 const PLACEHOLDER_CSP = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
 
+// One address: www.vialz.xyz (and any www. host) goes to the bare domain, same path, so links and search land on one site
+app.addHook("onRequest", async (req, reply) => {
+  const host = (req.headers.host ?? "").toLowerCase();
+  if (host.startsWith("www.")) return reply.code(301).header("cache-control", "public, max-age=86400").redirect(`https://${host.slice(4)}${req.url}`);
+});
+
 app.addHook("onRequest", async (req, reply) => {
   if (!PREVIEW_KEY) return;
   reply.header("x-robots-tag", "noindex, nofollow");
