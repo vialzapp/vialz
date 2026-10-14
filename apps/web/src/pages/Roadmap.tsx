@@ -5,68 +5,63 @@ import { REPO_URL, STORE_URL, X_URL } from "../brand";
 
 // What is out, what is being built, and every release. Plain facts, no dates promised that are not set.
 
-type Stage = { key: string; name: string; fill: number; items: { title: string; text: ReactNode }[] };
+type Step = { when: string; title: string; state: "done" | "now" | "next"; text: ReactNode; items?: ReactNode[] };
 
-const STAGES: Stage[] = [
+// oldest first: where we were, where we are, what comes
+const STEPS: Step[] = [
   {
-    key: "shipped",
-    name: "Shipped",
-    fill: 1,
+    when: "10 October 2026",
+    title: "First reads",
+    state: "done",
+    text: "Vialz reads a Robinhood Chain token straight from the chain: snipers, the bundle, top holders, linked wallets and the creator's record. The first site and the extension go up the same day.",
+  },
+  {
+    when: "11 October 2026",
+    title: "Ready for the store",
+    state: "done",
+    text: "The extension opens from the toolbar and reads the token of the page you are on. Reads get faster, the privacy policy goes up, and version 1.0.0 is sent to the Chrome Web Store.",
+  },
+  {
+    when: "12–13 October 2026",
+    title: "The glass look, sharper reads",
+    state: "done",
+    text: "The site and the extension get the look they have now, and every token page a link card for X and Telegram.",
     items: [
-      {
-        title: "Chrome extension",
-        text: "Six vials for any Robinhood Chain token, read the moment you click. On gmgn, fomo, DexScreener and the explorer it picks up the token by itself.",
-      },
-      {
-        title: "Full reports on the site",
-        text: "Every token has its own page at vialz.xyz/t/… with the full report, and a link card that shows the readings when it is shared.",
-      },
-      {
-        title: "Open source and a free API",
-        text: (
-          <>
-            The extension, the site and the server are on <Out href={REPO_URL}>GitHub</Out> under MIT. The same API the extension uses is open to
-            anyone, no key: see the <Link href="/docs#api">docs</Link>.
-          </>
-        ),
-      },
+      "Snipers are the buys of the first 3 seconds after launch",
+      "The dev's own bag: bought, sold, moved, burned, bought back",
+      "Busy tokens with thousands of holders read through Blockscout's index",
     ],
   },
   {
-    key: "now",
-    name: "Now",
-    fill: 0.6,
-    items: [
-      { title: "Extension 1.0.1", text: "In Chrome Web Store review. It installs itself on every copy once it is approved. See Updates below." },
-      {
-        title: "Daily chain recap",
-        text: "One post a day on X: how many tokens launched on Robinhood Chain, how many with a big bundle, snipers or a dev who sold early.",
-      },
-    ],
+    when: "14 October 2026",
+    title: "Launch",
+    state: "done",
+    text: (
+      <>
+        Vialz 1.0.0 passes the Chrome Web Store review and goes live. The code opens on <Out href={REPO_URL}>GitHub</Out> under MIT, with a free API
+        anyone can use.
+      </>
+    ),
   },
   {
-    key: "next",
-    name: "Next",
-    fill: 0.35,
-    items: [
-      {
-        title: "Buy after the check",
-        text: "A swap on vialz.xyz, right under the report: read the token, then buy it in the same place. Optional, and only on the site. The check itself never asks for a wallet, and the extension stays read-only.",
-      },
-      {
-        title: "Extension 1.0.2",
-        text: "A clearer report for the busiest tokens, bigger labels on small screens, and recent tokens on the first screen.",
-      },
-    ],
+    when: "Now",
+    title: "1.0.1 and a daily recap",
+    state: "now",
+    text: "Version 1.0.1 is in Chrome Web Store review and reaches every copy by itself once approved. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
   },
   {
-    key: "later",
-    name: "Later",
-    fill: 0,
-    items: [
-      { title: "More chains", text: "The same six readings beyond Robinhood Chain, Solana first." },
-      { title: "Vialz on X", text: "Tag the account under a post with a contract address and get the readings back in the thread." },
-    ],
+    when: "Next",
+    title: "Buy after the check",
+    state: "next",
+    text: "A swap on vialz.xyz, right under the report: read the token, then buy it in the same place. Optional and only on the site: the check never asks for a wallet, and the extension stays read-only.",
+    items: ["Extension 1.0.2: a clearer report for the busiest tokens, bigger labels on small screens, recent tokens on the first screen"],
+  },
+  {
+    when: "Later",
+    title: "Beyond Robinhood Chain",
+    state: "next",
+    text: "The same six readings on more chains, Solana first.",
+    items: ["Vialz on X: tag the account under a post with a contract address and get the readings back in the thread"],
   },
 ];
 
@@ -118,29 +113,35 @@ export function Roadmap() {
           <div className="faq-head">
             <h1>Roadmap</h1>
             <p>
-              What Vialz does today, what comes next, and every release. Checking a token stays free and never asks for a wallet. News first on{" "}
+              Where Vialz started, where it is now and what comes next. Checking a token stays free and never asks for a wallet. News first on{" "}
               <Out href={X_URL}>@vialzapp</Out>.
             </p>
           </div>
 
-          <div className="road">
-            {STAGES.map((s) => (
-              <section key={s.key} className={`road-stage road-${s.key}`} aria-label={s.name}>
-                <h2>
-                  <Vessel className="road-vial" level={s.fill} fill="var(--ink-2)" glass="var(--glass)" stroke={22} />
-                  {s.name}
-                </h2>
-                <ul>
-                  {s.items.map((i) => (
-                    <li key={i.title}>
-                      <b>{i.title}</b>
-                      <p>{i.text}</p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+          <ol className="road">
+            {STEPS.map((st) => (
+              <li key={st.title} className={`road-step road-${st.state}`}>
+                <span className="road-node" aria-hidden>
+                  <Vessel className="road-vial" level={st.state === "done" ? 1 : st.state === "now" ? 0.55 : 0} fill="var(--node)" glass="var(--node-glass)" stroke={24} />
+                </span>
+                <div className="road-body">
+                  <p className="road-when">
+                    {st.when}
+                    {st.state === "now" && <span className="road-here">You are here</span>}
+                  </p>
+                  <h2>{st.title}</h2>
+                  <p>{st.text}</p>
+                  {st.items && (
+                    <ul>
+                      {st.items.map((i, k) => (
+                        <li key={k}>{i}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
