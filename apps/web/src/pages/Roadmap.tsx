@@ -48,23 +48,57 @@ const STEPS: Step[] = [
     when: "Now",
     title: "Launch",
     state: "now",
-    text: "The site and the extension open to everyone, with version 1.0.1 on the Chrome Web Store: it updates every copy by itself. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
+    text: "The site and the extension open to everyone, with version 1.0.1 on the Chrome Web Store: it updates every copy by itself. Anyone can check any Robinhood Chain token, free, without a wallet.",
+  },
+  {
+    when: "Next",
+    title: "Daily chain recap",
+    state: "next",
+    text: "One post a day on X: how many tokens launched on Robinhood Chain, how many had a big bundle or snipers, and how many devs sold early. The whole chain at a glance, from the same readings.",
   },
   // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
   { when: "Next", title: "", state: "next", text: null, sealed: true },
   {
     when: "Next",
+    title: "Extension 1.0.2",
+    state: "next",
+    text: "A clearer report for the busiest tokens, bigger labels on small screens, and your recent tokens with their vials on the first screen.",
+  },
+  {
+    when: "Next",
     title: "Vialz DEX",
     state: "next",
     text: "Our own exchange on vialz.xyz: check a token, then buy it right there, under its report, without leaving for another site. The check itself never asks for a wallet; you connect one only to trade, and the extension stays read-only.",
-    items: ["Extension 1.0.2: a clearer report for the busiest tokens, bigger labels on small screens, recent tokens on the first screen"],
   },
   {
     when: "Later",
-    title: "Beyond Robinhood Chain",
+    title: "Watchlist and alerts",
     state: "next",
-    text: "The same six readings on more chains, Solana first.",
-    items: ["Vialz on X: tag the account under a post with a contract address and get the readings back in the thread"],
+    text: "Keep the tokens you checked on a list, and get a heads-up when something changes: the dev sells, the bundle dumps, a new wallet takes a big share.",
+  },
+  {
+    when: "Later",
+    title: "Vialz on X",
+    state: "next",
+    text: "Tag the account under a post with a contract address and get the readings back in the thread.",
+  },
+  {
+    when: "Later",
+    title: "Vialz on Telegram",
+    state: "next",
+    text: "The same check in a Telegram bot: send a contract or a link, get the six vials back, in a chat or in your group.",
+  },
+  {
+    when: "Later",
+    title: "More chains",
+    state: "next",
+    text: "The same six readings beyond Robinhood Chain: Solana first, then Base and BNB Chain.",
+  },
+  {
+    when: "Later",
+    title: "More browsers",
+    state: "next",
+    text: "Vialz in the Firefox and Microsoft Edge add-on stores, next to the Chrome Web Store.",
   },
 ];
 
