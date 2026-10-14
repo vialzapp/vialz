@@ -78,7 +78,8 @@ export interface TokenReport {
     count: number;
     top10Pct: number; // wallets only: curve, pools, burn, launchpad and other contracts excluded
     top: Holder[];
-    creatorPct: number;
+    creatorPct: number; // 0 when not read: check creatorRead
+    creatorRead?: boolean; // false: the creator's balance could not be read this time (a busy token); older reports omit it
     partial: boolean; // transfer history too large to read completely
   };
 
@@ -264,8 +265,8 @@ export function padsFor(r: TokenReport): Pad[] {
         key: "creator",
         label: "Creator",
         level: r.holders.creatorPct >= 5 ? "warn" : "none",
-        reading: r.creator ? `holds ${pct(r.holders.creatorPct)}` : "unknown",
-        short: r.creator ? pct(r.holders.creatorPct) : "n/a",
+        reading: r.creator && r.holders.creatorRead !== false ? `holds ${pct(r.holders.creatorPct)}` : "unknown",
+        short: r.creator && r.holders.creatorRead !== false ? pct(r.holders.creatorPct) : "n/a",
       }
     : {
         key: "creator",

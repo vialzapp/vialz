@@ -1048,3 +1048,23 @@
     font-size: 15px;
   }
 }
+
+/* a reading still on its way (the creator's record comes in after the rest): it breathes, so it reads as loading */
+.strip-pending {
+  animation: strip-pending 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes strip-pending {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strip-pending {
+    animation: none;
+  }
+}

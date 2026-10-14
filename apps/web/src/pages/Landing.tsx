@@ -130,8 +130,8 @@ function Rack({ report, title, caption, more = true }: { report: TokenReport | n
                   )}
                 </div>
                 <b className="rack-label">{p?.label ?? label}</b>
-                <span className="rack-reading">{p?.short ?? "…"}</span>
-                <span className="rack-level">{p ? READ[level] : "reading"}</span>
+                <span className={`rack-reading${!p || p.short === "…" ? " strip-pending" : ""}`}>{p?.short ?? "…"}</span>
+                <span className={`rack-level${p?.short === "…" ? " strip-pending" : ""}`}>{p && p.short !== "…" ? READ[level] : "reading"}</span>
               </div>
             );
           })}

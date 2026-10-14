@@ -165,6 +165,8 @@ async function readFacts(token: Address): Promise<Facts> {
   if (quoteAddr && !quoteMetas.has(quoteAddr) && res("quoteDecimals") != null)
     quoteMetas.set(quoteAddr, [decodeString(res("quoteSymbol")) || "?", Number(decodeUint(res("quoteDecimals")) ?? 18n)]);
   const quote = quoteAddr ? quoteMetas.get(quoteAddr) : undefined;
+  // without the quote token's decimals every amount would be off by up to 1e12 and labelled ETH: fail and read again
+  if (quoteAddr && !quote) throw new Error("quote token metadata not read");
 
   return {
     h,
@@ -396,20 +398,27 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
   );
   // the index gives who the biggest holders are (kept a while); the balances that drive the readings are read from the
   // token now: the ten biggest (so the Top 10 share is current), and the snipers', the bundle's and the creator's
+  // (always read again, even when the index lists them: its rows can be an hour old)
   let exact = !idx;
   if (idx) {
-    const others = [...new Set([...snipeWallets, ...bundle, ...(creator ? [creator] : [])])].filter((a) => !balances.has(a)).slice(0, 80);
+    const targets = [...new Set([...snipeWallets, ...bundle, ...(creator ? [creator] : [])])];
+    const others = targets.slice(0, 80);
     // the ten biggest only: the public node turns away bigger batches, and these ten make the Top 10 share
     const want = [...new Set([...idx.top.slice(0, 10).map((t) => t.address), ...others])];
     const res = want.length
       ? await batch(want.map((a) => ["eth_call", [{ to: token, data: "0x70a08231" + topicAddress(a).slice(2) }, "latest"]] as [string, unknown[]])).catch(() => null)
       : [];
     if (res) {
+      const fresh = new Set<string>();
       want.forEach((a, i) => {
         const v = res[i];
-        if (typeof v === "string" && v.startsWith("0x") && v.length > 2) balances.set(a, BigInt(v));
+        if (typeof v === "string" && v.startsWith("0x") && v.length > 2) {
+          balances.set(a, BigInt(v));
+          fresh.add(a);
+        }
       });
-      exact = others.every((a) => balances.has(a));
+      // exact only when every sniper, bundle and creator balance was read now; too many to read is not exact either
+      exact = targets.length === others.length && others.every((a) => fresh.has(a));
     }
   }
   const pairAddresses = new Set(pairs.map((p) => p.pairAddress.toLowerCase()));
@@ -614,6 +623,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     }
   }
 
+  const creatorRead = Boolean(creator) && (!partial || Boolean(idx && exact));
   const report: TokenReport = {
     address: token,
     chainId: CHAIN_ID,
@@ -629,7 +639,7 @@ export async function analyzeToken(token: Address): Promise<TokenReport> {
     links: { x: safeUrl(info?.x), telegram: safeUrl(info?.telegram), website: safeUrl(info?.website), image: ipfsCid(info?.image) },
     launch,
     market,
-    holders: { count: idx ? idx.count : held.length, top10Pct, top, creatorPct: creator && (!partial || (idx && exact)) ? balancePct(creator) : 0, partial },
+    holders: { count: idx ? idx.count : held.length, top10Pct, top, creatorPct: creatorRead ? balancePct(creator!) : 0, creatorRead: !creator || creatorRead, partial },
     snipers,
     bundle: bundleInfo,
     clusters,
@@ -911,7 +921,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     const level = s.wallets === 0 ? "good" : s.holdPct >= 10 ? "danger" : s.holdPct >= 3 ? "warn" : "info";
     f.push({
       level,
-      text: s.wallets === 0 ? "No snipers in the first 3 seconds" : `${s.wallets} snipers took ${fmt(s.boughtPct)}% at launch, ${s.holdPct >= 0.05 ? `still hold ${fmt(s.holdPct)}%` : "all sold"}`,
+      text: s.wallets === 0 ? "No snipers in the first 3 seconds" : `${s.wallets} ${s.wallets === 1 ? "sniper" : "snipers"} took ${fmt(s.boughtPct)}% at launch, ${s.holdPct >= 0.05 ? `still hold ${fmt(s.holdPct)}%` : "all sold"}`,
     });
   }
   if (r.bundle) {
@@ -919,7 +929,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
     const level = b.wallets === 0 ? "good" : b.holdPct >= 5 ? "danger" : b.holdPct >= 1 ? "warn" : "info";
     f.push({
       level,
-      text: b.wallets === 0 ? "No declared bundle" : `Bundle of ${b.wallets} wallets at launch, ${b.holdPct >= 0.05 ? `holds ${fmt(b.holdPct)}%` : "all sold"}`,
+      text: b.wallets === 0 ? "No declared bundle" : `Bundle of ${b.wallets} ${b.wallets === 1 ? "wallet" : "wallets"} at launch, ${b.holdPct >= 0.05 ? `holds ${fmt(b.holdPct)}%` : "all sold"}`,
     });
   }
   if (r.launch) {
@@ -961,7 +971,7 @@ function flagsFor(r: TokenReport, creatorSold: number, now: number): Flag[] {
         ? "Busy token: holders from Blockscout's index, linked wallets and volume not read"
         : "Too many transfers to read holders in one pass",
     });
-  if (r.holders.creatorPct >= 5) f.push({ level: "warn", text: `Creator holds ${fmt(r.holders.creatorPct)}%` });
+  if (r.holders.creatorRead !== false && r.holders.creatorPct >= 5) f.push({ level: "warn", text: `Creator holds ${fmt(r.holders.creatorPct)}%` });
   if (r.holders.top10Pct >= 50) f.push({ level: "danger", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });
   else if (r.holders.top10Pct >= 30) f.push({ level: "warn", text: `Top 10 wallets hold ${fmt(r.holders.top10Pct)}%` });
 

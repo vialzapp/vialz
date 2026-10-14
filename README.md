@@ -40,7 +40,7 @@ Developer mode, Load unpacked). To build it yourself: `cd apps/extension && npx 
 | `CLIENT_IP_HEADER` | none | header the hosting edge sets to the connecting IP (`x-real-ip` on Railway). Behind the Cloudflare proxy the visitor's `CF-Connecting-IP` is used, only for connections from Cloudflare's ranges |
 | `TRUST_PROXY_HOPS` | 0 | trusted proxies in X-Forwarded-For, for hosts whose edge rewrites that header |
 | `TOKEN_PER_MINUTE` | 15 | token reports per client IP per minute |
-| `MAX_RUNNING` / `MAX_WAITING` | 3 / 24 | fresh chain reads at once, and how many may wait before clients get 503 |
+| `MAX_RUNNING` / `MAX_WAITING` | 5 / 40 | fresh chain reads at once, and how many may wait before clients get 503 |
 | `VITE_API_URL` | build time, extension | API origin the extension calls |
 
 ## Official links

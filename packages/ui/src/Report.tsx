@@ -128,8 +128,8 @@ function LaunchSection({ r }: { r: TokenReport }) {
         <Value label="Paired with" value={quote} />
         <Value label="Dev buy" value={r.launch.devBuy == null ? "n/a" : r.launch.devBuy === 0 ? "none" : `${trim(r.launch.devBuy)} ${quote}`} />
         <Value label="Creator tax" value={r.launch.creatorTaxBps != null ? `${(r.launch.creatorTaxBps / 100).toFixed(1)}%` : "n/a"} />
-        <Value label="Snipers bought" value={r.snipers ? (r.snipers.wallets ? `${formatPct(r.snipers.boughtPct)}, ${r.snipers.wallets} wallets` : "none") : "n/a"} />
-        <Value label="Bundle holds" value={!r.bundle ? "n/a" : r.bundle.wallets ? `${formatPct(r.bundle.holdPct)}, ${r.bundle.wallets} wallets` : "none"} />
+        <Value label="Snipers bought" value={r.snipers ? (r.snipers.wallets ? `${formatPct(r.snipers.boughtPct)}, ${r.snipers.wallets} ${r.snipers.wallets === 1 ? "wallet" : "wallets"}` : "none") : "n/a"} />
+        <Value label="Bundle holds" value={!r.bundle ? "n/a" : r.bundle.wallets ? `${formatPct(r.bundle.holdPct)}, ${r.bundle.wallets} ${r.bundle.wallets === 1 ? "wallet" : "wallets"}` : "none"} />
         <Value
           label="Fees go to"
           value={r.launch.feeRecipient ? (r.launch.feeRecipient === r.creator ? "the creator" : shortAddress(r.launch.feeRecipient)) : "n/a"}
@@ -188,7 +188,9 @@ function LinkedSection({ r }: { r: TokenReport }) {
         <p className="vz-empty">
           {r.fundingStatus === "pending"
             ? "Checking where the top holders got their ETH. This fills in within a minute."
-            : "No wallet handed this token out to three or more holders who still hold it."}
+            : r.holders.partial
+              ? "Not read for this token: it has too many transfers to read in one pass."
+              : "No wallet handed this token out to three or more holders who still hold it."}
         </p>
       ) : (
         <ul className="vz-clusters">
@@ -316,7 +318,7 @@ function CreatorSection({ r, onOpenToken }: { r: TokenReport; onOpenToken?: (add
             <Value label="Pons launches" value={r.dev.launches.toLocaleString("en-US")} />
             <Value label="Graduated" value={`${r.dev.graduated}`} />
             <Value label="Sold early" value={r.dev.checked ? `${r.dev.sold} of last ${r.dev.checked}` : r.dev.launches === 1 ? "n/a, first launch" : "n/a"} />
-            {!r.creatorPosition && <Value label="Holds now" value={r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />}
+            {!r.creatorPosition && <Value label="Holds now" value={r.holders.creatorRead === false ? "n/a" : r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />}
           </dl>
           {r.dev.recent.length > 0 && (
             <ul className="vz-prior">
@@ -340,7 +342,7 @@ function CreatorSection({ r, onOpenToken }: { r: TokenReport; onOpenToken?: (add
       ) : (
         <dl className="vz-values">
           <Value label="Deployer" value={shortAddress(r.creator)} />
-          <Value label="Holds now" value={r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />
+          <Value label="Holds now" value={r.holders.creatorRead === false ? "n/a" : r.holders.creatorPct === 0 ? "0%" : formatPct(r.holders.creatorPct)} />
         </dl>
       )}
     </Section>

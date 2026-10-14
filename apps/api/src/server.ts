@@ -19,14 +19,14 @@ const TTL_MS = 15_000;
 // A report older than TTL but younger than this is still answered at once, while a fresh read runs behind it: a token
 // everyone is checking (a link going round on X) answers instantly, a few seconds to minutes old.
 const STALE_MS = 5 * 60_000;
-type Entry = { at: number; report: Promise<TokenReport>; value?: TokenReport; refreshing?: boolean };
+type Entry = { at: number; readAt?: number; report: Promise<TokenReport>; value?: TokenReport; refreshing?: boolean };
 const cache = new Map<string, Entry>();
 
 // Fresh reads of the chain are the expensive part. A few run at once, a short queue waits, the rest are told to retry:
 // one busy client can slow the service down but cannot pile up unbounded work or memory.
-const MAX_RUNNING = Number(process.env.MAX_RUNNING ?? 3);
+const MAX_RUNNING = Number(process.env.MAX_RUNNING ?? 5);
 const REPORT_BUDGET_MS = 30_000; // no report, and no RPC call made for it, outlives this
-const MAX_WAITING = Number(process.env.MAX_WAITING ?? 24);
+const MAX_WAITING = Number(process.env.MAX_WAITING ?? 40);
 let running = 0;
 const waiting: (() => void)[] = [];
 
@@ -99,7 +99,8 @@ function report(address: string): Promise<TokenReport> {
     return hit.report;
   }
   // a recent settled report is answered now; one fresh read runs behind it and replaces it when done
-  if (hit?.value && !isPending(hit.value) && Date.now() - hit.at < STALE_MS) {
+  // (measured from the last good read: failed refreshes never keep an old report alive past STALE_MS)
+  if (hit?.value && !isPending(hit.value) && Date.now() - (hit.readAt ?? hit.at) < STALE_MS) {
     if (!hit.refreshing) {
       hit.refreshing = true;
       gated(() => requestDeadline.run(Date.now() + REPORT_BUDGET_MS, () => analyzeToken(address as `0x${string}`))).then(
@@ -107,7 +108,7 @@ function report(address: string): Promise<TokenReport> {
           if (cache.get(address) !== hit) return;
           hit.value = r;
           hit.report = Promise.resolve(r);
-          hit.at = Date.now();
+          hit.at = hit.readAt = Date.now();
           hit.refreshing = false;
           noteImage(r.links.image);
         },
@@ -128,6 +129,7 @@ function report(address: string): Promise<TokenReport> {
     (r) => {
       if (!mine()) return;
       entry.value = r;
+      entry.readAt = Date.now();
       noteImage(r.links.image);
       // fresh for TTL from when the read finished; a report still waiting on funding is kept short so polls pick it
       // up (the creator's record needs no new read: see above)
@@ -152,7 +154,7 @@ const app = Fastify({
   logger: {
     level: process.env.LOG_LEVEL ?? "info",
     serializers: {
-      req: (req: { method: string; url: string }) => ({ method: req.method, url: req.url }),
+      req: (req: { method: string; url: string }) => ({ method: req.method, url: req.url.replace(/([?&]preview=)[^&]*/, "$1…") }),
     },
   },
   trustProxy: (_address: string, hop: number) => hop < TRUST_HOPS,
@@ -240,7 +242,13 @@ app.addHook("onRequest", async (req, reply) => {
     return reply.code(302).header("cache-control", "no-store").redirect(url.pathname + url.search);
   }
   const cookie = cookieOf(req.headers.cookie, PREVIEW_COOKIE);
-  if (isKey(cookie ? decodeURIComponent(cookie) : null)) return;
+  let cookieValue: string | null = null;
+  try {
+    cookieValue = cookie ? decodeURIComponent(cookie) : null;
+  } catch {
+    // a malformed cookie is just not the key
+  }
+  if (isKey(cookieValue)) return;
   if (url.pathname.startsWith("/v1/")) {
     if ((req.headers.origin ?? "").startsWith("chrome-extension://") || url.pathname.startsWith("/v1/img/")) return;
     return reply.code(404).header("cache-control", "no-store").send({ error: "not_found", message: "Not found." });
@@ -358,6 +366,19 @@ app.get<{ Params: { address: string } }>("/v1/token/:address/quick", perMinute(1
 // The link card of a token page. Drawn once and kept: ten minutes for a settled report, half a minute while parts
 // of it are still being read.
 const cards = new Map<string, { at: number; ttl: number; png: Promise<Buffer> }>();
+// drawing a card is CPU work on the one event loop: at most two at a time, the rest wait their turn
+let drawing = 0;
+const drawQueue: (() => void)[] = [];
+async function drawCard(draw: () => Promise<Buffer>): Promise<Buffer> {
+  if (drawing >= 2) await new Promise<void>((ok) => drawQueue.push(ok));
+  drawing++;
+  try {
+    return await draw();
+  } finally {
+    drawing--;
+    drawQueue.shift()?.();
+  }
+}
 async function cardImage(r: TokenReport) {
   const cid = r.links.image;
   if (!cid || !CID_RE.test(cid)) return null;
@@ -392,13 +413,14 @@ app.get<{ Params: { file: string } }>("/og/:file", perMinute(60), async (req, re
     const img = await cardImage(r);
     const settled = !isPending(r) && (img != null || !r.links.image);
     const done = r;
-    hit = { at: Date.now(), ttl: settled ? 600_000 : 30_000, png: tokenCard(done, img) };
+    hit = { at: Date.now(), ttl: settled ? 600_000 : 30_000, png: drawCard(() => tokenCard(done, img)) };
     cards.set(address, hit);
     hit.png.catch(() => cards.delete(address));
     if (cards.size > 300) cards.delete(cards.keys().next().value!);
   }
   const png = await hit.png;
-  reply.header("content-type", "image/png").header("cache-control", "public, max-age=600");
+  // the edge keeps a card as long as we do: a card drawn before the picture or the creator's record came in is short-lived
+  reply.header("content-type", "image/png").header("cache-control", `public, max-age=${Math.round(hit.ttl / 1000)}`);
   return reply.send(png);
 });
 
@@ -427,9 +449,9 @@ async function tokenPage(address: `0x${string}`, crawler: boolean, base: string)
   const url = `${base}/t/${address}`;
   const img = `${base}/og/${address}.png`;
   const set = (html: string, attr: "property" | "name", key: string, value: string) =>
-    html.replace(new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`), `$1${esc(value)}$2`);
+    html.replace(new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`), (_m, a: string, b: string) => a + esc(value) + b);
   let html = indexHtml!;
-  html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
+  html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${esc(title)}</title>`);
   html = set(html, "property", "og:title", title);
   html = set(html, "property", "og:description", desc);
   html = set(html, "property", "og:url", url);

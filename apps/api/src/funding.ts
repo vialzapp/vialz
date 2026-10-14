@@ -13,7 +13,7 @@ const DAILY_BUDGET = Number(process.env.ETHERSCAN_DAILY_BUDGET ?? 80_000);
 const budget = { day: "", used: 0 };
 let last = 0;
 
-// Off unless FUNDING=on: Etherscan's free API stopped answering account queries on Robinhood Chain on 16 October 2026,
+// Off unless FUNDING=on: Etherscan's free API stops answering account queries on Robinhood Chain from 16 October 2026,
 // and a lookup that fails would keep reports waiting. Linked wallets then come from the token's own transfers only.
 const ON = process.env.FUNDING === "on";
 

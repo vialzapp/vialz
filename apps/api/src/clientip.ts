@@ -43,9 +43,20 @@ const isCloudflare = (ip: string) => {
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() || undefined;
 
-/** `edgeHeader` is the header the host's edge sets to the connecting address (x-real-ip on Railway). */
+/** One home or phone gets a whole IPv6 /64, so per-client limits count the /64, not each of its addresses. */
+export function rateKey(ip: string): string {
+  if (!isIPv6(ip) || ip.startsWith("::ffff:")) return ip;
+  const [head = "", tail = ""] = ip.split("::");
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const groups = ip.includes("::") ? [...left, ...Array(8 - left.length - right.length).fill("0"), ...right] : left;
+  return `${groups.slice(0, 4).map((g) => parseInt(g || "0", 16).toString(16)).join(":")}::/64`;
+}
+
+/** `edgeHeader` is the header the host's edge sets to the connecting address (x-real-ip on Railway). The answer is a
+ *  rate-limit key: an IPv4 address, or an IPv6 /64. */
 export function clientIp(req: { ip: string; headers: Record<string, string | string[] | undefined> }, edgeHeader?: string): string {
   const peer = (edgeHeader && one(req.headers[edgeHeader])) || req.ip;
   const visitor = one(req.headers["cf-connecting-ip"]);
-  return visitor && isCloudflare(peer) ? visitor : peer;
+  return rateKey(visitor && isCloudflare(peer) ? visitor : peer);
 }

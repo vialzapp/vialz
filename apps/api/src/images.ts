@@ -52,6 +52,48 @@ async function fromGateway(gateway: string, cid: string, ctrl: AbortController):
   return { type, body };
 }
 
+// A small file can unpack into gigabytes (a "decompression bomb"): the size in pixels is read from the file's header
+// before anything decodes it, and a picture too big, or of a kind whose size cannot be read, is never used.
+const MAX_SIDE = 8192;
+const MAX_PIXELS = 16_000_000;
+
+/** Width and height from a PNG, GIF, JPEG or WebP header; null for anything else. */
+export function imageSize(b: Buffer): { w: number; h: number } | null {
+  if (b.length >= 24 && b.readUInt32BE(0) === 0x89504e47 && b.toString("latin1", 12, 16) === "IHDR") return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  if (b.length >= 10 && b.toString("latin1", 0, 3) === "GIF") return { w: b.readUInt16LE(6), h: b.readUInt16LE(8) };
+  if (b.length >= 30 && b.toString("latin1", 0, 4) === "RIFF" && b.toString("latin1", 8, 12) === "WEBP") {
+    const kind = b.toString("latin1", 12, 16);
+    if (kind === "VP8X") return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
+    if (kind === "VP8L") {
+      const bits = b.readUInt32LE(21);
+      return { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1 };
+    }
+    if (kind === "VP8 ") return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+    return null;
+  }
+  if (b.length >= 4 && b[0] === 0xff && b[1] === 0xd8) {
+    // walk the JPEG segments to the first frame header (SOF0-SOF15, not DHT/JPG/DAC)
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return null;
+      const marker = b[i + 1]!;
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+        i += 2;
+        continue;
+      }
+      const len = b.readUInt16BE(i + 2);
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) return { w: b.readUInt16BE(i + 7), h: b.readUInt16BE(i + 5) };
+      i += 2 + len;
+    }
+  }
+  return null;
+}
+
+const safeSize = (b: Buffer) => {
+  const d = imageSize(b);
+  return d != null && d.w > 0 && d.h > 0 && d.w <= MAX_SIDE && d.h <= MAX_SIDE && d.w * d.h <= MAX_PIXELS;
+};
+
 /** A big image redrawn as a 400 px PNG, cropped to a square like every avatar slot that shows it; null if it cannot be
  *  decoded (then the original is kept only when it is small enough). */
 function shrink(img: Img): Img | null {
@@ -71,6 +113,7 @@ async function fetchImage(cid: string): Promise<Img | null> {
   try {
     const img = await Promise.any(GATEWAYS.map((g, i) => fromGateway(g, cid, ctrls[i]!)));
     ctrls.forEach((c) => c.abort()); // stop the slower gateways
+    if (!safeSize(img.body)) return null; // too big in pixels, or a size we cannot read: never decoded, here or in a link card
     if (img.body.length <= KEEP_BYTES) return img;
     return shrink(img) ?? (img.body.length <= 3 * 1024 * 1024 ? img : null);
   } catch {

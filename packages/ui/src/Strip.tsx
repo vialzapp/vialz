@@ -47,7 +47,7 @@ export function Strip({ pads, size = "m" }: { pads: Pad[]; size?: "m" | "l" }) {
           <span className="strip-label" aria-hidden>
             {p.label}
           </span>
-          <span className="strip-reading" aria-hidden>
+          <span className={`strip-reading${p.short === "…" ? " strip-pending" : ""}`} aria-hidden>
             {p.short}
           </span>
         </div>
