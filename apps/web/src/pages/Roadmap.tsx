@@ -35,20 +35,20 @@ const STEPS: Step[] = [
   },
   {
     when: "14 October 2026",
-    title: "Launch",
+    title: "Through the review",
     state: "done",
     text: (
       <>
-        Vialz 1.0.0 passes the Chrome Web Store review and goes live. The code opens on <Out href={REPO_URL}>GitHub</Out> under MIT, with a free API
-        anyone can use.
+        Vialz 1.0.0 passes the Chrome Web Store review. The code opens on <Out href={REPO_URL}>GitHub</Out> under MIT, with a free API anyone can
+        use.
       </>
     ),
   },
   {
     when: "Now",
-    title: "Open to everyone",
+    title: "Launch",
     state: "now",
-    text: "The site and the extension are open to everyone, and version 1.0.1 is live on the Chrome Web Store: it updates every copy by itself. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
+    text: "The site and the extension open to everyone, with version 1.0.1 on the Chrome Web Store: it updates every copy by itself. On X, one post a day: what launched on Robinhood Chain and how many launches had a big bundle, snipers or a dev who sold early.",
   },
   // sealed: shown as a step, with nothing in it to read (placeholder bars, no text in the page or the code)
   { when: "Next", title: "", state: "next", text: null, sealed: true },
